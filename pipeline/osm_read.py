@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import gc
 import os
+import re
 import time
 from array import array
 from dataclasses import dataclass, field
@@ -60,6 +61,27 @@ def scenery_kind(tags) -> str | None:
     return None
 
 
+OFFROAD_WORDS = re.compile(r"(orv|ohv|off[- ]?road|motocross|mx|atv|dirt bike|raceway|speedway|motorsports?|mud ?park|4x4)", re.I)
+OFFROAD_SPORTS = {"motocross", "4wd", "offroad", "atv", "motor", "karting", "enduro", "dirt_bike", "trial"}
+
+
+def venue_kind(tags) -> str | None:
+    """Areas a public-road driver should know about: off-road parks, parks, fee areas, neighborhoods."""
+    name = tags.get("name", "")
+    sport = set(tags.get("sport", "").split(";"))
+    if sport & OFFROAD_SPORTS or (name and OFFROAD_WORDS.search(name)) or tags.get("leisure") == "track":
+        return "offroad"
+    if tags.get("fee") == "yes":
+        return "fee"
+    if tags.get("leisure") in ("park", "recreation_ground") or tags.get("landuse") == "recreation_ground":
+        return "park"
+    if tags.get("boundary") == "protected_area" and "park" in name.lower():
+        return "park"
+    if tags.get("landuse") == "residential":
+        return "residential"
+    return None
+
+
 def _polygon_from_lines(lines):
     if not lines:
         return None
@@ -81,6 +103,10 @@ class OsmData:
     byway_members: set = field(default_factory=set)   # way ids in scenic byway routes
     byway_names: dict = field(default_factory=dict)   # way id -> route name
     states: dict = field(default_factory=dict)        # state name -> shapely geom (lon/lat)
+    venues: dict = field(default_factory=dict)        # (kind, area id) -> (shapely geom, name)
+    building_lon: array = field(default_factory=lambda: array("d"))
+    building_lat: array = field(default_factory=lambda: array("d"))
+    service_refs: array = field(default_factory=lambda: array("q"))  # nodes where service roads (driveways) attach
 
 
 def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
@@ -89,6 +115,7 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
     box = shapely.box(w, s, e, n)
     data = OsmData()
     seen_drivable: set[int] = set()
+    seen_buildings: set[int] = set()
     wkb = osmium.geom.WKBFactory()
     tmp_dir.mkdir(parents=True, exist_ok=True)
     boundary_rels: dict[int, tuple] = {}
@@ -108,11 +135,11 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
         fp = (
             osmium.FileProcessor(str(path))
             .with_locations(f"sparse_file_array,{cache}")
-            .with_areas(osmium.filter.KeyFilter("landuse", "natural", "boundary", "leisure", "waterway"))
+            .with_areas(osmium.filter.KeyFilter("landuse", "natural", "boundary", "leisure", "waterway", "sport", "fee"))
             .with_filter(
                 osmium.filter.KeyFilter(
                     "highway", "landuse", "natural", "waterway", "boundary",
-                    "leisure", "railway", "route", "place",
+                    "leisure", "railway", "route", "place", "building", "sport", "fee",
                 )
             )
         )
@@ -135,6 +162,21 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
             elif obj.is_way():
                 tags = obj.tags
                 hw = tags.get("highway")
+                if "building" in tags:
+                    nodes = obj.nodes
+                    loc = nodes[0].location
+                    if loc.valid() and inside(loc.lon, loc.lat) and obj.id not in seen_buildings:
+                        seen_buildings.add(obj.id)
+                        data.building_lon.append(loc.lon)
+                        data.building_lat.append(loc.lat)
+                    continue
+                if hw == "service":
+                    nodes = obj.nodes
+                    first, last = nodes[0], nodes[len(nodes) - 1]
+                    if first.location.valid() and inside(first.location.lon, first.location.lat):
+                        data.service_refs.append(first.ref)
+                        data.service_refs.append(last.ref)
+                    continue
                 if hw in DRIVABLE:
                     nodes = obj.nodes
                     first = nodes[0].location
@@ -211,7 +253,18 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
                                 data.byway_names.setdefault(m.ref, name)
 
             elif obj.is_area():
-                kind = scenery_kind(obj.tags)
+                tags = obj.tags
+                if "building" in tags:
+                    continue
+                vkind = venue_kind(tags)
+                if vkind and (vkind, obj.id) not in data.venues:
+                    try:
+                        vgeom = shapely.from_wkb(wkb.create_multipolygon(obj))
+                        if vgeom.intersects(box):
+                            data.venues[(vkind, obj.id)] = (vgeom, tags.get("name", ""))
+                    except Exception:
+                        pass
+                kind = scenery_kind(tags)
                 if kind is None:
                     continue
                 key = (kind, obj.id)

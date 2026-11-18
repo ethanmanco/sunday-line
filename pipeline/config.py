@@ -19,7 +19,7 @@ class Region:
     country: str
     bbox: tuple[float, float, float, float]
     home: tuple[float, float]
-    home_radius_km: float
+    local_radius_mi: float
     osm_extracts: list[str]
     dem: str
     landcover: str
@@ -48,7 +48,7 @@ def load_region(slug: str) -> Region:
         country=d["country"],
         bbox=tuple(d["bbox"]),
         home=tuple(d["home"]),
-        home_radius_km=float(d.get("home_radius_km", 100)),
+        local_radius_mi=float(d.get("local_radius_mi", 50)),
         osm_extracts=list(d["osm_extracts"]),
         dem=d["dem"],
         landcover=d.get("landcover", "esa_worldcover_2021"),

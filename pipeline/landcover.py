@@ -15,6 +15,7 @@ from rasterio.windows import from_bounds
 TREE = 10
 WATER = 80
 WETLAND = (90, 95)   # herbaceous wetland, mangroves
+BUILT = 50           # built-up: buildings, pavement
 NATIVE = 1 / 12000   # WorldCover pixel size, degrees
 BLOCK = 3
 
@@ -29,6 +30,7 @@ class Landcover:
         self.tree = np.zeros((rows, cols), np.float32)
         self.water = np.zeros((rows, cols), np.float32)
         self.wetland = np.zeros((rows, cols), np.float32)
+        self.built = np.zeros((rows, cols), np.float32)
         self.covered = False
         for path in sorted(tile_dir.glob("ESA_WorldCover_10m_2021_v200_*_Map.tif")):
             self._add(path, bbox)
@@ -58,6 +60,7 @@ class Landcover:
             (self.tree, arr == TREE),
             (self.water, arr == WATER),
             (self.wetland, np.isin(arr, WETLAND)),
+            (self.built, arr == BUILT),
         ):
             f = frac(mask)
             rr = slice(max(r0, 0), min(r0 + f.shape[0], target.shape[0]))

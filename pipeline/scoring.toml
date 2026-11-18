@@ -41,6 +41,17 @@ untagged_minor = 60     # unclassified, surface not tagged
 unpaved = 10
 paved_values = ["asphalt", "paved", "concrete", "chipseal", "concrete:plates", "concrete:lanes", "metal"]
 
+# Aerial-photo surface classifier (python -m pipeline surface)
+photo_unpaved_at = 0.5      # untagged road: treat as gravel at or above this probability
+photo_unsure_at = 0.35      # untagged road: flag "could be gravel"
+photo_override_at = 0.9     # tagged paved, but photos are this sure it's gravel
+
+[homes]
+building_within_m = 60
+neighborhood_homes_per_km = 10   # a house or driveway about every 100 m (rural median here is about 4)
+neighborhood_built_share = 0.12  # share of built-up land within 100 m (ESA WorldCover)
+venue_point_within_m = 400       # an off-road park or race track this close to the road
+
 [quiet]
 unclassified = 100
 tertiary = 90

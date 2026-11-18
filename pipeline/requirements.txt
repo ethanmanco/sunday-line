@@ -1,7 +1,10 @@
+duckdb==2.0.0
 numpy==2.4.6
 osmium==4.3.2
+overturemaps==2.1.1
 pyproj==3.7.2
 pytest==9.2.0
 rasterio==1.4.4
+scikit-learn==1.9.1
 shapely==2.2.0
 truststore==0.10.5

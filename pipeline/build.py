@@ -263,6 +263,45 @@ def build(region: Region) -> list[dict]:
     sc = cfg["scenery"]
     fl = cfg["flow"]
     roads = []
+    # Aerial-photo surface predictions (python -m pipeline surface), if present.
+    pred_path = region.out_dir / "surface_pred.json"
+    surface_pred = json.loads(pred_path.read_text(encoding="utf-8"))["roads"] if pred_path.exists() else {}
+    print(f"  surface predictions: {len(surface_pred)} roads")
+
+    # Off-road parks, parks, fee areas, and neighborhoods.
+    venue_items = [(k[0], name, to_proj(geom)) for k, (geom, name) in osm.venues.items()]
+    venue_tree = STRtree([v[2] for v in venue_items]) if venue_items else None
+    print(f"  venues: {Counter(v[0] for v in venue_items)}")
+    ov = region.raw_dir / "overture"
+    if (ov / "buildings.parquet").exists():
+        # Overture buildings include Microsoft and Google footprints, far more
+        # complete than OpenStreetMap's rural buildings. ODbL.
+        import duckdb
+        bll = duckdb.sql(
+            f"select (bbox.xmin + bbox.xmax) / 2, (bbox.ymin + bbox.ymax) / 2 from '{(ov / 'buildings.parquet').as_posix()}'"
+        ).fetchnumpy()
+        bll = np.column_stack(list(bll.values()))
+        src = "Overture"
+    else:
+        bll = np.column_stack([np.frombuffer(osm.building_lon), np.frombuffer(osm.building_lat)])
+        src = "OpenStreetMap"
+    building_tree = STRtree(shapely.points(proj(bll))) if len(bll) else None
+    print(f"  buildings: {len(bll)} from {src}")
+    # Off-road parks and race tracks as points (Overture places, CDLA Permissive 2.0).
+    venue_points = []
+    if (ov / "places.parquet").exists():
+        import duckdb
+        rows = duckdb.sql(
+            f"select names.primary, taxonomy.primary, (bbox.xmin + bbox.xmax) / 2, (bbox.ymin + bbox.ymax) / 2 "
+            f"from '{(ov / 'places.parquet').as_posix()}' where confidence >= 0.5 and taxonomy.primary in "
+            f"('atv_recreation_park', 'race_track', 'motor_race_track', 'atv_rental_tour', 'go_kart_club')"
+        ).fetchall()
+        venue_points = [(r[0], r[1], proj(np.array([[r[2], r[3]]]))[0]) for r in rows]
+    vp_tree = STRtree(shapely.points([v[2] for v in venue_points])) if venue_points else None
+    print(f"  off-road and motor venues (points): {len(venue_points)}")
+    service_nodes = np.unique(np.frombuffer(osm.service_refs, dtype=np.int64))
+    hc = cfg["homes"]
+
     for ch, xy, cum, oa, ob, length, wc in pieces:
         pxy = xy[oa : ob + 1]
         pcum = cum[oa : ob + 1] - cum[oa]
@@ -315,8 +354,23 @@ def build(region: Region) -> list[dict]:
         total_len = seg_len.sum()
         surface = float(np.dot(surf_vals, seg_len) / total_len)
         quiet = float(np.dot(quiet_vals, seg_len) / total_len)
+        surface_shares = {k: round(v / total_len, 2) for k, v in surf_kinds.items()}
         surface_label = surf_kinds.most_common(1)[0][0]
         paved = surf_kinds["unpaved"] < 0.2 * total_len
+        rid = hashlib.sha1(f"osm:{nodes[0]}:{nodes[-1]}".encode()).hexdigest()[:12]
+        sp = surface_pred.get(rid, {})
+        p_unpaved = sp.get("p_unpaved")
+        surface_check = None
+        if p_unpaved is not None:
+            if surface_shares.get("untagged", 0) >= 0.5:
+                if p_unpaved >= cfg["surface"]["photo_unpaved_at"]:
+                    paved, surface_label = False, "likely_unpaved"
+                    surface = cfg["surface"]["unpaved"]
+                elif p_unpaved >= cfg["surface"]["photo_unsure_at"]:
+                    surface_check = "aerial photos unclear: could be gravel"
+            elif paved and p_unpaved >= cfg["surface"]["photo_override_at"]:
+                paved, surface_label = False, "likely_unpaved"
+                surface_check = "mapped as paved, but aerial photos look like gravel"
 
         # Speed limits: posted (OpenStreetMap) first, then the state's legal default.
         main_class = class_len.most_common(1)[0][0]
@@ -347,6 +401,27 @@ def build(region: Region) -> list[dict]:
         twisty, speed_score = ds["twisty"], ds["speed"]
 
         # Interruptions (interior nodes only)
+        # Homes along the road: buildings near it and driveways joining it.
+        line_p = shapely.LineString(pxy)
+        n_buildings = len(building_tree.query(line_p, predicate="dwithin", distance=hc["building_within_m"])) if building_tree is not None else 0
+        n_driveways = int(np.isin(nodes, service_nodes).sum())
+        homes_per_km = (n_buildings + n_driveways) / km
+        venue_share = Counter()
+        venue_name = {}
+        if venue_tree is not None:
+            for j in venue_tree.query(line_p, predicate="intersects"):
+                kind, name, geom = venue_items[j]
+                inside = line_p.intersection(geom).length / max(line_p.length, 1)
+                if inside > venue_share[kind]:
+                    venue_share[kind] = inside
+                    venue_name[kind] = name
+
+        near_venue = None
+        if vp_tree is not None:
+            hit = vp_tree.query(line_p, predicate="dwithin", distance=hc["venue_point_within_m"])
+            if len(hit):
+                near_venue = venue_points[int(hit[0])][0]
+
         interior = nodes[1:-1]
         deg = degree(interior)
         junction = deg >= 3
@@ -432,6 +507,7 @@ def build(region: Region) -> list[dict]:
             water = share("water", sc["water_within_m"])
             wetland = share("wetland", sc["water_within_m"])
         protected = share("protected", 0)
+        built_share = float(land.window_means(pll, 100, "built").mean()) if land is not None else 0.0
         water_eff = min(1.0, max(water, wetland * sc["wetland_weight"]))
         byway = byway_len / total_len >= sc["byway_min_share"]
         scenic_raw = (
@@ -453,7 +529,21 @@ def build(region: Region) -> list[dict]:
         if share_40 < cat["min_speed_share"]:
             excluded_because.append(f"speed limit under {cat['min_speed']} {'mph' if imperial else 'km/h'}")
         if not paved:
-            excluded_because.append("unpaved")
+            excluded_because.append("gravel or dirt" if surface_label == "likely_unpaved" else "unpaved")
+        if near_venue:
+            excluded_because.append(f"next to an off-road or motor venue ({near_venue})")
+        if venue_share["offroad"] >= 0.3:
+            excluded_because.append(f"inside an off-road or motor park ({venue_name['offroad'] or 'unnamed'})")
+        for kind in ("park", "fee"):
+            if venue_share[kind] >= 0.5:
+                excluded_because.append(f"inside {venue_name[kind] or 'a park'} (may charge entry)")
+        neighborhood = (
+            homes_per_km >= hc["neighborhood_homes_per_km"]
+            or built_share >= hc["neighborhood_built_share"]
+            or venue_share["residential"] >= 0.5
+        )
+        if neighborhood:
+            excluded_because.append("runs through a neighborhood")
 
         # Naming and location
         name = names.most_common(1)[0][0] if names else None
@@ -522,7 +612,15 @@ def build(region: Region) -> list[dict]:
             },
             "scenery_tags": scenery_tags,
             "surface": surface_label,
+            "surface_shares": surface_shares,
+            "surface_p_unpaved": p_unpaved,
+            "surface_check": surface_check,
             "paved": bool(paved),
+            "gravel_road": surface_label in ("unpaved", "likely_unpaved"),
+            "homes_per_km": round(homes_per_km, 1),
+            "near_venue": near_venue,
+            "built_share": round(built_share, 3),
+            "venues": {k: {"share": round(v, 2), "name": venue_name.get(k)} for k, v in venue_share.items() if v > 0},
             "speed_min": speed_min,
             "speed_max": speed_max,
             "speed_units": "mph" if imperial else "km/h",
@@ -531,7 +629,7 @@ def build(region: Region) -> list[dict]:
             "state": state,
             "osm_way_ids": sorted({int(x) for x in seg_way}),
             "mid": [round(mid_lon, 5), round(mid_lat, 5)],
-            "home_km": round(float(np.hypot(*(mid - home_xy))) / 1000, 1),
+            "home_mi": round(float(np.hypot(*(mid - home_xy))) / 1609.344, 1),
             "elev_profile": profile,
             "geometry": [[round(x, 6), round(y, 6)] for x, y in lonlat],
             "scoring_version": cfg["version"],
@@ -568,7 +666,7 @@ def write_outputs(region: Region, roads: list[dict]) -> None:
         "score_scenic", "score_elevation", "score_flow", "score_quiet", "score_surface",
         "curve_m_per_km", "climb_m", "surface", "speed_min", "speed_max", "speed_source",
         "score_speed", "drivers_road",
-        "home_km", "mid",
+        "home_mi", "mid",
     ]
     with (out / "candidates.csv").open("w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
