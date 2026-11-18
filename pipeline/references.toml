@@ -1,0 +1,49 @@
+# Reference courses used to calibrate the Twisty scale.
+#
+# Race tracks are driven through the same virtual-driver model as roads, with a
+# road-like speed cap, so "Twisty 100" means "loads the car like a road course
+# would at road speeds". Famous enthusiast roads are measured for comparison
+# only (they don't set the scale).
+#
+# Geometry comes from OpenStreetMap via the Overpass API and is cached in
+# data/raw/reference/.
+
+track_speed_cap_mph = 55
+
+[[track]]
+name = "WeatherTech Raceway Laguna Seca (CA)"
+bbox = [36.578, -121.762, 36.592, -121.744]   # south, west, north, east
+
+[[track]]
+name = "Michelin Raceway Road Atlanta (GA)"
+bbox = [34.138, -83.828, 34.158, -83.805]
+
+[[track]]
+name = "Lime Rock Park (CT)"
+bbox = [41.922, -73.392, 41.934, -73.375]
+
+[[track]]
+name = "Barber Motorsports Park (AL)"
+bbox = [33.525, -86.630, 33.540, -86.609]
+
+[[track]]
+name = "Circuit of the Americas (TX)"
+bbox = [30.118, -97.660, 30.150, -97.618]
+
+[[road]]
+name = "Tail of the Dragon, US 129 (NC/TN)"
+ref = "US 129"
+bbox = [35.460, -84.010, 35.530, -83.910]
+default_mph = 30
+
+[[road]]
+name = "Pig Trail, AR 23 (AR)"
+ref = "AR 23"
+bbox = [35.600, -94.000, 35.850, -93.750]
+default_mph = 55
+
+[[road]]
+name = "Talimena Scenic Drive, AR 88 (AR)"
+ref = "AR 88"
+bbox = [34.560, -94.470, 34.720, -94.200]
+default_mph = 55
