@@ -369,7 +369,7 @@ Notes: pavement / traffic / direction
 - **Curvature project:** credited as the source of the approach; independent implementation, no GPL code.
 - **Terms of use** (plain language, on the about page and shown once at sign-up): you are responsible for following traffic laws; illegal driving activity is prohibited; you use the app and attend meets at your own risk; you own and control what you post; contact email for legal notices. This is a plain draft, not legal advice.
 - **About / settings:** "Star on GitHub" (repo link), "More projects by Ethan" (https://mancolabs.dev/lab/), terms, OpenStreetMap credit, contact email.
-- **README:** what it is, screenshots, how scoring works, data sources and licenses, future ideas (native apps, turn-by-turn navigation, live location sharing, group chat, photo uploads, more regions), link to https://mancolabs.dev/lab/, and: "Built with Claude Code. I designed, directed, reviewed, and tested it."
+- **README:** what it is, screenshots, how scoring works, data sources and licenses, future ideas (native apps, turn-by-turn navigation, live location sharing, push notifications on iPhone without installing, more regions), link to https://mancolabs.dev/lab/, and: "Built with Claude Code. I designed, directed, reviewed, and tested it."
 
 ---
 
@@ -379,7 +379,7 @@ Notes: pavement / traffic / direction
 2. **Legal contact email:** ethanmanco@gmail.com (decided 2026-11-18: a personal project, nothing tied to Manco Labs).
 3. **Hosting:** Vercel + Next.js. Links start as `<name>.vercel.app`; a `mancolabs.dev` subdomain can come later.
 4. **Sign-in:** email magic link. Note: Supabase's built-in email sender allows only a few emails per hour, fine for a demo; real use needs a free SMTP service (for example Resend).
-5. **Who creates meets:** owner and admins, with a per-group switch to let members.
+5. **Who creates meets:** the organizer and moderators who have the "create events" permission (see section 11).
 6. **Verification:** 3 members to verify.
 7. **Public groups:** joining needs admin approval (per your spec). Private groups: the invite link is the approval.
 8. **Repo:** public `ethanmanco/<name>`, pushed as ethanmanco, then gh switched back.
@@ -390,3 +390,78 @@ Notes: pavement / traffic / direction
 - Rural stop signs and surfaces are often untagged in OpenStreetMap, so Flow and Surface lean on estimates; labeled as such.
 - Community submissions show up immediately but their scores fill in within the hour (scheduled scoring job).
 - No moderation and no report button, per your rules; the legal contact email is the only channel for notices.
+
+---
+
+## 11. Additions from your 2026-11-18 review
+
+### 11.1 Better road checks (built in the data script)
+- **Gravel detection from aerial photos.** Most rural roads here have no surface tag in OpenStreetMap, and many are gravel. The script samples small clips of USDA NAIP aerial imagery (public domain, about 1 m per pixel, with infrared) along every road, reads the color of the open ground at the centerline, and learns from the roads whose surface is tagged. It reports its own accuracy. Roads it thinks are gravel leave the Driver's roads list and go to a **Gravel / rally** list (off by default in the app). Roads mapped as paved but that look like gravel are flagged.
+- **Neighborhood detection.** Buildings within 60 m of the road (Overture Maps buildings, which include Microsoft and Google footprints) plus driveways. At 10 or more homes per km (a house about every 100 m), the road is treated as a neighborhood street and leaves the main list. The typical rural road here has about 4.
+- **Off-road parks, motor venues, parks, and fee areas.** Areas from OpenStreetMap plus places from Overture Maps (ATV parks, race tracks). A road inside one, or within 400 m of an off-road or motor venue, leaves the main list; roads inside parks are labeled "may charge entry."
+- **Loose gravel on paved roads** can't be seen from the air, so it becomes part of community ratings (11.4).
+- **Local list** uses miles: driver's roads within 50 miles of home, adjustable in the region file and as a slider in the app.
+
+### 11.2 Fast road checking (built)
+`review/index.html` is a road-check page: list on the left, map on the right, a Satellite button, Street View and Google Maps links, and one-tap verdicts (Good, Gravel, Neighborhood, Off-road or private, Too slow, Not sure) with keyboard shortcuts. Verdicts export to a file that the scoring uses as corrections and the gravel detector uses as extra training data. In the app, the same idea becomes the community **Verify** flow.
+
+### 11.3 The map look
+- **OpenStreetMap is the data, not the look.** The map you saw through the report links is the OpenStreetMap website's own style. Our map draws the same data with our own style, and every layer is ours to change: road colors and widths per road type, water, forest, parks, labels, fonts, and our scored roads on top. The review page already uses a first custom theme (charcoal ground, muted forest, deep blue water, quiet gray roads, scored roads glowing from blue through amber to red).
+- **Satellite view:** USGS aerial imagery (public domain, free, no key, US only) as a toggle, with our labels and road lines on top. For regions outside the US later: Sentinel-2 cloudless imagery (10 m, free) is the fallback.
+- No paid map APIs are needed for either.
+
+### 11.4 Road ratings (community)
+Signed-in members rate a road they drove on: **Fun** (1 to 5 stars), **Pavement condition** (smooth, some patches, rough, loose gravel on the surface), **Traffic** (empty, light, busy), plus "I drove it," car or motorcycle, best direction, and a note. Once a road has enough ratings, Fun and Pavement condition feed its Overall score, and a road that members mark "loose gravel" gets a warning chip.
+Members can also **report the posted speed limit** they saw; two matching reports replace our estimate.
+
+### 11.5 Profiles
+- **Profile page:** display name, banner image, avatar, a short bio, "What I drive" (one or more vehicles with year, make, model, and a photo), and a gallery of photos and GIFs.
+- **Preset avatars:** original illustrated cars and bikes by body style (roadster, hot hatch, muscle car, JDM coupe, truck, sport bike, cruiser, adventure bike, and so on), in several colors. **Car brand logos are not included**: they are trademarks, and using them as avatars could draw a takedown, even on a portfolio project. Users can upload their own picture instead.
+- **Uploads:** JPEG, PNG, WebP, and GIF. Banner and avatar up to 5 MB; gallery images and GIFs up to 8 MB each, 24 per profile. Stored in Supabase Storage. Supabase's free plan includes 1 GB of file storage, which covers a portfolio launch; heavy use would need the paid plan.
+- **Privacy:** profiles are public by default with a "private profile" switch (only followers see the gallery and vehicles). EXIF data, including GPS location, is stripped from uploaded photos before they are stored, since phone photos often carry the spot they were taken.
+
+### 11.6 Follows and messages
+- **Follow** anyone. Followers and following lists show on profiles (hidden for private profiles).
+- **Direct messages** between two people, and **group chats** for each car or bike group (members only). Text, emoji, and GIFs from the user's own uploads; real-time via Supabase Realtime.
+- **Who can message me:** everyone, people I follow, or nobody. **Block:** a blocked person can't message you, see your private profile, or find you in search. These are controls each user has over their own space; there is still no moderation of content and no report button, per your rules. The legal contact email stays the channel for legal notices.
+
+### 11.7 Groups: organizer and moderators
+- **Roles:** organizer (the creator), moderators, members. ("Owner" and "admin" in sections 4 to 7 now read as organizer and moderator.)
+- **Moderators** can approve join requests and remove any member. They can't remove the organizer, and only the organizer can remove a moderator.
+- **The organizer** adds and removes moderators and chooses each moderator's permissions: approve requests, remove members, create events, create private events, manage invite links, manage spots. The organizer can hand the organizer role to someone else.
+- **Private events:** visible only to group members (or people holding the event's private link). Created by the organizer and moderators with that permission.
+- **Event notifications:** when an event is created, changed, or canceled, every member gets an in-app notification and an email (each member can turn email off), plus a reminder the day before for people who RSVP'd Going or Maybe. Email goes through a free sending service (for example Resend, free for 3,000 emails a month), which you'd sign up for. Browser push notifications come later; on iPhones they only work when the site is added to the home screen.
+
+### 11.8 New tables and their rules
+
+```
+profiles (added)    banner_path, avatar_path, avatar_preset, bio, is_private, dm_policy (everyone | following | nobody)
+vehicles            id, user_id, kind (car | motorcycle), year, make, model, photo_path, sort
+profile_media       id, user_id, path, kind (image | gif), caption, sort, created_at
+follows             follower_id, followee_id, created_at
+blocks              blocker_id, blocked_id, created_at
+conversations       id, kind (direct | group), group_id (for group chats), created_at
+conversation_members conversation_id, user_id, last_read_at
+messages            id, conversation_id, sender_id, body, media_path, created_at, edited_at, deleted_at
+notifications       id, user_id, kind, payload, read_at, created_at
+notification_prefs  user_id, email_events, email_messages
+group_members (changed) role (organizer | moderator | member), permissions (set of: approve, remove, events, private_events, invites, spots)
+road_ratings (changed)  fun (1-5), pavement (smooth | patchy | rough | loose_gravel), traffic (empty | light | busy), vehicle, drove_it, direction_note
+speed_reports       road_id, user_id, posted_limit, reported_at
+```
+
+| Table | Read | Write |
+|---|---|---|
+| vehicles, profile_media | anyone, or only followers when the profile is private; never someone you blocked or who blocked you | owner only |
+| follows | anyone (hidden for private profiles except to the person) | the follower adds and removes their own |
+| blocks | only the blocker | only the blocker |
+| conversations, conversation_members, messages | **only members of that conversation**; group chats only current group members | send only as yourself, only into conversations you belong to; direct messages only if the recipient's message setting allows it and neither has blocked the other (checked in the database) |
+| notifications | only the recipient | created by database functions only; recipient marks read |
+| group_members | members of that group | role and permission changes only through functions that check the organizer or a moderator's permission |
+| Storage: avatars, banners, profile media | public files, except a private profile's gallery (followers only, through signed links) | each user writes only inside their own folder |
+| Storage: message media | conversation members only (signed links) | sender only |
+
+Security tests add: a non-member can't read a group chat or a direct conversation by guessing its ID; a blocked person can't send a message; a private profile's gallery can't be fetched by a non-follower; a moderator without the permission can't create a private event or remove another moderator.
+
+### 11.9 Build order (updated)
+After you okay the road list: map and list, sharing, accounts and road ratings, **profiles and follows**, groups (with moderators), events and notifications, **messages and group chats**. Each step still lands in small commits.
