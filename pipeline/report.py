@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections import Counter
 
 from .config import Region, load_scoring
 
@@ -30,6 +32,17 @@ def speed_text(r: dict) -> str:
     }.get(r["speed_source"], base)
 
 
+def surface_text(r: dict) -> str:
+    if r.get("surface_check"):
+        return r["surface_check"]
+    if r["surface"] == "paved":
+        return "paved (tagged)"
+    p = r.get("surface_p_unpaved")
+    if p is None:
+        return "not tagged, no clear photo"
+    return f"looks paved in photos ({1 - p:.0%})"
+
+
 def length_text(r: dict, imperial: bool) -> str:
     if imperial:
         return f"{r['length_m'] / 1609.344:.1f} mi"
@@ -43,14 +56,14 @@ def maplink(r: dict) -> str:
 
 def drivers_table(rows: list[dict], imperial: bool) -> str:
     lines = [
-        "| # | Road | Near | Length | Overall | Twisty | Speed | Flow | Elev | Scenic | Speed limit | Map |",
-        "|---|------|------|--------|---------|--------|-------|------|------|--------|-------------|-----|",
+        "| # | Road | Near | Length | Overall | Twisty | Speed | Flow | Elev | Scenic | Speed limit | Surface | Map |",
+        "|---|------|------|--------|---------|--------|-------|------|------|--------|-------------|---------|-----|",
     ]
     for i, r in enumerate(rows, 1):
         lines.append(
             f"| {i} | {r['name']} | {r['near'] or ''} | {length_text(r, imperial)} | "
             f"**{r['score_overall']}** | {r['score_twisty']} | {r['score_speed']} | {r['score_flow']} | "
-            f"{r['score_elevation']} | {r['score_scenic']} | {speed_text(r)} | {maplink(r)} |"
+            f"{r['score_elevation']} | {r['score_scenic']} | {speed_text(r)} | {surface_text(r)} | {maplink(r)} |"
         )
     return "\n".join(lines)
 
@@ -66,6 +79,23 @@ def scenic_table(rows: list[dict], imperial: bool) -> str:
             f"| {i} | {r['name']} | {r['near'] or ''} | {length_text(r, imperial)} | **{r['score_scenic']}** | "
             f"{sc['forest'] * 100:.0f}% | {max(sc['water'], sc['wetland'] * 0.5) * 100:.0f}% | "
             f"{r['score_overall']} | {speed_text(r)} | {maplink(r)} |"
+        )
+    return "\n".join(lines)
+
+
+def gravel_table(rows: list[dict], imperial: bool) -> str:
+    lines = [
+        "| # | Road | Near | Length | Twisty | Flow | How we know it's gravel | Map |",
+        "|---|------|------|--------|--------|------|-------------------------|-----|",
+    ]
+    for i, r in enumerate(rows, 1):
+        if r["surface"] == "unpaved":
+            how = "tagged in OpenStreetMap"
+        else:
+            how = f"aerial photos ({(r.get('surface_p_unpaved') or 0):.0%} sure)"
+        lines.append(
+            f"| {i} | {r['name']} | {r['near'] or ''} | {length_text(r, imperial)} | {r['score_twisty']} | "
+            f"{r['score_flow']} | {how} | {maplink(r)} |"
         )
     return "\n".join(lines)
 
@@ -86,10 +116,15 @@ def report(region: Region, top: int = 20) -> str:
     long_enough = [r for r in roads if r["length_m"] >= DEFAULT_MIN_LENGTH_M]
     drivers = sorted((r for r in long_enough if r["drivers_road"]), key=lambda r: -r["score_overall"])
     scenic = sorted(long_enough, key=lambda r: (-r["score_scenic"], -r["score_overall"]))
-    near = [r for r in drivers if r["home_km"] <= region.home_radius_km]
+    local = [r for r in drivers if r["home_mi"] <= region.local_radius_mi]
+    gravel = sorted((r for r in long_enough if r.get("gravel_road")),
+                    key=lambda r: -(r["score_twisty"] + r["score_flow"] / 3))
     cat = cfg["categories"]
     unit = "mph" if imperial else "km/h"
     left_out = len(long_enough) - len(drivers)
+    reasons = Counter(
+        re.sub(r" \(.*\)$", "", w) for r in long_enough for w in r["not_drivers_road_because"]
+    )
 
     alt = []
     first = next(iter(WEIGHT_SETS.values()))
@@ -104,15 +139,19 @@ def report(region: Region, top: int = 20) -> str:
     md = (
         f"# Top candidate roads: {region.name}\n\n"
         f"Scoring version {cfg['version']}. Map data © OpenStreetMap contributors. "
-        f"Land cover © ESA WorldCover 2021 (CC BY 4.0). Elevation: USGS 3DEP.\n\n"
-        f"{total} candidates found; {len(long_enough)} are at least 3 km (1.9 mi), the app's default minimum. "
-        f"**Driver's roads** must be paved and have a speed limit of at least {cat['min_speed']} {unit} on "
-        f"{cat['min_speed_share'] * 100:.0f}% of their length; {left_out} long-enough candidates are left out of that list.\n\n"
+        f"Land cover © ESA WorldCover 2021 (CC BY 4.0). Elevation: USGS 3DEP. Aerial photos: USDA NAIP.\n\n"
+        f"{total} candidates found; {len(long_enough)} are at least 1.9 mi (3 km), the app's default minimum. "
+        f"**Driver's roads** must be paved, have a speed limit of at least {cat['min_speed']} {unit} on "
+        f"{cat['min_speed_share'] * 100:.0f}% of their length, not run through a neighborhood, and not sit inside "
+        f"a park, fee area, or off-road park; {left_out} long-enough candidates are left out of that list.\n\n"
         f"## Driver's roads: top {top}\n\n{drivers_table(drivers[:top], imperial)}\n\n"
-        f"## Driver's roads within {region.home_radius_km:.0f} km of Shreveport\n\n"
-        f"{drivers_table(near[:10], imperial)}\n\n"
+        f"## Local: driver's roads within {region.local_radius_mi:.0f} miles of Shreveport\n\n"
+        f"{drivers_table(local[:10], imperial)}\n\n"
         f"## Most scenic (any speed)\n\n{scenic_table(scenic[:10], imperial)}\n\n"
-        f"## Other weightings, for comparison\n\n" + "\n".join(alt) + "\n"
+        f"## Gravel / rally (off by default in the app)\n\n{gravel_table(gravel[:10], imperial)}\n\n"
+        f"## Why candidates were left out of Driver's roads\n\n"
+        + "\n".join(f"- {why}: {n}" for why, n in reasons.most_common())
+        + "\n\n## Other weightings, for comparison\n\n" + "\n".join(alt) + "\n"
     )
     (region.out_dir / "top.md").write_text(md, encoding="utf-8")
     print(md)
