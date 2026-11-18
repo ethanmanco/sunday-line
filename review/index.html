@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Road Check</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a20; --line: #262b33; --text: #e6e9ee; --dim: #9aa2ad;
+    --accent: #f59e0b; --good: #22c55e; --bad: #ef4444; --warn: #eab308; --info: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .app { display: grid; grid-template-columns: 400px 1fr; height: 100%; }
+  aside { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
+  header { padding: 12px 16px 8px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 16px; margin: 0 0 6px; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs button, .actions button, .verdicts button, .tools button {
+    background: #20242c; color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 10px; font: inherit; cursor: pointer; min-height: 36px; }
+  .tabs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .card { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .card h2 { font-size: 18px; margin: 0; }
+  .meta { color: var(--dim); margin: 2px 0 8px; }
+  .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+  .score { background: #1d2128; border-radius: 8px; padding: 6px 8px; }
+  .score b { display: block; font-size: 18px; }
+  .score span { color: var(--dim); font-size: 12px; }
+  .facts { margin: 0 0 8px; padding-left: 18px; color: var(--dim); }
+  .facts li.warn { color: var(--warn); }
+  .verdicts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .verdicts button[data-v="good"][aria-pressed="true"] { background: var(--good); color: #06240f; }
+  .verdicts button[data-v="gravel"][aria-pressed="true"],
+  .verdicts button[data-v="neighborhood"][aria-pressed="true"],
+  .verdicts button[data-v="offroad"][aria-pressed="true"],
+  .verdicts button[data-v="slow"][aria-pressed="true"] { background: var(--bad); color: #2a0606; }
+  .verdicts button[data-v="unsure"][aria-pressed="true"] { background: var(--warn); color: #2a2206; }
+  textarea { width: 100%; margin-top: 6px; background: #1d2128; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 8px; font: inherit; min-height: 44px; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .actions a { color: var(--info); align-self: center; }
+  ol { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  li.item { padding: 8px 16px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid;
+    grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; }
+  li.item:hover, li.item:focus { background: #1d2128; outline: none; }
+  li.item[aria-current="true"] { background: #232832; }
+  .badge { font-weight: 700; text-align: center; border-radius: 6px; padding: 2px 0; color: #111; }
+  .tag { font-size: 12px; color: var(--dim); }
+  .done { font-size: 12px; padding: 2px 6px; border-radius: 6px; }
+  .tools { padding: 8px 16px; border-top: 1px solid var(--line); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tools small { color: var(--dim); }
+  #map { position: relative; }
+  .mapbtn { position: absolute; top: 10px; left: 10px; z-index: 2; }
+  .mapbtn button { background: #171a20e6; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; }
+  .mapbtn button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .help { color: var(--dim); font-size: 12px; margin-top: 6px; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; }
+    #map { grid-row: 1; }
+    aside { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <header>
+      <h1>Road check</h1>
+      <div class="tabs" role="group" aria-label="Which roads">
+        <button data-tab="drivers" aria-pressed="true">Driver's roads</button>
+        <button data-tab="local">Local</button>
+        <button data-tab="gravel">Gravel</button>
+        <button data-tab="left_out">Left out</button>
+        <button data-tab="todo">Not checked</button>
+      </div>
+    </header>
+    <section class="card" id="card" aria-live="polite"></section>
+    <ol id="list" aria-label="Roads"></ol>
+    <div class="tools">
+      <button id="export">Export verdicts</button>
+      <small id="count"></small>
+    </div>
+  </aside>
+  <main id="map" aria-label="Map">
+    <div class="mapbtn"><button id="sat" aria-pressed="false">Satellite</button></div>
+  </main>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="theme.js"></script>
+<script src="roads.js"></script>
+<script>
+const VERDICTS = [
+  ["good", "Good driver's road", "1"],
+  ["gravel", "Gravel or dirt", "2"],
+  ["neighborhood", "Neighborhood", "3"],
+  ["offroad", "Off-road, park, or private", "4"],
+  ["slow", "Too slow", "5"],
+  ["unsure", "Not sure", "6"],
+];
+const KEY = "sunday-line-review-v1";
+let store = {};
+try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+
+const roads = window.ROADS;
+let tab = "drivers", current = null, satellite = false;
+
+function heat(v) {
+  const stops = [[40, [96, 165, 250]], [55, [234, 179, 8]], [65, [245, 158, 11]], [75, [239, 68, 68]]];
+  if (v <= stops[0][0]) return `rgb(${stops[0][1]})`;
+  for (let i = 1; i < stops.length; i++) {
+    if (v <= stops[i][0]) {
+      const [a, ca] = stops[i - 1], [b, cb] = stops[i], t = (v - a) / (b - a);
+      return `rgb(${ca.map((c, k) => Math.round(c + (cb[k] - c) * t))})`;
+    }
+  }
+  return `rgb(${stops[stops.length - 1][1]})`;
+}
+
+function visible() {
+  if (tab === "todo") return roads.filter(r => !store[r.id]);
+  if (tab === "local") return roads.filter(r => r.group !== "gravel" && r.group !== "left_out" && r.home_mi <= REGION.local_radius_mi);
+  return roads.filter(r => r.group === tab);
+}
+
+function renderList() {
+  const list = document.getElementById("list");
+  const rows = visible();
+  list.innerHTML = rows.map((r, i) => {
+    const v = store[r.id]?.verdict;
+    const label = v ? VERDICTS.find(x => x[0] === v)[1] : "";
+    return `<li class="item" tabindex="0" data-id="${r.id}" ${current && current.id === r.id ? 'aria-current="true"' : ""}>
+      <span class="badge" style="background:${heat(r.overall)}">${r.overall}</span>
+      <span><b>${i + 1}. ${r.name}</b><br><span class="tag">${r.near || ""} · ${r.miles} mi · Twisty ${r.twisty} · Speed ${r.speed}</span></span>
+      <span class="done">${label ? "✓ " + label.split(" ")[0] : ""}</span></li>`;
+  }).join("");
+  const n = roads.filter(r => store[r.id]).length;
+  document.getElementById("count").textContent = `${n} of ${roads.length} checked`;
+}
+
+function renderCard() {
+  const c = document.getElementById("card");
+  if (!current) { c.innerHTML = '<p class="meta">Pick a road from the list. Keys: 1 to 6 to mark it, J and K to move down and up.</p>'; return; }
+  const r = current, mid = r.coords[Math.floor(r.coords.length / 2)];
+  const sv = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mid[1]},${mid[0]}`;
+  const gm = `https://www.google.com/maps/search/?api=1&query=${mid[1]},${mid[0]}`;
+  const v = store[r.id] || {};
+  const facts = [
+    [r.speed_text, false], [r.surface_text, /gravel|unclear|no clear/.test(r.surface_text)],
+    [`${r.homes_per_km ?? "?"} homes or driveways per km`, (r.homes_per_km || 0) >= 6],
+    ...r.excluded.map(e => ["Left out: " + e, true]),
+  ];
+  c.innerHTML = `
+    <h2>${r.name}</h2>
+    <p class="meta">${r.near ? "Near " + r.near + " · " : ""}${r.miles} mi · ${r.home_mi} mi from Shreveport</p>
+    <div class="scores">
+      ${[["Overall", r.overall], ["Twisty", r.twisty], ["Speed", r.speed], ["Flow", r.flow], ["Elevation", r.elevation], ["Scenic", r.scenic]]
+        .map(([k, x]) => `<div class="score"><b>${x}</b><span>${k}</span></div>`).join("")}
+    </div>
+    <ul class="facts">${facts.map(([f, w]) => `<li class="${w ? "warn" : ""}">${f}</li>`).join("")}</ul>
+    <div class="verdicts" role="group" aria-label="Your verdict">
+      ${VERDICTS.map(([k, label, key]) => `<button data-v="${k}" aria-pressed="${v.verdict === k}">${key}. ${label}</button>`).join("")}
+    </div>
+    <textarea id="note" placeholder="Note (optional): what did you see?">${v.note || ""}</textarea>
+    <div class="actions"><a href="${sv}" target="_blank" rel="noopener">Street View</a><a href="${gm}" target="_blank" rel="noopener">Google Maps</a></div>
+    <p class="help">Keys: 1 to 6 mark, J next, K previous, S satellite.</p>`;
+  c.querySelectorAll(".verdicts button").forEach(b => b.onclick = () => mark(b.dataset.v));
+  c.querySelector("#note").oninput = e => { store[r.id] = { ...(store[r.id] || {}), note: e.target.value, name: r.name }; save(); };
+}
+
+function mark(v) {
+  if (!current) return;
+  store[current.id] = { ...(store[current.id] || {}), verdict: v, name: current.name, near: current.near, at: new Date().toISOString() };
+  save(); renderCard(); renderList();
+}
+
+function select(id, fly = true) {
+  current = roads.find(r => r.id === id);
+  renderCard(); renderList();
+  if (map.getSource("sel")) map.getSource("sel").setData({ type: "Feature", geometry: { type: "LineString", coordinates: current.coords } });
+  if (fly) {
+    const b = current.coords.reduce((bb, [x, y]) => [[Math.min(bb[0][0], x), Math.min(bb[0][1], y)], [Math.max(bb[1][0], x), Math.max(bb[1][1], y)]],
+      [[180, 90], [-180, -90]]);
+    map.fitBounds(b, { padding: 60, maxZoom: 15, duration: 600 });
+  }
+  document.querySelector(`li[data-id="${id}"]`)?.scrollIntoView({ block: "nearest" });
+}
+
+function step(d) {
+  const rows = visible();
+  const i = current ? rows.findIndex(r => r.id === current.id) : -1;
+  const next = rows[Math.max(0, Math.min(rows.length - 1, i + d))];
+  if (next) select(next.id);
+}
+
+const fc = { type: "FeatureCollection", features: roads.map(r => ({ type: "Feature", properties: { id: r.id, color: heat(r.overall), overall: r.overall }, geometry: { type: "LineString", coordinates: r.coords } })) };
+
+const map = new maplibre.Map({ container: "map", style: sundayStyle(SUNDAY_THEME, false), center: REGION.home, zoom: 7.3, attributionControl: { compact: true } });
+map.addControl(new maplibre.NavigationControl(), "top-right");
+
+function addOverlays() {
+  if (!map.getSource("roads")) map.addSource("roads", { type: "geojson", data: fc });
+  if (!map.getSource("sel")) map.addSource("sel", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "roads-glow", type: "line", source: "roads", paint: { "line-color": ["get", "color"], "line-width": ["interpolate", ["linear"], ["zoom"], 7, 4, 13, 12], "line-opacity": 0.25, "line-blur": 3 } });
+  map.addLayer({ id: "roads", type: "line", source: "roads", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1.5, 13, 4] } });
+  map.addLayer({ id: "sel", type: "line", source: "sel", layout: { "line-cap": "round" }, paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 7, 3, 14, 7], "line-opacity": 0.9 } });
+  if (current) map.getSource("sel").setData({ type: "Feature", geometry: { type: "LineString", coordinates: current.coords } });
+}
+map.on("load", addOverlays);
+map.on("click", "roads", e => select(e.features[0].properties.id, false));
+map.on("mouseenter", "roads", () => map.getCanvas().style.cursor = "pointer");
+map.on("mouseleave", "roads", () => map.getCanvas().style.cursor = "");
+
+document.getElementById("sat").onclick = e => {
+  satellite = !satellite; e.target.setAttribute("aria-pressed", satellite);
+  map.setStyle(sundayStyle(SUNDAY_THEME, satellite));
+  map.once("styledata", () => setTimeout(addOverlays, 0));
+};
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  renderList();
+});
+document.getElementById("list").addEventListener("click", e => { const li = e.target.closest("li.item"); if (li) select(li.dataset.id); });
+document.getElementById("list").addEventListener("keydown", e => { if (e.key === "Enter") { const li = e.target.closest("li.item"); if (li) select(li.dataset.id); } });
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "TEXTAREA") return;
+  const v = VERDICTS.find(x => x[2] === e.key); if (v) return mark(v[0]);
+  if (e.key === "j") step(1); if (e.key === "k") step(-1);
+  if (e.key === "s") document.getElementById("sat").click();
+});
+document.getElementById("export").onclick = () => {
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "verdicts.json"; a.click();
+};
+renderList(); renderCard();
+</script>
+</body>
+</html>
