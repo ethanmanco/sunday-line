@@ -57,52 +57,75 @@ You create the Supabase and Vercel projects yourself when we reach step 3 (they 
 
 ## 3. How road scoring works
 
-Our own implementation. It follows the **published approach** of the open-source Curvature project (Adam Franco): find the radius of the circle through each three consecutive points along a road, and weight each piece of road by how tight that radius is, with straights counting zero. No Curvature code is read into or copied into this project (it is GPL); the README credits the approach.
+*Revised 2026-11-18 after your review of the first top 20 (scoring v2). The aim is a road that is fun to drive: one that really works the car, at legal speeds.*
+
+Curve detection is our own implementation of the **published approach** of the open-source Curvature project (Adam Franco): measure the radius of each curve and weight tight curves more than broad ones. No Curvature code is read into or copied into this project (it is GPL); the README credits the approach. On top of that sits a driving model borrowed from race engineering.
 
 ### 3.1 Which roads are considered
-- Included: OpenStreetMap `highway` = primary, secondary, tertiary, unclassified.
-- Excluded: motorway, trunk (mostly divided highways), link ramps, residential, service, tracks, anything with `access=private` or `access=no`.
-- Ways are joined into continuous stretches when they share a name or route number, then split wherever a straight longer than 1.6 km (1 mile) breaks them up. Each piece becomes one candidate.
-- Kept if at least 2 km long and with enough weighted curvature to be worth showing (threshold set during step 2, then frozen).
+- Included: OpenStreetMap `highway` = primary, secondary, tertiary, unclassified, with a name or route number (unnamed ways are often private, military, or logging roads; the community can still submit them).
+- Excluded: motorway, trunk, link ramps, residential, service, tracks, one-way carriageways, roundabouts, anything with `access=private` or `access=no`.
+- Ways join into continuous roads when they share a route number (or name), then split wherever a straight longer than 1 mile breaks them up. Each piece is one candidate if it is at least 2 km long and has enough curvature.
 
-### 3.2 The six factors (each 0 to 100)
+### 3.2 The driving model (why tracks work a car)
+Race tracks are built around a mix of corner types, braking zones into slower corners, quick left-right changes, and elevation. A lap simulator measures that by driving a virtual car around the course. We do the same on every road, with road rules:
+- The road is re-measured every 10 m and each point's curve radius is taken across 60 m of road, so small wobbles in how the road is mapped do not read as corners.
+- A virtual driver **never exceeds the speed limit**, slows for each curve so cornering stays under 0.5 g, brakes at up to 0.5 g, and accelerates at 0.3 g.
+- From that speed trace come the track measures: average cornering load, braking zones, and left-right changes (esses), plus the average speed you can legally carry.
+- **Calibration against real tracks:** Laguna Seca, Road Atlanta, Lime Rock, Barber, and COTA are run through the same model with a 55 mph cap (track outlines from OpenStreetMap; all five came out at their real lengths). Matching their average scores about 70 on Twisty. For comparison, the Tail of the Dragon (posted 30 mph) scores 63 Twisty and 0 Speed; the Pig Trail (AR 23) scores 48 and 62.
+- The modeled speeds are a scoring tool only. **The app never shows them**, so nothing reads as a suggested speed.
+
+### 3.3 The factors (each 0 to 100)
 
 | Factor | How it is measured |
 |---|---|
-| **Curvature** | Geometry projected to meters (local UTM zone picked from the region, so it works anywhere). Points closer than 5 m are merged to remove mapping jitter. Each vertex gets a radius from the circle through it and its neighbors. Bands: 300 m or more counts 0 (straight); 150 to 300 m weight 1.0 (broad); 80 to 150 m weight 1.5; 40 to 80 m weight 2.0; under 40 m weight 2.5 (hairpin). A single sharp kink at a junction or a one-point mapping artifact does not count; a curve must span at least about 15 m of road. Result: weighted curve meters per km of road, put through a curve that saturates near 100. |
-| **Elevation change** | Elevation sampled every 30 m from a bare-earth model. Total climb plus descent per km, smoothed. Bridges are skipped and interpolated (bare-earth models drop bridges into the bayou below, which would fake a big dip). |
-| **Paved surface** | Length-weighted from the `surface` tag. Paved tags (asphalt, concrete, chipseal, paved) 100. Untagged tertiary or larger 80, labeled "surface not tagged, likely paved." Untagged unclassified 60. Unpaved (gravel, dirt, compacted) 10 and labeled "unpaved." |
-| **Quiet road type** | Length-weighted by class: unclassified 100, tertiary 90, secondary 65, primary 35. Minus 20 if more than two lanes. |
-| **Scenery** | Share of the stretch within 150 m of forest (`landuse=forest`, `natural=wood`), within 300 m of water (`natural=water`, rivers, wetlands at lower weight), inside protected areas (national forests, state parks, nature reserves), plus a bonus for overlapping a scenic byway route or `scenic=yes`. |
-| **Interruptions (flow)** | Per km: junctions with other drivable roads (driveways ignored), stop signs, traffic signals, railroad crossings, yield signs at lower weight. Fewer is better. Stop signs are under-tagged in rural OpenStreetMap; junctions come from the road network itself, so they are reliable. |
+| **Twisty** | From the speed trace: 60% average cornering load, 25% braking zones, 15% esses, relative to the track average. |
+| **Speed** | The average speed the virtual driver can legally carry: 35 mph scores 0, 65 mph scores 100. Rewards roads with sweepers you can take near the limit. |
+| **Flow** | Interruptions per km: junctions with other drivable roads (driveways ignored), stop signs, signals, rail crossings. Tracks have none. |
+| **Elevation** | Climb plus descent per km from a bare-earth model; bridges skipped so the model's dips under them don't fake hills. |
+| **Paved surface** | From the `surface` tag. Untagged roads count as likely paved and are labeled so. |
+| **Quiet road type** | Unclassified and tertiary roads above secondary and primary; minus 20 for more than two lanes. |
+| **Scenic** | Average tree cover within 150 m (ESA WorldCover satellite land cover), share of the road near water or wetland, time inside protected areas (national forests, parks), and a scenic byway bonus. |
 
-### 3.3 The ratings shown
-- **Twisty** = the curvature factor.
-- **Scenic** = the scenery factor.
-- **Overall** = 35% Twisty + 20% Scenic + 15% Flow + 10% Elevation + 10% Quiet + 10% Surface.
-- **Speed is not part of any score.** Length is not either; the default list hides stretches under 3 km via the minimum-length filter instead.
-- All weights and thresholds live in one config file and are listed in the README. Every road records the scoring version that produced it. Thresholds get tuned once on the Shreveport results in step 2, then frozen as "scoring v1" so a 90 means the same thing in every region.
+### 3.4 Overall score and categories
+- **Overall** = 60% Twisty and Speed together + 15% Flow + 10% Elevation + 5% Surface + 5% Quiet + 5% Scenic.
+- Twisty and Speed count equally and are **combined** (geometric mean), so a road needs both: a twisty road you have to crawl through, or a fast road with no corners, can't ride on one of them. Other weightings were compared; the top 20 barely changes between them, so speed-limit accuracy matters far more than the exact weights.
+- **Driver's roads** (the main list and the default map view): paved, and a speed limit of at least 40 mph on at least 80% of the stretch.
+- **Most scenic**: a separate list sorted by Scenic, any speed. Roads under 40 mph still appear there, in search, and on the map when the filter is off.
+- Length is not scored; the default list hides stretches under 3 km (1.9 mi).
+- All numbers live in `pipeline/scoring.toml`; every road records the scoring version.
 
-### 3.4 Posted speed limits
-- From OpenStreetMap `maxspeed` (units parsed properly: OpenStreetMap treats a bare number as km/h; US roads are normally tagged "45 mph").
-- A stretch with more than one posted limit shows a range, for example "35 to 45 mph."
-- Untagged parts get an estimate from road type (and `source:maxspeed` if present) using the region's table, and are labeled **"estimated"** (or "partly estimated").
+### 3.5 Speed limits (and how accurate they are)
+Order of sources, each labeled in the app:
+1. **Posted**: OpenStreetMap `maxspeed`.
+2. **Estimated from similar roads**: for unposted state and US routes, the limit most similar numbered routes in the same state are posted at in OpenStreetMap.
+3. **State default**: for other unposted roads, the state's legal default (Texas 60 mph off state routes, Louisiana 55, Arkansas 55 assumed). Local signs can be lower.
 
-### 3.5 Labels
+Only about 1 in 10 candidate roads here has a posted limit in OpenStreetMap. An internal check against Texas and Louisiana DOT speed-limit data (read for comparison only; their terms forbid redistribution, so none of it goes into the app or the repo) shows:
+- Louisiana state routes: our value matches 95% of the time.
+- Texas: after switching numbered routes to "similar roads," exact match went from 4% to 64%, and the 40 mph cutoff agrees 97% of the time.
+- Not covered by any DOT data: Louisiana parish roads and Arkansas county roads, where the state default may be too high.
+
+Ways to get more accurate:
+- **Community speed reports** (planned for the contributions step): members report the posted limit they saw; two matching reports replace the estimate and show as "posted (reported by members)."
+- **Ask the DOTs for permission** (Ethan's call): TxDOT allows distribution with written consent, and LaDOTD offers a release agreement. With either, their official limits could be loaded directly. ARDOT publishes speed-limit and curve-advisory sign data with no stated license, so it would need a request too.
+- **Mapillary** street-level sign detections (free, CC BY-SA, needs a free account and token) as a later option.
+
+### 3.6 Labels
 - Map-found roads: **Candidate**.
 - User-submitted roads: **Community submitted**.
 - Either becomes **Verified** once 3 different members verify it and verifies outnumber flags (a submitter's own vote does not count). 3 flags that outnumber verifies mark it **Flagged: not worth it**, hidden by default but still listed when the filter is off.
 
-### 3.6 Re-running the data script
+### 3.7 Re-running the data script
 `python -m pipeline fetch|score|load|score-pending --region shreveport`
 - Downloads extracts and elevation tiles only when newer ones exist.
 - On reload, a new candidate is matched to an existing road by geometry overlap (at least 80%), so ratings, notes, and verifications stay attached when OpenStreetMap ways get split or renumbered.
 - Roads that no longer qualify are marked retired, never deleted (their community data stays).
 - `score-pending` fills in scores for community submissions (see 4.4). It runs on a scheduled GitHub Action every hour, same Python code, so there is one scoring implementation.
 
-### 3.7 Elevation source
+### 3.8 Elevation and land cover sources
 - US regions: **USGS 3DEP 1 arc-second** (about 30 m), public domain, and bare-earth, which matters here: a surface model would read pine canopy as hills.
 - Outside the US: Copernicus GLO-30 as the documented fallback (free with attribution; it is a surface model, so forested roads read a little rough, noted in the README).
+- Land cover for forest and water: **ESA WorldCover 10 m (2021)**, CC BY 4.0, global. Added in step 2 because OpenStreetMap barely maps forest in this region.
 
 ---
 
@@ -353,7 +376,7 @@ Notes: pavement / traffic / direction
 ## 9. Decisions (my picks; change any)
 
 1. **Name:** Sunday Line.
-2. **Legal contact email:** a forwarding address like `legal@mancolabs.dev` through Cloudflare Email Routing (free, you set it up in your Cloudflare account) so your personal Gmail is not published. Or give me the address you want.
+2. **Legal contact email:** ethanmanco@gmail.com (decided 2026-11-18: a personal project, nothing tied to Manco Labs).
 3. **Hosting:** Vercel + Next.js. Links start as `<name>.vercel.app`; a `mancolabs.dev` subdomain can come later.
 4. **Sign-in:** email magic link. Note: Supabase's built-in email sender allows only a few emails per hour, fine for a demo; real use needs a free SMTP service (for example Resend).
 5. **Who creates meets:** owner and admins, with a per-group switch to let members.
