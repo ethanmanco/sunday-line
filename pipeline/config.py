@@ -22,6 +22,7 @@ class Region:
     home_radius_km: float
     osm_extracts: list[str]
     dem: str
+    landcover: str
     speed_estimates: dict[str, float] = field(default_factory=dict)
 
     @property
@@ -49,6 +50,7 @@ def load_region(slug: str) -> Region:
         home_radius_km=float(d.get("home_radius_km", 100)),
         osm_extracts=list(d["osm_extracts"]),
         dem=d["dem"],
+        landcover=d.get("landcover", "esa_worldcover_2021"),
         speed_estimates=dict(d.get("speed_estimates", {})),
     )
 

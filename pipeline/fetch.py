@@ -89,3 +89,29 @@ def fetch(region: Region) -> None:
             print(f"dem  {name}: {status} ({size})")
     else:
         raise SystemExit(f"Unknown DEM source {region.dem!r}")
+    if region.landcover == "esa_worldcover_2021":
+        for name in worldcover_tile_names(region.bbox):
+            path = region.raw_dir / "landcover" / f"ESA_WorldCover_10m_2021_v200_{name}_Map.tif"
+            status = _download(WORLDCOVER.format(name=name), path)
+            size = f"{path.stat().st_size / 1e6:.0f} MB" if path.exists() else "-"
+            print(f"land {name}: {status} ({size})")
+    else:
+        raise SystemExit(f"Unknown land cover source {region.landcover!r}")
+
+
+WORLDCOVER = (
+    "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/"
+    "ESA_WorldCover_10m_2021_v200_{name}_Map.tif"
+)
+
+
+def worldcover_tile_names(bbox) -> list[str]:
+    """WorldCover tiles are 3 x 3 degrees, named by their south-west corner."""
+    w, s, e, n = bbox
+    names = []
+    for lat in range(math.floor(s / 3) * 3, math.ceil(n / 3) * 3, 3):
+        for lon in range(math.floor(w / 3) * 3, math.ceil(e / 3) * 3, 3):
+            ns = f"N{lat:02d}" if lat >= 0 else f"S{-lat:02d}"
+            ew = f"E{lon:03d}" if lon >= 0 else f"W{-lon:03d}"
+            names.append(ns + ew)
+    return names

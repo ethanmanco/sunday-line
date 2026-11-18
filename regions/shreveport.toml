@@ -24,6 +24,9 @@ osm_extracts = [
 # Elevation: USGS 3DEP 1 arc-second, bare earth, public domain.
 dem = "usgs_3dep_1as"
 
+# Land cover for forest and water scenery: ESA WorldCover 10 m (2021), CC BY 4.0, global.
+landcover = "esa_worldcover_2021"
+
 # Speed limit estimates by road type, used only where maxspeed is not tagged.
 # Shown in the app labeled "estimated". Values in the region's units (mph).
 [speed_estimates]
