@@ -69,9 +69,7 @@ def main():
     page = (REPO / "review" / "index.html").read_text(encoding="utf-8")
     for name in ("theme.js", "roads.js"):
         js = (REPO / "review" / name).read_text(encoding="utf-8")
-        page = page.replace(f'<script src="{name}"></script>', f"<script>
-{js}
-</script>")
+        page = page.replace(f'<script src="{name}"></script>', "<script>\n" + js + "\n</script>")
     bundle = REPO / "review" / "road-check.html"
     bundle.write_text(page, encoding="utf-8")
     print(f"wrote {bundle}")
