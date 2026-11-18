@@ -2,7 +2,7 @@
 # Any change to this file bumps `version`, and every road records the version
 # that scored it.
 
-version = "1-draft"
+version = "2-draft"
 
 [candidate]
 min_length_m = 2000          # shorter stretches are not candidates
@@ -28,10 +28,6 @@ weight = 1.5
 [[curvature.bands]]
 max_radius_m = 300
 weight = 1.0
-
-[twisty]
-# Twisty = 100 * (1 - exp(-D / scale)), D = weighted curve meters per km.
-scale = 500   # leaves headroom for regions far twistier than this one
 
 [elevation]
 sample_every_m = 30
@@ -75,10 +71,40 @@ rail = 1.0
 yield = 0.5
 
 [overall]
-twisty = 0.35
-scenic = 0.20
+# Recommended "driver's road" weights (v2). Speed ties Twisty; Scenic is lowest.
+# "geometric": Twisty and Speed are combined so a road needs both.
+combine = "geometric"
+twisty = 0.30
+speed = 0.30
 flow = 0.15
 elevation = 0.10
-quiet = 0.10
-surface = 0.10
-unpaved_multiplier = 0.6    # mostly unpaved roads (tagged gravel, dirt...) drop well down the list
+surface = 0.05
+quiet = 0.05
+scenic = 0.05
+
+[categories]
+min_speed = 40          # driver's roads: speed limit at least this...
+min_speed_share = 0.8   # ...on at least 80% of the stretch, and paved
+
+# ---- Driving model (track-style), version 2 -----------------------------
+[drive]
+max_lateral_g = 0.5     # the virtual driver slows for curves to stay under this
+accel_g = 0.3
+brake_g = 0.5
+working_g = 0.2         # cornering at or above this counts as "working the car"
+track_ratio_scale = 0.83 # Twisty = 100 * (1 - exp(-ratio / 0.83)); matching the track average gives 70
+
+[drive.twisty_mix]
+cornering = 0.6         # sustained cornering load
+braking = 0.25          # braking zones into slower corners
+transitions = 0.15      # quick left-right changes (esses)
+
+[drive.speed]
+zero_at_mph = 35        # average legal speed that scores 0
+full_at_mph = 65        # average legal speed that scores 100
+
+# Track averages from `python -m pipeline.reference` (Twisty about 70).
+[drive.reference]
+mean_lat_g = 0.207
+braking_ms_per_km = 28.5
+transitions_per_km = 2.58

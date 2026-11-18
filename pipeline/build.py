@@ -15,6 +15,7 @@ from collections import Counter
 
 import numpy as np
 import shapely
+import shapely.prepared
 from pyproj import Transformer
 from shapely.strtree import STRtree
 
@@ -23,6 +24,7 @@ from .chains import build_chains
 from .config import DATA_DIR, Region, load_scoring
 from .dem import Dem
 from .landcover import Landcover
+from . import drive
 from .fetch import osm_paths
 from .osm_read import read_extracts
 
@@ -73,6 +75,64 @@ def quiet_score(tags: dict, highway: str, cfg: dict) -> float:
     return float(v)
 
 
+def is_numbered(tags: dict, sd: dict | None) -> bool:
+    ref = tags.get("ref", "").split(";")[0].strip()
+    return bool(sd and ref and re.match(sd.get("numbered_ref", r"^\S+ ?\d"), ref))
+
+
+def overall_score(f: dict, ow: dict) -> float:
+    """Weighted overall score.
+
+    With combine = "geometric", Twisty and Speed share one weight through their
+    geometric mean, so a road has to be good at both: a twisty road you must
+    crawl through, or a fast road with no corners, can't coast on one of them.
+    """
+    if ow.get("combine") == "geometric":
+        core = (ow["twisty"] + ow["speed"]) * float(np.sqrt(f["twisty"] * f["speed"]))
+    else:
+        core = ow["twisty"] * f["twisty"] + ow["speed"] * f["speed"]
+    rest = sum(ow[k] * f[k] for k in ("scenic", "flow", "elevation", "quiet", "surface"))
+    return (core + rest) / sum(ow[k] for k in ("twisty", "speed", "scenic", "flow", "elevation", "quiet", "surface"))
+
+
+def default_limit(tags: dict, highway: str, sd: dict | None, state: str | None,
+                  typical: dict, region: Region) -> tuple[float, str]:
+    """Best guess for a road with no posted limit in OpenStreetMap.
+
+    Numbered state and US routes: the limit most similar routes in the same
+    state are posted at in OpenStreetMap (state DOTs usually post these below
+    the legal maximum). Other roads: the state's legal default.
+    """
+    if sd:
+        if is_numbered(tags, sd):
+            t = typical.get((state, highway)) or typical.get((state, "*"))
+            if t:
+                return t, "estimated"
+            return sd["numbered"], "state_default"
+        return sd["unnumbered"], "state_default"
+    return region.speed_estimates.get(highway, 35), "estimated"
+
+
+def typical_numbered_limits(osm, state_of, sd_all: dict, imperial: bool, min_km: float = 20) -> dict:
+    """Most common posted limit on numbered routes, per state and road class (length weighted)."""
+    from collections import defaultdict
+    acc = defaultdict(Counter)
+    for way in osm.ways.values():
+        tags = way["tags"]
+        speeds = parse_maxspeed(tags.get("maxspeed"), imperial)
+        if not speeds:
+            continue
+        lon, lat = way["lonlat"][len(way["lonlat"]) // 2]
+        state = state_of(lon, lat)
+        if not is_numbered(tags, sd_all.get(state)):
+            continue
+        ll = way["lonlat"]
+        km = float(np.hypot(np.diff(ll[:, 0]) * 94.5, np.diff(ll[:, 1]) * 111.3).sum())
+        acc[(state, way["highway"])][min(speeds)] += km
+        acc[(state, "*")][min(speeds)] += km
+    return {k: c.most_common(1)[0][0] for k, c in acc.items() if sum(c.values()) >= min_km}
+
+
 def resample(xy: np.ndarray, cum: np.ndarray, every: float) -> tuple[np.ndarray, np.ndarray]:
     total = cum[-1]
     n = max(2, int(total // every) + 1)
@@ -91,7 +151,7 @@ def load_osm(region: Region):
     if cache.exists() and cache.stat().st_mtime > newest:
         with cache.open("rb") as f:
             return pickle.load(f)
-    data = read_extracts(sources, region.bbox, DATA_DIR / "tmp")
+    data = read_extracts(sources, region.bbox, DATA_DIR / "tmp", states=tuple(region.speed_defaults))
     cache.parent.mkdir(parents=True, exist_ok=True)
     with cache.open("wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -145,7 +205,7 @@ def build(region: Region) -> list[dict]:
         cum = g.cumulative(xy)
         if cum[-1] < c_cand["min_length_m"]:
             continue
-        dpos, lens, w = g.curvature_profile(xy, c_cand, bands)
+        dpos, lens, w, radii, turn = g.curvature_profile(xy, c_cand, bands)
         for a, b in g.split_at_straights(lens, w, c_cand["straight_split_m"]):
             # Map the piece back to the nearest original mapped points.
             oa = int(np.clip(np.searchsorted(cum, dpos[a], side="right") - 1, 0, len(cum) - 2))
@@ -173,6 +233,26 @@ def build(region: Region) -> list[dict]:
     place_xy = proj(np.array([[p[2], p[3]] for p in places])) if places else np.zeros((0, 2))
     home_xy = proj(np.array([region.home]))[0]
 
+    state_geoms = {name: shapely.prepared.prep(geom) for name, geom in osm.states.items()}
+    print(f"  states: {sorted(state_geoms)}")
+
+    # If exactly one configured state's outline could not be built (coastal
+    # outlines are often incomplete in extracts), it is "everything else".
+    missing = [name for name in region.speed_defaults if name not in state_geoms]
+    fallback_state = missing[0] if len(missing) == 1 else None
+    if fallback_state:
+        print(f"  {fallback_state}: outline not built, used for roads outside the other states")
+
+    def state_of(lon, lat):
+        pt = shapely.Point(lon, lat)
+        for name, geom in state_geoms.items():
+            if geom.contains(pt):
+                return name
+        return fallback_state
+
+    typical = typical_numbered_limits(osm, state_of, region.speed_defaults, imperial)
+    print(f"  typical posted limits on numbered routes: {typical}")
+
     dem = Dem(region.raw_dir / "dem")
     land = Landcover(region.raw_dir / "landcover", region.bbox)
     if not land.covered:
@@ -191,13 +271,16 @@ def build(region: Region) -> list[dict]:
         seg_len = g.seg_lengths(pxy)
         km = length / 1000.0
 
-        # Twisty
-        twisty = g.saturate(wc / km, cfg["twisty"]["scale"])
+        mid_ll = ch.lonlat[(oa + ob) // 2]
+        state = state_of(mid_ll[0], mid_ll[1])
+        sd = region.speed_defaults.get(state) if state else None
 
         # Per-segment tag factors, length weighted
         surf_vals, surf_kinds, quiet_vals = [], Counter(), []
         speed_by_val = Counter()
         untagged_len = 0.0
+        seg_limit = np.zeros(len(seg_len))
+        src_len = Counter()
         class_len = Counter()
         names, refs_c = Counter(), Counter()
         bridge = np.zeros(len(seg_len), dtype=bool)
@@ -215,8 +298,11 @@ def build(region: Region) -> list[dict]:
             if speeds:
                 for v in speeds:
                     speed_by_val[v] += L
+                seg_limit[i] = min(speeds)
             else:
                 untagged_len += L
+                seg_limit[i], src = default_limit(tags, hw, sd, state, typical, region)
+                src_len[src] += L
             if tags.get("bridge") not in (None, "no"):
                 bridge[i] = True
             if int(wid) in osm.byway_members:
@@ -232,17 +318,33 @@ def build(region: Region) -> list[dict]:
         surface_label = surf_kinds.most_common(1)[0][0]
         paved = surf_kinds["unpaved"] < 0.2 * total_len
 
-        # Speed
+        # Speed limits: posted (OpenStreetMap) first, then the state's legal default.
         main_class = class_len.most_common(1)[0][0]
-        tagged = [v for v, L in speed_by_val.items() if L >= min(200, 0.1 * total_len)]
         share_untagged = untagged_len / total_len
-        if not tagged:
-            est = region.speed_estimates.get(main_class)
-            speed_min = speed_max = est
-            speed_estimated = "all"
+        by_val = Counter()
+        for v, L in zip(seg_limit, seg_len):
+            by_val[int(v)] += L
+        shown = [v for v, L in by_val.items() if L >= min(200, 0.1 * total_len)] or [int(seg_limit[0])]
+        speed_min, speed_max = min(shown), max(shown)
+        main_src = src_len.most_common(1)[0][0] if src_len else "posted"
+        if share_untagged <= 0.25:
+            speed_source = "posted"
+        elif share_untagged < 0.75:
+            speed_source = "partly_default" if main_src == "state_default" else "partly_estimated"
         else:
-            speed_min, speed_max = min(tagged), max(tagged)
-            speed_estimated = "partial" if share_untagged > 0.25 else "none"
+            speed_source = main_src
+        share_40 = float(seg_len[seg_limit >= cfg["categories"]["min_speed"]].sum() / total_len)
+
+        # Driving model: how hard the road works a car at legal speeds.
+        unit = drive.MPH if imperial else 1 / 3.6
+
+        def limit_at(dd, seg_limit=seg_limit, pcum=pcum):
+            i = np.clip(np.searchsorted(pcum, dd, side="right") - 1, 0, len(seg_limit) - 1)
+            return seg_limit[i] * unit
+
+        dm = drive.analyze(pxy, limit_at, c_cand, bands, cfg["drive"])
+        ds = drive.scores(dm, cfg["drive"])
+        twisty, speed_score = ds["twisty"], ds["speed"]
 
         # Interruptions (interior nodes only)
         interior = nodes[1:-1]
@@ -341,12 +443,17 @@ def build(region: Region) -> list[dict]:
         scenic = 100.0 * min(1.0, scenic_raw)
 
         ow = cfg["overall"]
-        overall = (
-            ow["twisty"] * twisty + ow["scenic"] * scenic + ow["flow"] * flow
-            + ow["elevation"] * elevation + ow["quiet"] * quiet + ow["surface"] * surface
-        )
+        overall = overall_score(
+            dict(twisty=twisty, speed=speed_score, scenic=scenic, flow=flow,
+                 elevation=elevation, quiet=quiet, surface=surface), ow)
+        # Driver's roads: the main list. Everything else still appears in the
+        # Most Scenic list and in search, just not ranked as a driver's road.
+        cat = cfg["categories"]
+        excluded_because = []
+        if share_40 < cat["min_speed_share"]:
+            excluded_because.append(f"speed limit under {cat['min_speed']} {'mph' if imperial else 'km/h'}")
         if not paved:
-            overall *= ow["unpaved_multiplier"]
+            excluded_because.append("unpaved")
 
         # Naming and location
         name = names.most_common(1)[0][0] if names else None
@@ -384,7 +491,17 @@ def build(region: Region) -> list[dict]:
             "highway": main_class,
             "length_m": round(length),
             "score_overall": round(overall),
+            "drivers_road": not excluded_because,
+            "not_drivers_road_because": excluded_because,
             "score_twisty": round(twisty),
+            "score_speed": round(speed_score),
+            "drive": {
+                "avg_lateral_g": round(dm["mean_lat_g"], 3),
+                "hard_cornering_share": round(dm["hard_share"], 2),
+                "braking_per_km": round(dm["braking_ms_per_km"], 1),
+                "esses_per_km": round(dm["transitions_per_km"], 2),
+                "legal_avg_speed": round(ds["avg_mph"] if imperial else dm["avg_speed_ms"] * 3.6),
+            },
             "score_scenic": round(scenic),
             "score_elevation": round(elevation),
             "score_flow": round(flow),
@@ -409,7 +526,9 @@ def build(region: Region) -> list[dict]:
             "speed_min": speed_min,
             "speed_max": speed_max,
             "speed_units": "mph" if imperial else "km/h",
-            "speed_estimated": speed_estimated,
+            "speed_source": speed_source,
+            "speed_default_note": sd.get("source") if sd and speed_source != "posted" else None,
+            "state": state,
             "osm_way_ids": sorted({int(x) for x in seg_way}),
             "mid": [round(mid_lon, 5), round(mid_lat, 5)],
             "home_km": round(float(np.hypot(*(mid - home_xy))) / 1000, 1),
@@ -447,7 +566,8 @@ def write_outputs(region: Region, roads: list[dict]) -> None:
     cols = [
         "id", "name", "near", "highway", "length_m", "score_overall", "score_twisty",
         "score_scenic", "score_elevation", "score_flow", "score_quiet", "score_surface",
-        "curve_m_per_km", "climb_m", "surface", "speed_min", "speed_max", "speed_estimated",
+        "curve_m_per_km", "climb_m", "surface", "speed_min", "speed_max", "speed_source",
+        "score_speed", "drivers_road",
         "home_km", "mid",
     ]
     with (out / "candidates.csv").open("w", newline="", encoding="utf-8") as f:
