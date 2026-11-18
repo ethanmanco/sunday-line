@@ -542,7 +542,9 @@ def build(region: Region) -> list[dict]:
         if share_40 < cat["min_speed_share"]:
             excluded_because.append(f"speed limit under {cat['min_speed']} {'mph' if imperial else 'km/h'}")
         if not paved:
-            excluded_because.append("gravel or dirt" if surface_label == "likely_unpaved" else "unpaved")
+            excluded_because.append("looks like gravel in aerial photos" if surface_label == "likely_unpaved" else "tagged unpaved in OpenStreetMap")
+        elif surface_check:
+            excluded_because.append("surface unclear in aerial photos (needs a check)")
         if near_venue:
             excluded_because.append(f"next to an off-road or motor venue ({near_venue})")
         if venue_share["offroad"] >= 0.3:

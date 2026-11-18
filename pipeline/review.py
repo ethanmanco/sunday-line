@@ -30,10 +30,13 @@ def main():
     drivers = [f for f in by_score if f["properties"]["drivers_road"]]
     local = [f for f in drivers if f["properties"]["home_mi"] <= region.local_radius_mi]
     gravel = [f for f in by_score if f["properties"].get("gravel_road")]
-    left_out = [f for f in by_score if not f["properties"]["drivers_road"] and not f["properties"].get("gravel_road")]
+    unsure = [f for f in by_score if not f["properties"]["drivers_road"] and f["properties"].get("surface_check")
+              and not f["properties"].get("gravel_road")]
+    left_out = [f for f in by_score if not f["properties"]["drivers_road"] and not f["properties"].get("gravel_road")
+                and not f["properties"].get("surface_check")]
     chosen, seen = [], set()
     for group, items in (("drivers", drivers[: args.top]), ("local", local[:100]),
-                         ("gravel", gravel[:60]), ("left_out", left_out[:60])):
+                         ("unsure", unsure[:150]), ("gravel", gravel[:60]), ("left_out", left_out[:60])):
         for f in items:
             pid = f["properties"]["id"]
             if pid in seen:
@@ -61,6 +64,17 @@ def main():
         encoding="utf-8",
     )
     print(f"wrote {len(out)} roads to {dest}")
+
+    # One-file copy that opens straight from disk (double-click), no server needed.
+    page = (REPO / "review" / "index.html").read_text(encoding="utf-8")
+    for name in ("theme.js", "roads.js"):
+        js = (REPO / "review" / name).read_text(encoding="utf-8")
+        page = page.replace(f'<script src="{name}"></script>', f"<script>
+{js}
+</script>")
+    bundle = REPO / "review" / "road-check.html"
+    bundle.write_text(page, encoding="utf-8")
+    print(f"wrote {bundle}")
 
 
 if __name__ == "__main__":

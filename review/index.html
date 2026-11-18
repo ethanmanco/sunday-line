@@ -72,6 +72,7 @@
       <div class="tabs" role="group" aria-label="Which roads">
         <button data-tab="drivers" aria-pressed="true">Driver's roads</button>
         <button data-tab="local">Local</button>
+        <button data-tab="unsure">Needs a check</button>
         <button data-tab="gravel">Gravel</button>
         <button data-tab="left_out">Left out</button>
         <button data-tab="todo">Not checked</button>
@@ -122,7 +123,7 @@ function heat(v) {
 
 function visible() {
   if (tab === "todo") return roads.filter(r => !store[r.id]);
-  if (tab === "local") return roads.filter(r => r.group !== "gravel" && r.group !== "left_out" && r.home_mi <= REGION.local_radius_mi);
+  if (tab === "local") return roads.filter(r => r.group !== "gravel" && r.group !== "left_out" && r.group !== "unsure" && r.home_mi <= REGION.local_radius_mi);
   return roads.filter(r => r.group === tab);
 }
 
