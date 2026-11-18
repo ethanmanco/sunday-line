@@ -24,6 +24,7 @@ class Region:
     dem: str
     landcover: str
     speed_estimates: dict[str, float] = field(default_factory=dict)
+    speed_defaults: dict[str, dict] = field(default_factory=dict)
 
     @property
     def raw_dir(self) -> Path:
@@ -52,6 +53,7 @@ def load_region(slug: str) -> Region:
         dem=d["dem"],
         landcover=d.get("landcover", "esa_worldcover_2021"),
         speed_estimates=dict(d.get("speed_estimates", {})),
+        speed_defaults=dict(d.get("speed_defaults", {})),
     )
 
 

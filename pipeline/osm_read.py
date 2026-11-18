@@ -80,9 +80,10 @@ class OsmData:
     rivers: dict = field(default_factory=dict)        # way id -> shapely LineString
     byway_members: set = field(default_factory=set)   # way ids in scenic byway routes
     byway_names: dict = field(default_factory=dict)   # way id -> route name
+    states: dict = field(default_factory=dict)        # state name -> shapely geom (lon/lat)
 
 
-def read_extracts(paths: list[Path], bbox, tmp_dir: Path) -> OsmData:
+def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
     w, s, e, n = bbox
     pad = 0.2  # first-node prefilter margin, degrees
     box = shapely.box(w, s, e, n)
@@ -180,16 +181,23 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path) -> OsmData:
 
             elif obj.is_relation():
                 tags = obj.tags
+                is_state = (
+                    tags.get("boundary") == "administrative"
+                    and tags.get("admin_level") == "4"
+                    and tags.get("name") in states
+                )
                 if (
                     tags.get("type") == "boundary"
-                    and scenery_kind(tags) == "protected"
-                    and obj.id not in boundary_rels
+                    and (is_state or scenery_kind(tags) == "protected")
+                    # A state's border spans several extracts; try each one.
+                    and (is_state or obj.id not in boundary_rels)
                 ):
                     # The area builder only handles type=multipolygon; national
-                    # forests are usually type=boundary, so build these ourselves.
+                    # forests and states are type=boundary, so build these ourselves.
                     outer = [m.ref for m in obj.members if m.type == "w" and m.role != "inner"]
                     inner = [m.ref for m in obj.members if m.type == "w" and m.role == "inner"]
-                    boundary_rels[obj.id] = (tags.get("name", ""), outer, inner)
+                    kind = "state" if is_state else "protected"
+                    boundary_rels[obj.id] = (kind, tags.get("name", ""), outer, inner)
                     rels_in_file.setdefault(path, []).append(obj.id)
                 elif tags.get("type") == "route" and tags.get("route") == "road":
                     label = " ".join(
@@ -234,7 +242,7 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path) -> OsmData:
         t0 = time.time()
         want = set()
         for rid in rel_ids:
-            _, outer, inner = boundary_rels[rid]
+            _, _, outer, inner = boundary_rels[rid]
             want.update(outer)
             want.update(inner)
         lines = {}
@@ -258,17 +266,23 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path) -> OsmData:
             pass
         built = 0
         for rid in rel_ids:
-            name, outer, inner = boundary_rels[rid]
+            kind, name, outer, inner = boundary_rels[rid]
             geom = _polygon_from_lines([lines[i] for i in outer if i in lines])
             holes = _polygon_from_lines([lines[i] for i in inner if i in lines])
             if geom is None:
                 continue
             if holes is not None:
                 geom = geom.difference(holes)
-            if geom.intersects(box):
+            if not geom.intersects(box):
+                continue
+            if kind == "state":
+                # Keep the most complete outline found across the extracts.
+                if name not in data.states or geom.area > data.states[name].area:
+                    data.states[name] = geom
+            else:
                 data.scenery[("protected", rid * 2 + 1)] = geom
-                built += 1
-        print(f"protected boundaries from {path.name}: {built} of {len(rel_ids)} built ({time.time() - t0:.0f}s)")
+            built += 1
+        print(f"boundaries from {path.name}: {built} of {len(rel_ids)} built ({time.time() - t0:.0f}s)")
 
     # Scenic tag on ways counts like a byway.
     for wid, way in data.ways.items():

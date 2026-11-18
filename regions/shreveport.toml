@@ -27,7 +27,27 @@ dem = "usgs_3dep_1as"
 # Land cover for forest and water scenery: ESA WorldCover 10 m (2021), CC BY 4.0, global.
 landcover = "esa_worldcover_2021"
 
-# Speed limit estimates by road type, used only where maxspeed is not tagged.
+# Legal default speed limits for roads with no posted sign, by state.
+# Used where OpenStreetMap has no maxspeed. Shown in the app as "state default".
+# Local signs can set a lower limit, so these are upper bounds, not guarantees.
+[speed_defaults.Texas]
+source = "Texas Transportation Code 545.352(b): 70 mph on state- or US-numbered highways (including FM and RM roads) and 60 mph on other highways outside an urban district"
+numbered = 70
+unnumbered = 60
+numbered_ref = '^(FM|RM|SH|TX|US|IH|I|SL|SS|Loop|Spur|PR|RE|BU|BS|Bus|Business)[ -]?\d'
+
+[speed_defaults.Louisiana]
+source = "La. R.S. 32:61: 55 mph on any highway unless a lower limit is posted"
+numbered = 55
+unnumbered = 55
+
+[speed_defaults.Arkansas]
+source = "Assumed 55 mph, the value ARDOT uses for unposted state highways; the statute's rural passenger-car default was not confirmed"
+numbered = 55
+unnumbered = 55
+assumed = true
+
+# Last-resort estimates by road type, used only outside the states above.
 # Shown in the app labeled "estimated". Values in the region's units (mph).
 [speed_estimates]
 primary = 55
