@@ -1,0 +1,78 @@
+import type { Metadata } from "next";
+import { CONTACT_EMAIL, DATA_URL, GITHUB_URL, MORE_PROJECTS_URL } from "@/lib/config";
+import { loadRoadData } from "@/lib/serverData";
+
+export const metadata: Metadata = { title: "About" };
+
+export default async function About() {
+  const data = await loadRoadData();
+  return (
+    <div className="page">
+      <h1>About Sunday Line</h1>
+      <p className="lead">
+        Sunday Line finds the roads that are fun to drive: twisty, fast, paved, and quiet. It starts with{" "}
+        {data.region.area} and is built to work anywhere.
+      </p>
+      <p className="links">
+        <a className="button" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">Star on GitHub</a>
+        <a className="button ghost" href={MORE_PROJECTS_URL} target="_blank" rel="noopener noreferrer">More projects by Ethan</a>
+      </p>
+
+      <h2 id="scoring">How roads are scored</h2>
+      <p>
+        Every road in the region comes from OpenStreetMap. We simulate driving it at the speed limit: the car slows for
+        each corner, brakes into it, and accelerates out, the way a lap simulator works a race track. Then we compare
+        that drive with five real tracks (Laguna Seca, Road Atlanta, Lime Rock, Barber, and COTA), each capped at 55 mph.
+      </p>
+      <ul>
+        <li><b>Twisty:</b> cornering, braking, and direction changes compared with those tracks. 70 is track average.</li>
+        <li><b>Speed:</b> the average legal speed through the corners. 35 mph scores 0, 65 mph scores 100.</li>
+        <li><b>Overall:</b> needs both Twisty and Speed, so a slow twisty road and a fast straight one both score low. Flow (few stops), elevation, surface, quiet, and scenery add a little.</li>
+        <li><b>Scenic:</b> forest, water, and wetland along the road (ESA WorldCover). It counts least in Overall and has its own list.</li>
+      </ul>
+      <p>
+        <b>Driver&apos;s roads</b> must be paved, have a speed limit of at least 40 mph on most of their length, not run
+        through a neighborhood, and not sit inside a park, fee area, or off-road park. Most rural roads here have no
+        surface on the map, so we read it from USDA aerial photos; the photo check is right about 9 times in 10.
+        Roads where the photos are unclear wait for a person to check them.
+      </p>
+
+      <h2>Labels</h2>
+      <ul>
+        <li><b>Candidate:</b> found from map data, not yet checked by members.</li>
+        <li><b>Speed limits:</b> &quot;posted&quot; comes from the map; &quot;state default&quot; is the legal limit where no sign is mapped; &quot;estimated&quot; comes from similar roads nearby. Always follow the signs.</li>
+      </ul>
+
+      <h2 id="terms">Terms of use</h2>
+      <p>Plain language, not legal advice.</p>
+      <ul>
+        <li>You are responsible for following traffic laws and posted speed limits. Illegal driving activity is prohibited.</li>
+        <li>Road information is estimated from public data and may be wrong or out of date. You use the app, and drive any road, at your own risk.</li>
+        <li>Plan your drive before you head out.</li>
+        <li>You own and control what you post.</li>
+        <li>Legal notices: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
+      </ul>
+
+      <h2>Data and credits</h2>
+      <ul>
+        <li>
+          Road data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>,
+          available under the Open Database License. Our scored road list is a derived database, also under the ODbL:{" "}
+          <a href={DATA_URL}>download it</a> (updated {data.generated}).
+        </li>
+        <li>Base map: <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, &copy; OpenMapTiles. Satellite view: USGS The National Map.</li>
+        <li>Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0).</li>
+        <li>Buildings and places: Overture Maps Foundation.</li>
+        <li>The curvature approach follows the published method of the <a href="https://github.com/adamfranco/curvature" target="_blank" rel="noopener noreferrer">Curvature project</a>, written independently.</li>
+      </ul>
+
+      <h2>Your privacy</h2>
+      <p>
+        &quot;Measure from my location&quot; uses your location inside this page only. It is never sent to a server or
+        saved.
+      </p>
+
+      <p className="fine">Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+    </div>
+  );
+}
