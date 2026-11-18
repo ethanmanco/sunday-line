@@ -80,6 +80,14 @@ def is_numbered(tags: dict, sd: dict | None) -> bool:
     return bool(sd and ref and re.match(sd.get("numbered_ref", r"^\S+ ?\d"), ref))
 
 
+VERDICT_REASONS = {
+    "gravel": "gravel or dirt (checked by a person)",
+    "neighborhood": "runs through a neighborhood (checked by a person)",
+    "offroad": "off-road, park, or private (checked by a person)",
+    "slow": "too slow (checked by a person)",
+}
+
+
 def overall_score(f: dict, ow: dict) -> float:
     """Weighted overall score.
 
@@ -267,6 +275,11 @@ def build(region: Region) -> list[dict]:
     pred_path = region.out_dir / "surface_pred.json"
     surface_pred = json.loads(pred_path.read_text(encoding="utf-8"))["roads"] if pred_path.exists() else {}
     print(f"  surface predictions: {len(surface_pred)} roads")
+
+    # Verdicts from the road-check page (review/index.html), saved to data/review/verdicts.json.
+    vpath = DATA_DIR / "review" / "verdicts.json"
+    verdicts = json.loads(vpath.read_text(encoding="utf-8")) if vpath.exists() else {}
+    print(f"  review verdicts: {len(verdicts)}")
 
     # Off-road parks, parks, fee areas, and neighborhoods.
     venue_items = [(k[0], name, to_proj(geom)) for k, (geom, name) in osm.venues.items()]
@@ -544,6 +557,13 @@ def build(region: Region) -> list[dict]:
         )
         if neighborhood:
             excluded_because.append("runs through a neighborhood")
+        verdict = verdicts.get(rid, {}).get("verdict")
+        if verdict == "good":
+            excluded_because = []  # a person checked it
+        elif verdict in VERDICT_REASONS:
+            excluded_because = [VERDICT_REASONS[verdict]]
+            if verdict == "gravel":
+                paved, surface_label = False, "unpaved"
 
         # Naming and location
         name = names.most_common(1)[0][0] if names else None
@@ -619,6 +639,7 @@ def build(region: Region) -> list[dict]:
             "gravel_road": surface_label in ("unpaved", "likely_unpaved"),
             "homes_per_km": round(homes_per_km, 1),
             "near_venue": near_venue,
+            "checked": verdict,
             "built_share": round(built_share, 3),
             "venues": {k: {"share": round(v, 2), "name": venue_name.get(k)} for k, v in venue_share.items() if v > 0},
             "speed_min": speed_min,

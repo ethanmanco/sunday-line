@@ -102,7 +102,12 @@ def road_features(points: list[dict | None]) -> dict | None:
     return out
 
 
-def label(props: dict) -> int | None:
+def label(props: dict, verdicts: dict) -> int | None:
+    v = verdicts.get(props["id"], {}).get("verdict")
+    if v == "gravel":
+        return 1
+    if v == "good":
+        return 0
     shares = props.get("surface_shares") or {}
     if shares.get("paved", 0) >= 0.8:
         return 0
@@ -147,6 +152,8 @@ def main():
                 print(f"  {done}/{len(jobs)} clips ({rate:.1f}/s, about {(len(jobs) - done) / rate / 60:.0f} min left)")
     cache_path.write_text(json.dumps(cache))
 
+    vpath = region.raw_dir.parent / "review" / "verdicts.json"
+    verdicts = json.loads(vpath.read_text(encoding="utf-8")) if vpath.exists() else {}
     rows, ys, ids = [], [], []
     for f in feats:
         pts = [cache.get(f"{lon:.5f},{lat:.5f}") for lon, lat in sample_points(f["geometry"]["coordinates"], POINTS_PER_ROAD)]
@@ -154,7 +161,7 @@ def main():
         rf = road_features(pts)
         ids.append(f["properties"]["id"])
         rows.append(rf)
-        ys.append(label(f["properties"]))
+        ys.append(label(f["properties"], verdicts))
 
     from sklearn.ensemble import GradientBoostingClassifier
     from sklearn.linear_model import LogisticRegression
