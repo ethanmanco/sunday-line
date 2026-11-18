@@ -1,0 +1,84 @@
+# Sunday Line road scoring. All numbers that shape a score live here.
+# Any change to this file bumps `version`, and every road records the version
+# that scored it.
+
+version = "1-draft"
+
+[candidate]
+min_length_m = 2000          # shorter stretches are not candidates
+min_weighted_curve_m = 300   # total weighted curvature a stretch needs
+straight_split_m = 1609      # a straight this long splits a road into pieces
+simplify_tolerance_m = 0.0   # 0 = keep every mapped point
+resample_step_m = 10         # the road is re-measured at points this far apart
+radius_offset_steps = 3      # radius taken across +-30 m, so mapping wobbles don't read as corners
+min_curve_span_m = 15.0      # a curve must cover at least this much road
+require_name = true          # unnamed ways are left to community submissions
+
+# Curvature bands: radius in meters below which a weight applies.
+# Checked from tightest to broadest. Radius >= the largest value counts 0.
+[[curvature.bands]]
+max_radius_m = 40
+weight = 2.5
+[[curvature.bands]]
+max_radius_m = 80
+weight = 2.0
+[[curvature.bands]]
+max_radius_m = 150
+weight = 1.5
+[[curvature.bands]]
+max_radius_m = 300
+weight = 1.0
+
+[twisty]
+# Twisty = 100 * (1 - exp(-D / scale)), D = weighted curve meters per km.
+scale = 500   # leaves headroom for regions far twistier than this one
+
+[elevation]
+sample_every_m = 30
+# Elevation = 100 * (1 - exp(-X / scale)), X = climb + descent in meters per km.
+scale = 25
+
+[surface]
+paved = 100
+untagged_major = 80     # tertiary and larger, surface not tagged
+untagged_minor = 60     # unclassified, surface not tagged
+unpaved = 10
+paved_values = ["asphalt", "paved", "concrete", "chipseal", "concrete:plates", "concrete:lanes", "metal"]
+
+[quiet]
+unclassified = 100
+tertiary = 90
+secondary = 65
+primary = 35
+more_than_two_lanes_penalty = 20
+
+[scenery]
+sample_every_m = 50
+forest_within_m = 150       # forest = average tree cover (ESA WorldCover) within this distance
+water_within_m = 300
+water_min_share = 0.03      # a point is "near water" if 3% of the land within 300 m is open water
+wetland_min_share = 0.10
+wetland_weight = 0.5        # wetlands count as half-water
+w_forest = 0.45
+w_water = 0.35
+w_protected = 0.20
+byway_bonus = 0.15          # if at least 30% of the stretch is on a scenic byway
+byway_min_share = 0.30
+
+[flow]
+# Flow = 100 * exp(-I / scale), I = weighted interruptions per km.
+scale = 1.5
+junction = 1.0
+stop = 2.0
+signals = 2.5
+rail = 1.0
+yield = 0.5
+
+[overall]
+twisty = 0.35
+scenic = 0.20
+flow = 0.15
+elevation = 0.10
+quiet = 0.10
+surface = 0.10
+unpaved_multiplier = 0.6    # mostly unpaved roads (tagged gravel, dirt...) drop well down the list
