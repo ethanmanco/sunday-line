@@ -5,6 +5,7 @@
     python -m pipeline report --region shreveport
     python -m pipeline surface --region shreveport   (aerial-photo gravel check, slow)
     python -m pipeline review --region shreveport    (road-check page data)
+    python -m pipeline export --region shreveport    (data file the web app reads)
     python -m pipeline all    --region shreveport
 """
 from __future__ import annotations
@@ -16,7 +17,7 @@ from .config import load_region
 
 def main() -> None:
     p = argparse.ArgumentParser(prog="pipeline")
-    p.add_argument("step", choices=["fetch", "score", "surface", "report", "review", "all"])
+    p.add_argument("step", choices=["fetch", "score", "surface", "report", "review", "export", "all"])
     p.add_argument("--region", default="shreveport")
     p.add_argument("--top", type=int, default=20)
     args = p.parse_args()
@@ -34,6 +35,10 @@ def main() -> None:
         from .report import report
 
         report(region, top=args.top)
+    if args.step in ("export", "all"):
+        from .export import export
+
+        export(region)
     if args.step in ("surface", "review"):
         import sys
 

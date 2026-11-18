@@ -12,6 +12,8 @@ bbox = [-95.6, 31.0, -92.0, 34.0]
 
 # A "home" point for the Local list (Shreveport). Radius in miles; change freely.
 home = [-93.75, 32.51]
+home_name = "Shreveport"
+area = "northwest Louisiana, east Texas, and south Arkansas"
 local_radius_mi = 50
 
 # OpenStreetMap extracts covering the box. Clipped to the box while reading.

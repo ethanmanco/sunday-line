@@ -19,6 +19,8 @@ class Region:
     country: str
     bbox: tuple[float, float, float, float]
     home: tuple[float, float]
+    home_name: str
+    area: str
     local_radius_mi: float
     osm_extracts: list[str]
     dem: str
@@ -48,6 +50,8 @@ def load_region(slug: str) -> Region:
         country=d["country"],
         bbox=tuple(d["bbox"]),
         home=tuple(d["home"]),
+        home_name=d.get("home_name", "home"),
+        area=d.get("area", d["name"]),
         local_radius_mi=float(d.get("local_radius_mi", 50)),
         osm_extracts=list(d["osm_extracts"]),
         dem=d["dem"],

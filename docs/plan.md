@@ -465,3 +465,6 @@ Security tests add: a non-member can't read a group chat or a direct conversatio
 
 ### 11.9 Build order (updated)
 After you okay the road list: map and list, sharing, accounts and road ratings, **profiles and follows**, groups (with moderators), events and notifications, **messages and group chats**. Each step still lands in small commits.
+
+### 11.10 Map and list (built 2026-11-18)
+The road list is served as a static file (`public/data/<region>/roads.json`, written by `python -m pipeline export`) instead of from Supabase. Roads are public and change only when the data script runs, so a file is faster, free, and keeps working if a free Supabase project pauses. Supabase arrives with sign-in, ratings, groups, and meets; member ratings will be read from the database and joined to these roads by road ID.
