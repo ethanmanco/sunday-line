@@ -140,7 +140,8 @@ def radii_at_scale(xy: np.ndarray, k: int) -> np.ndarray:
 def curvature_profile(xy: np.ndarray, cfg: dict, bands: list[dict]):
     """Weighted curvature along a line.
 
-    Returns (vertex distances along the original line, segment lengths, segment weights).
+    Returns (resampled point distances along the original line, segment lengths,
+    segment weights, radius at each resampled point).
     """
     cum = cumulative(xy)
     idx = simplify_indices(xy, cfg["simplify_tolerance_m"])
@@ -165,7 +166,70 @@ def curvature_profile(xy: np.ndarray, cfg: dict, bands: list[dict]):
         else:
             i += 1
     d_orig = np.interp(d, scum, cum[idx])
-    return d_orig, lens, w
+    return d_orig, lens, w, r, turn_sign(rxy, cfg["radius_offset_steps"])
+
+
+def turn_sign(xy: np.ndarray, k: int) -> np.ndarray:
+    """+1 turning left, -1 turning right, 0 straight or at the ends."""
+    n = len(xy)
+    s = np.zeros(n)
+    if n < 2 * k + 1:
+        return s
+    a, b, c = xy[: n - 2 * k], xy[k : n - k], xy[2 * k :]
+    cross = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (b[:, 1] - a[:, 1]) * (c[:, 0] - a[:, 0])
+    s[k : n - k] = np.sign(cross)
+    return s
+
+
+G = 9.81
+
+
+def speed_trace(r: np.ndarray, step: float, v_limit: np.ndarray, a_lat: float, a_acc: float, a_brake: float):
+    """Speed along the road for a driver who never exceeds the limit.
+
+    The same quasi-steady method lap-time simulators use: each point's speed is
+    capped by the speed limit and by the curve (v = sqrt(a_lat * R)); a forward
+    pass limits acceleration and a backward pass limits braking.
+    Speeds in m/s, accelerations in m/s^2. Returns (speed, lateral acceleration in g).
+    """
+    with np.errstate(invalid="ignore"):
+        v_curve = np.sqrt(a_lat * r)
+    vmax = np.minimum(v_limit, v_curve)
+    v = vmax.copy()
+    for i in range(1, len(v)):
+        v[i] = min(v[i], np.sqrt(v[i - 1] ** 2 + 2 * a_acc * step))
+    for i in range(len(v) - 2, -1, -1):
+        v[i] = min(v[i], np.sqrt(v[i + 1] ** 2 + 2 * a_brake * step))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lat = np.where(np.isfinite(r), v**2 / r, 0.0) / G
+    return v, lat
+
+
+def trace_metrics(v: np.ndarray, lat: np.ndarray, r: np.ndarray, step: float, signed_turn: np.ndarray, cfg: dict) -> dict:
+    """Track-style measures of how hard a road works a car."""
+    seg_v = (v[:-1] + v[1:]) / 2
+    seg_lat = (lat[:-1] + lat[1:]) / 2
+    seg_t = step / np.maximum(seg_v, 0.5)
+    total_t = seg_t.sum()
+    length_km = step * len(seg_v) / 1000
+    # Time-weighted average cornering load, like a g-g trace from a data logger.
+    mean_lat = float((seg_lat * seg_t).sum() / total_t)
+    # Share of time spent cornering hard enough to feel it.
+    hard_share = float(seg_t[seg_lat >= cfg["working_g"]].sum() / total_t)
+    # Braking zones: total speed scrubbed per km (m/s per km).
+    dv = np.diff(v)
+    braking = float(-dv[dv < 0].sum() / max(length_km, 1e-6))
+    # Direction changes between loaded corners (esses), per km.
+    loaded = (lat >= cfg["working_g"]) & (signed_turn != 0)
+    signs = np.sign(signed_turn[loaded])
+    transitions = int((np.diff(signs) != 0).sum()) if len(signs) > 1 else 0
+    return {
+        "mean_lat_g": mean_lat,
+        "hard_share": hard_share,
+        "braking_ms_per_km": braking,
+        "transitions_per_km": transitions / max(length_km, 1e-6),
+        "avg_speed_ms": float(step * len(seg_v) / total_t),
+    }
 
 
 def split_at_straights(lens: np.ndarray, w: np.ndarray, split_len: float) -> list[tuple[int, int]]:

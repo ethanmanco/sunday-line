@@ -61,14 +61,14 @@ def test_mapping_wobble_is_not_curvature():
     rng = np.random.default_rng(1)
     x = np.linspace(0, 1000, 201)  # a point every 5 m, wobbling about 0.3 m
     xy = np.column_stack([x, rng.normal(0, 0.3, len(x))])
-    _, lens, w = g.curvature_profile(xy, CFG, BANDS)
+    _, lens, w, *_ = g.curvature_profile(xy, CFG, BANDS)
     assert (lens * w).sum() < 20
 
 
 def test_profile_ranks_tight_over_broad_and_ignores_sweepers():
     totals = {}
     for radius in (30, 60, 120, 200, 400):
-        _, lens, w = g.curvature_profile(embedded_arc(radius, 90), CFG, BANDS)
+        _, lens, w, *_ = g.curvature_profile(embedded_arc(radius, 90), CFG, BANDS)
         totals[radius] = (lens * w).sum() / (radius * math.pi / 2)
     assert totals[30] > totals[60] > totals[120] > totals[200] > 0
     assert totals[400] == 0
