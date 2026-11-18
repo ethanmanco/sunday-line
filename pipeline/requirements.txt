@@ -1,0 +1,7 @@
+numpy==2.4.6
+osmium==4.3.2
+pyproj==3.7.2
+pytest==9.2.0
+rasterio==1.4.4
+shapely==2.2.0
+truststore==0.10.5
