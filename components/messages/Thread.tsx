@@ -70,7 +70,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
       setInfo(row);
       setMore(msgs.length === PAGE);
       setBlocked(new Set(((b.data as { blocked_id: string }[] | null) ?? []).map((x) => x.blocked_id)));
-      await Promise.all([addPeople(msgs.map((x) => x.sender_id)), addUrls(msgs)]);
+      await Promise.all([addPeople(msgs.flatMap((x) => (x.sender_id ? [x.sender_id] : []))), addUrls(msgs)]);
       setMessages(msgs);
       markRead();
     })();
@@ -90,7 +90,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         async (payload) => {
           const m = payload.new as Message;
-          await Promise.all([addPeople([m.sender_id]), addUrls([m])]);
+          await Promise.all([addPeople(m.sender_id ? [m.sender_id] : []), addUrls([m])]);
           setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
           if (m.sender_id !== user.id) markRead();
         },
@@ -121,7 +121,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
     const { data } = await sb.from("messages").select("*").eq("conversation_id", conversationId)
       .lt("created_at", messages[0].created_at).order("created_at", { ascending: false }).limit(PAGE);
     const older = ((data as Message[] | null) ?? []).reverse();
-    await Promise.all([addPeople(older.map((x) => x.sender_id)), addUrls(older)]);
+    await Promise.all([addPeople(older.flatMap((x) => (x.sender_id ? [x.sender_id] : []))), addUrls(older)]);
     stick.current = false;
     setMore(older.length === PAGE);
     setMessages((list) => [...older, ...(list ?? [])]);
@@ -153,10 +153,22 @@ export default function Thread({ conversationId, embedded = false }: { conversat
         {more && <button type="button" className="link older" onClick={loadOlder}>Load earlier messages</button>}
         {messages.length === 0 && <p className="fine empty">No messages yet. Say hi.</p>}
         {messages.map((m, i) => {
+          if (!m.sender_id) {
+            // A post from Sunday Line about an event.
+            return (
+              <div key={m.id} className="msg system">
+                <p><b>Sunday Line</b> {m.body}</p>
+                <span className="msg-meta">
+                  <time dateTime={m.created_at}>{timeAgo(m.created_at)}</time>
+                  {m.event_id && <> · <Link href={`/e/${m.event_id}`}>Open event</Link></>}
+                </span>
+              </div>
+            );
+          }
           const mine = m.sender_id === user.id;
           const who = people[m.sender_id];
           const showName = info?.kind === "group" && !mine && messages[i - 1]?.sender_id !== m.sender_id;
-          if (blocked.has(m.sender_id) && !shown.has(m.id)) {
+          if (m.sender_id && blocked.has(m.sender_id) && !shown.has(m.id)) {
             return (
               <p key={m.id} className="msg hidden-msg">
                 Message from someone you blocked.{" "}

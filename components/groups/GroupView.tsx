@@ -8,9 +8,10 @@ import Thread from "@/components/messages/Thread";
 import GroupManage from "./GroupManage";
 import GroupMembers from "./GroupMembers";
 import GroupSpots from "./GroupSpots";
+import GroupEvents from "@/components/events/GroupEvents";
 import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
 
-type Tab = "spots" | "chat" | "members" | "manage";
+type Tab = "events" | "spots" | "chat" | "members" | "manage";
 
 export interface Membership {
   role: GroupRole;
@@ -30,7 +31,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [count, setCount] = useState<number | null>(null);
   const [requested, setRequested] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("spots");
+  const [tab, setTab] = useState<Tab>("events");
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");
@@ -161,11 +162,12 @@ export default function GroupView({ shortId }: { shortId: string }) {
       {me ? (
         <>
           <div className="tabs" role="tablist" aria-label="Group sections">
-            {([["spots", "Spots"], ["chat", "Chat"], ["members", "Members"], ...(manages ? [["manage", "Manage"]] : [])] as [Tab, string][]).map(([k, label]) => (
+            {([["events", "Events"], ["spots", "Spots"], ["chat", "Chat"], ["members", "Members"], ...(manages ? [["manage", "Manage"]] : [])] as [Tab, string][]).map(([k, label]) => (
               <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
             ))}
           </div>
           <div role="tabpanel">
+            {tab === "events" && <GroupEvents group={g} me={me} myId={user!.id} />}
             {tab === "spots" && <GroupSpots group={g} me={me} myId={user!.id} />}
             {tab === "chat" && chatId && <Thread conversationId={chatId} embedded />}
             {tab === "members" && <GroupMembers group={g} me={me} myId={user!.id} onChanged={load} />}
@@ -176,7 +178,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
         </>
       ) : (
         <>
-          <p className="panel-note">Members see the group&apos;s spots, chat, and who&apos;s in the group.</p>
+          <p className="panel-note">Members see the group&apos;s events, spots, chat, and who&apos;s in the group.</p>
           <GroupSpots group={g} me={null} myId={user?.id ?? null} />
         </>
       )}

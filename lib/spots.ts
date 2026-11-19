@@ -29,6 +29,8 @@ export interface Spot {
   submitted_at: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** Filled in by the main map for group spots. */
+  group_name?: string | null;
 }
 
 export const CATEGORY_LABEL: Record<SpotCategory, string> = {

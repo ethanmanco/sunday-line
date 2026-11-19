@@ -103,7 +103,6 @@ export default function SpotsPage() {
   }
 
   const display = (profile as { spots_display?: SpotsDisplay }).spots_display ?? "selected";
-  const privateGroupShown = display === "groups" && groups.some((g) => g.visibility === "private" && shownGroups.has(g.id));
 
   return (
     <div className="page spots-page">
@@ -139,25 +138,23 @@ export default function SpotsPage() {
           ))}
         </div>
         <p className="fine">
-          {display === "all" && "Everyone who can see your profile sees all your spots, including ones you added to groups."}
+          {display === "all" && "Everyone who can see your profile sees all your spots, including ones in public groups."}
           {display === "selected" && "Only spots marked \"Show on my profile\" appear."}
-          {display === "groups" && "Your own spots from the groups you check below appear on your profile."}
+          {display === "groups" && "Your own spots from the public groups you check below appear on your profile."}
           {display === "none" && "Your profile shows no spots."}
           {profile.is_private && " Your profile is private, so only approved followers see them."}
+          {display !== "none" && " Spots in private groups never show on your profile."}
         </p>
         {display === "groups" && (
           <div className="form">
-            {groups.length === 0 && <p className="fine">You&apos;re not in any groups yet.</p>}
-            {groups.map((g) => (
+            {groups.filter((g) => g.visibility === "public").length === 0 && <p className="fine">You&apos;re not in any public groups yet.</p>}
+            {groups.filter((g) => g.visibility === "public").map((g) => (
               <label key={g.id} className="check">
                 <input type="checkbox" checked={shownGroups.has(g.id)} onChange={(e) => toggleGroup(g.id, e.target.checked)} />
-                <span>{g.name}{g.visibility === "private" ? " (private group)" : ""}</span>
+                <span>{g.name}</span>
               </label>
             ))}
           </div>
-        )}
-        {(display === "all" || privateGroupShown) && groups.some((g) => g.visibility === "private") && (
-          <p className="fine warn">Spots you added to private groups will show on your profile. Check with your group first.</p>
         )}
       </section>
 
@@ -179,7 +176,7 @@ export default function SpotsPage() {
             {visible.map((s) => (
               <SpotCard key={s.id} spot={s} groupName={s.group_id ? groupName.get(s.group_id) ?? "a group" : null} showStatus>
                 <button type="button" className="link" onClick={() => { setEditing(s); window.scrollTo({ top: 0 }); }}>Edit</button>
-                {display === "selected" && (
+                {display === "selected" && !(s.group_id && groups.find((g) => g.id === s.group_id)?.visibility === "private") && (
                   <button type="button" className="link" onClick={() => run(() => sb.from("spots").update({ show_on_profile: !s.show_on_profile }).eq("id", s.id))}>
                     {s.show_on_profile ? "Hide from profile" : "Show on profile"}
                   </button>

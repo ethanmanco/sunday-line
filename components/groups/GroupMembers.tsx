@@ -132,7 +132,6 @@ function MemberControls({ member, canManage, canRemove, onRole, onRemove, onHand
                   <span>{PERMISSION_LABEL[p]}</span>
                 </label>
               ))}
-              <span className="fine">Creating events comes with the events update.</span>
             </fieldset>
           )}
           <div className="row">

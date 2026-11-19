@@ -551,3 +551,19 @@ Still to come (next step): events with RSVPs, private events, spots, and notific
 - **Database tests:** 188 in total (36 new), including that outsiders never see a private group's spots or pictures, nobody can put a spot on the public map directly, and only the site admin reviews.
 
 If the review queue gets busy later, options include: trusted members whose submissions skip review, more automatic checks, or letting group organizers with a good track record publish directly.
+
+### 11.17 Map layers and private-group spots (built 2026-11-20)
+- **Map layers:** a Spots button on the main map shows public spots, your groups' spots (each group can be switched on or off), or both. The choice is remembered in this browser only.
+- **Private-group spots never show on profiles**, in any display mode. Only public groups can be picked for "from groups I pick." Enforced in the database.
+- **Phones:** the full-map control is a small arrow at the bottom right of the map.
+
+### 11.18 Group events (built 2026-11-20)
+- **Who:** the organizer and moderators with the "events" permission create, edit, cancel, and delete events. Members see them and RSVP (going, maybe, can't make it). Nobody outside the group sees anything.
+- **Where:** a spot: one of the group's spots, one of the creator's own spots, or a public spot. A copy of the spot is kept with the event, so the event keeps its location even if the spot changes.
+- **Hidden until:** right away, 1 hour, 3 hours, 1 day, 2 days, or 1 week before, or a custom number of hours. Until then only event managers see the location; members see when it will be shared. The location lives in its own table so the rule is enforced by the database, not the page.
+- **Group chat posts** (each optional): when created (plus cancellations and time changes), a reminder 1 day, 2 days, or 1 week before, and the day of (8 AM in the event's time zone, or an hour before an early start). When a hidden location is released, a post says it's out without naming the place. Posts come from "Sunday Line," not a person; nobody can post as Sunday Line.
+- **Timing:** a pg_cron job runs every 5 minutes. A reminder whose moment has already passed when an event is created or moved is skipped rather than sent late.
+- **Fix found while testing:** two permission checks treated "unknown" as "allowed" (a Postgres NULL). One was already live: someone outside a group could remove a regular member. Both are fixed and covered by tests; the live one was patched as soon as it was found.
+- **Database tests:** 214 in total.
+
+Not built yet: email or push notifications for events (in-app chat posts only), and events visible outside the group.

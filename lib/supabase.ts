@@ -120,13 +120,14 @@ export function sortPhotos<T extends { sort: number; created_at: string }>(photo
 export type GroupVisibility = "public" | "private";
 export type JoinPolicy = "open" | "request";
 export type GroupRole = "organizer" | "moderator" | "member";
-export type GroupPermission = "approve" | "remove" | "invites" | "spots";
+export type GroupPermission = "approve" | "remove" | "invites" | "spots" | "events";
 
 export const PERMISSION_LABEL: Record<GroupPermission, string> = {
   approve: "Approve join requests",
   remove: "Remove members",
   invites: "Make and revoke invite links",
   spots: "Add, accept, and publish group spots",
+  events: "Create and change events (and see locations before they're shared)",
 };
 
 export interface Group {
@@ -187,7 +188,9 @@ export interface ConversationSummary {
 export interface Message {
   id: string;
   conversation_id: string;
-  sender_id: string;
+  /** null for posts from Sunday Line itself (event announcements). */
+  sender_id: string | null;
+  event_id?: string | null;
   body: string | null;
   media_path: string | null;
   media_kind: "image" | "gif" | null;

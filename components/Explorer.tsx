@@ -8,8 +8,7 @@ import RoadList from "./RoadList";
 import type { FocusRequest } from "./MapView";
 import { DATA_URL } from "@/lib/config";
 import { decodePolyline } from "@/lib/polyline";
-import type { Spot } from "@/lib/spots";
-import { getSupabase } from "@/lib/supabase";
+import { SpotLayersControl, useSpotLayers } from "./SpotLayers";
 import { applyFilters, badgeKey, DEFAULT_FILTERS, defaultSort, type Bounds, type Filters, type View } from "@/lib/roads";
 import type { LoadedRoad, RegionInfo, RoadData } from "@/lib/types";
 
@@ -35,12 +34,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   const [focus, setFocus] = useState<FocusRequest | null>(null);
   // Phones: hide the list so the map fills the screen.
   const [fullMap, setFullMap] = useState(false);
-  const [publicSpots, setPublicSpots] = useState<Spot[]>([]);
-  useEffect(() => {
-    // Community spots approved for the public map (none until accounts are on).
-    getSupabase()?.from("spots").select("*").eq("public_status", "approved").limit(3000)
-      .then(({ data }) => setPublicSpots((data as Spot[] | null) ?? []));
-  }, []);
+  const layers = useSpotLayers();
   const panel = useRef<HTMLElement>(null);
   const listScroll = useRef(0);
   const listBounds = useRef<Bounds | null>(null);
@@ -207,7 +201,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
             focus={focus}
             myLocation={myLocation}
             layoutKey={fullMap ? "full" : "split"}
-            spots={publicSpots}
+            spots={layers.spots}
             onSelect={select}
             onHover={setHoverId}
             onBounds={setBounds}
@@ -216,8 +210,19 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
         <button type="button" className="sat-toggle" aria-pressed={satellite} onClick={() => setSatellite(!satellite)}>
           {satellite ? "Map" : "Satellite"}
         </button>
-        <button type="button" className="full-toggle" aria-pressed={fullMap} onClick={() => setFullMap(!fullMap)}>
-          {fullMap ? (selected ? "Show road" : "Show list") : "Full map"}
+        <SpotLayersControl groups={layers.groups} saved={layers.saved} save={layers.save} />
+        <button
+          type="button"
+          className="full-toggle"
+          aria-pressed={fullMap}
+          aria-label={fullMap ? (selected ? "Show the road details" : "Show the list") : "Make the map full screen"}
+          title={fullMap ? (selected ? "Show road" : "Show list") : "Full map"}
+          onClick={() => setFullMap(!fullMap)}
+        >
+          {/* Up arrow grows the map; down arrow brings the list back. */}
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d={fullMap ? "M6 9l6 6 6-6" : "M6 15l6-6 6 6"} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
         <div className="legend" aria-hidden="true">
           <span>{scoreKey === "overall" ? "Overall" : scoreKey === "scenic" ? "Scenic" : "Twisty"}</span>

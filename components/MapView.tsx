@@ -224,7 +224,9 @@ function spotPopup(s: Spot): HTMLElement {
   title.textContent = s.name;
   const kind = document.createElement("div");
   kind.className = "fine";
-  kind.textContent = spotLabel(s) + (s.kind === "road" ? " (community pick)" : "");
+  kind.textContent = s.group_name
+    ? `${spotLabel(s)} · ${s.group_name}`
+    : spotLabel(s) + (s.kind === "road" ? " (community pick)" : "");
   box.append(title, kind);
   if (s.description) {
     const d = document.createElement("p");
