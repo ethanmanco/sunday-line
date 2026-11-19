@@ -512,3 +512,18 @@ Things a phone app will need first:
 - **Database tests:** 40 new checks (76 in total) cover all of the above.
 
 Not built yet: search for people, account deletion, and the "who can message me" setting (comes with messages).
+
+### 11.15 Garage photos, re-cropping, groups, and messages (built 2026-11-19)
+- **Garage photos:** up to 8 photos per vehicle, swipeable on the profile. The first is the cover; "Make cover" changes it.
+- **Re-cropping:** when you upload a profile photo or banner, the uncropped version (already resized and stripped of location data) is kept privately with the chosen crop. "Adjust crop" reopens it, so you never upload again just to reframe. Only you can open your uncropped pictures.
+- **Groups:** public or private. Public groups are listed and searchable; the organizer picks "anyone can join" or "they ask, you approve." Private groups are invisible to non-members and grow through invite links.
+  - Roles: one organizer, moderators, members. The organizer gives each moderator any of: approve join requests, remove members, make invite links. Moderators can remove members but never other moderators or the organizer. The organizer hands off the role before leaving.
+  - Invite links: 128 random bits, shown once, stored only as a hash. Optional end date and use limit; revocable.
+  - Share previews never name a private group, and invite pages use a generic title.
+- **Messages:** direct messages and a chat for every group, with photos and GIFs, live updates, unread counts, and edit or delete for your own messages.
+  - "Who can message me": everyone, people I follow, or nobody. Checked on every message. People you message first can always reply.
+  - Blocking stops direct messages both ways. In group chats, messages from people you blocked are folded away on your screen.
+  - Chat photos are only readable by people in that conversation.
+- **Database tests:** 152 in total (67 new), including that outsiders can't read or post in a conversation by guessing its ID, invite links stop at their limit, and moderators can't do what they weren't given.
+
+Still to come (next step): events with RSVPs, private events, spots, and notifications. Moderator permissions for events and spots are already in the database.

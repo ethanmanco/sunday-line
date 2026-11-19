@@ -1,23 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import VehicleCard from "@/components/profile/VehicleCard";
 import { ImageError, newPath, prepareImage, VEHICLE_PHOTO } from "@/lib/images";
-import { getSupabase, signedMediaUrls, vehicleName, type Vehicle, type VehicleKind } from "@/lib/supabase";
+import {
+  getSupabase, signedMediaUrls, sortPhotos, vehicleName, type Vehicle, type VehicleKind, type VehiclePhoto,
+} from "@/lib/supabase";
 
-const MAX = 10;
+const MAX_VEHICLES = 10;
+const MAX_PHOTOS = 8;
+const PHOTO_TYPES = "image/jpeg,image/png,image/webp";
 
 export default function GarageEditor({ userId }: { userId: string }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  const [photos, setPhotos] = useState<VehiclePhoto[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [editing, setEditing] = useState<Vehicle | "new" | null>(null);
+  const [editing, setEditing] = useState<string | "new" | null>(null);
 
   const load = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return;
-    const { data } = await sb.from("vehicles").select("*").eq("user_id", userId).order("sort").order("created_at");
-    const vs = (data as Vehicle[] | null) ?? [];
-    setVehicles(vs);
-    setUrls(await signedMediaUrls(vs.flatMap((v) => (v.photo_path ? [v.photo_path] : []))));
+    const [v, p] = await Promise.all([
+      sb.from("vehicles").select("*").eq("user_id", userId).order("sort").order("created_at"),
+      sb.from("vehicle_photos").select("*").eq("user_id", userId),
+    ]);
+    const ps = (p.data as VehiclePhoto[] | null) ?? [];
+    setVehicles((v.data as Vehicle[] | null) ?? []);
+    setPhotos(ps);
+    setUrls(await signedMediaUrls(ps.map((x) => x.path)));
   }, [userId]);
 
   useEffect(() => {
@@ -26,11 +36,14 @@ export default function GarageEditor({ userId }: { userId: string }) {
 
   async function remove(v: Vehicle) {
     const sb = getSupabase();
-    if (!sb || !window.confirm(`Remove the ${vehicleName(v)} from your garage?`)) return;
+    if (!sb || !window.confirm(`Remove the ${vehicleName(v)} and its photos from your garage?`)) return;
+    const paths = photos.filter((p) => p.vehicle_id === v.id).map((p) => p.path);
     await sb.from("vehicles").delete().eq("id", v.id);
-    if (v.photo_path) await sb.storage.from("profile-media").remove([v.photo_path]);
+    if (paths.length) await sb.storage.from("profile-media").remove(paths);
     load();
   }
+
+  const photosOf = (id: string) => sortPhotos(photos.filter((p) => p.vehicle_id === id));
 
   return (
     <section aria-labelledby="garage">
@@ -39,36 +52,45 @@ export default function GarageEditor({ userId }: { userId: string }) {
         <p className="fine">Loading...</p>
       ) : (
         <>
-          {vehicles.length === 0 && <p className="fine">Add what you drive or ride.</p>}
+          {vehicles.length === 0 && <p className="fine">Add what you drive or ride, with up to {MAX_PHOTOS} photos each.</p>}
           <ul className="garage editable">
             {vehicles.map((v) =>
-              editing !== "new" && editing?.id === v.id ? (
+              editing === v.id ? (
                 <li key={v.id} className="wide">
-                  <VehicleForm userId={userId} vehicle={v} sort={v.sort} onDone={() => { setEditing(null); load(); }} onCancel={() => setEditing(null)} />
+                  <VehicleForm
+                    userId={userId}
+                    vehicle={v}
+                    photos={photosOf(v.id)}
+                    urls={urls}
+                    sort={v.sort}
+                    onChanged={load}
+                    onDone={() => { setEditing(null); load(); }}
+                  />
                 </li>
               ) : (
-                <li key={v.id}>
-                  {v.photo_path && urls[v.photo_path] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={urls[v.photo_path]} alt={vehicleName(v)} loading="lazy" />
-                  ) : (
-                    <div className="garage-blank" aria-hidden="true">{v.kind === "motorcycle" ? "Motorcycle" : "Car"}</div>
-                  )}
-                  <p><b>{vehicleName(v)}</b></p>
+                <VehicleCard key={v.id} vehicle={v} photos={photosOf(v.id)} urls={urls}>
                   <p className="row">
-                    <button type="button" className="link" onClick={() => setEditing(v)}>Edit</button>
+                    <button type="button" className="link" onClick={() => setEditing(v.id)}>Edit and photos</button>
                     <button type="button" className="link" onClick={() => remove(v)}>Remove</button>
                   </p>
-                </li>
+                </VehicleCard>
               ),
             )}
           </ul>
           {editing === "new" ? (
-            <VehicleForm userId={userId} vehicle={null} sort={vehicles.length} onDone={() => { setEditing(null); load(); }} onCancel={() => setEditing(null)} />
-          ) : vehicles.length < MAX ? (
+            <VehicleForm
+              userId={userId}
+              vehicle={null}
+              photos={[]}
+              urls={urls}
+              sort={vehicles.length}
+              onChanged={load}
+              onDone={() => { setEditing(null); load(); }}
+            />
+          ) : vehicles.length < MAX_VEHICLES ? (
             <button type="button" className="button ghost" onClick={() => setEditing("new")}>Add a vehicle</button>
           ) : (
-            <p className="fine">That&apos;s the limit of {MAX} vehicles.</p>
+            <p className="fine">That&apos;s the limit of {MAX_VEHICLES} vehicles.</p>
           )}
         </>
       )}
@@ -76,22 +98,73 @@ export default function GarageEditor({ userId }: { userId: string }) {
   );
 }
 
-function VehicleForm({ userId, vehicle, sort, onDone, onCancel }: {
+async function uploadPhoto(userId: string, vehicleId: string, file: File, sort: number) {
+  const sb = getSupabase();
+  if (!sb) throw new ImageError("Not signed in.");
+  const img = await prepareImage(file, VEHICLE_PHOTO);
+  const path = newPath(userId, "vehicle", img.ext);
+  const up = await sb.storage.from("profile-media").upload(path, img.blob, { contentType: img.contentType });
+  if (up.error) throw new ImageError("Couldn't upload. Try again.");
+  const { error } = await sb.from("vehicle_photos").insert({ vehicle_id: vehicleId, path, sort });
+  if (error) {
+    await sb.storage.from("profile-media").remove([path]);
+    throw new ImageError(error.message.includes("Limit") ? `That's the limit of ${MAX_PHOTOS} photos.` : "Couldn't save. Try again.");
+  }
+}
+
+function VehicleForm({ userId, vehicle, photos, urls, sort, onChanged, onDone }: {
   userId: string;
   vehicle: Vehicle | null;
+  photos: VehiclePhoto[];
+  urls: Record<string, string>;
   sort: number;
+  onChanged: () => void;
   onDone: () => void;
-  onCancel: () => void;
 }) {
   const [kind, setKind] = useState<VehicleKind>(vehicle?.kind ?? "car");
   const [year, setYear] = useState(vehicle?.year ? String(vehicle.year) : "");
   const [make, setMake] = useState(vehicle?.make ?? "");
   const [model, setModel] = useState(vehicle?.model ?? "");
-  const [file, setFile] = useState<File | null>(null);
-  const [dropPhoto, setDropPhoto] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<File[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+
+  // Photos for a vehicle that already exists are saved right away.
+  async function addNow(files: File[]) {
+    if (!vehicle) return;
+    const room = MAX_PHOTOS - photos.length;
+    const list = files.slice(0, room);
+    setError(files.length > room ? `Only ${room} more fit (${MAX_PHOTOS} per vehicle).` : null);
+    let next = photos.length ? Math.max(...photos.map((p) => p.sort)) + 1 : 0;
+    for (const [i, f] of list.entries()) {
+      setBusy(`Uploading ${i + 1} of ${list.length}...`);
+      try {
+        await uploadPhoto(userId, vehicle.id, f, next++);
+      } catch (e) {
+        setError(`${f.name}: ${e instanceof ImageError ? e.message : "Couldn't upload."}`);
+        break;
+      }
+    }
+    setBusy(null);
+    onChanged();
+  }
+
+  async function makeCover(p: VehiclePhoto) {
+    const sb = getSupabase();
+    if (!sb) return;
+    const lowest = Math.min(...photos.map((x) => x.sort));
+    await sb.from("vehicle_photos").update({ sort: lowest - 1 }).eq("id", p.id);
+    onChanged();
+  }
+
+  async function removePhoto(p: VehiclePhoto) {
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from("vehicle_photos").delete().eq("id", p.id);
+    await sb.storage.from("profile-media").remove([p.path]);
+    onChanged();
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -102,33 +175,38 @@ function VehicleForm({ userId, vehicle, sort, onDone, onCancel }: {
       setError("Year should look like 2019.");
       return;
     }
-    setBusy(true);
+    setBusy("Saving...");
     setError(null);
-    let photoPath = dropPhoto ? null : vehicle?.photo_path ?? null;
-    let uploaded: string | null = null;
-    try {
-      if (file) {
-        const img = await prepareImage(file, VEHICLE_PHOTO);
-        uploaded = newPath(userId, "vehicle", img.ext);
-        const up = await sb.storage.from("profile-media").upload(uploaded, img.blob, { contentType: img.contentType });
-        if (up.error) throw new ImageError("Couldn't upload the photo. Try again.");
-        photoPath = uploaded;
-      }
-      const row = { kind, year: y, make: make.trim() || null, model: model.trim(), photo_path: photoPath };
-      const res = vehicle
-        ? await sb.from("vehicles").update(row).eq("id", vehicle.id)
-        : await sb.from("vehicles").insert({ ...row, sort });
-      if (res.error) throw new ImageError(res.error.message.includes("Limit") ? "That's the limit of 10 vehicles." : "Couldn't save. Try again.");
-      if (vehicle?.photo_path && vehicle.photo_path !== photoPath) await sb.storage.from("profile-media").remove([vehicle.photo_path]);
-      onDone();
-    } catch (err) {
-      if (uploaded) await sb.storage.from("profile-media").remove([uploaded]);
-      setError(err instanceof ImageError ? err.message : "Couldn't save. Try again.");
-    } finally {
-      setBusy(false);
+    const row = { kind, year: y, make: make.trim() || null, model: model.trim() };
+    if (vehicle) {
+      const { error } = await sb.from("vehicles").update(row).eq("id", vehicle.id);
+      setBusy(null);
+      if (error) setError("Couldn't save. Try again.");
+      else onDone();
+      return;
     }
+    const { data, error } = await sb.from("vehicles").insert({ ...row, sort }).select("id").single();
+    if (error || !data) {
+      setBusy(null);
+      setError(error?.message.includes("Limit") ? `That's the limit of ${MAX_VEHICLES} vehicles.` : "Couldn't save. Try again.");
+      return;
+    }
+    for (const [i, f] of pending.entries()) {
+      setBusy(`Uploading ${i + 1} of ${pending.length}...`);
+      try {
+        await uploadPhoto(userId, (data as { id: string }).id, f, i);
+      } catch (err) {
+        setError(`${f.name}: ${err instanceof ImageError ? err.message : "Couldn't upload."}`);
+        setBusy(null);
+        onChanged();
+        return;
+      }
+    }
+    setBusy(null);
+    onDone();
   }
 
+  const count = vehicle ? photos.length : pending.length;
   return (
     <form onSubmit={save} className="form rate">
       <fieldset>
@@ -153,19 +231,57 @@ function VehicleForm({ userId, vehicle, sort, onDone, onCancel }: {
           <input required maxLength={60} value={model} onChange={(e) => setModel(e.target.value)} placeholder="M2 Competition" />
         </label>
       </div>
-      <div className="row">
-        <button type="button" className="button ghost" onClick={() => input.current?.click()}>
-          {file ? "Change photo" : vehicle?.photo_path && !dropPhoto ? "Replace photo" : "Add a photo"}
-        </button>
-        {file && <span className="fine">{file.name}</span>}
-        {vehicle?.photo_path && !file && !dropPhoto && (
-          <button type="button" className="link" onClick={() => setDropPhoto(true)}>Remove photo</button>
+
+      <fieldset>
+        <legend>Photos ({count} of {MAX_PHOTOS}){vehicle && photos.length > 1 ? ". The first one is the cover." : ""}</legend>
+        {vehicle && photos.length > 0 && (
+          <ul className="photo-manage">
+            {photos.map((p, i) => (
+              <li key={p.id}>
+                {urls[p.path] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={urls[p.path]} alt={`Photo ${i + 1}`} />
+                )}
+                {i === 0 ? <span className="tag">Cover</span> : (
+                  <button type="button" className="link" onClick={() => makeCover(p)}>Make cover</button>
+                )}
+                <button type="button" className="link" onClick={() => removePhoto(p)}>Remove</button>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { setFile(e.target.files?.[0] ?? null); setDropPhoto(false); e.target.value = ""; }} />
+        {!vehicle && pending.length > 0 && (
+          <ul className="pending-files">
+            {pending.map((f, i) => (
+              <li key={`${f.name}-${i}`}>
+                {f.name}{" "}
+                <button type="button" className="link" onClick={() => setPending(pending.filter((_, j) => j !== i))}>Remove</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {count < MAX_PHOTOS && (
+          <button type="button" className="button ghost" disabled={!!busy} onClick={() => input.current?.click()}>
+            {busy && busy !== "Saving..." ? busy : "Add photos"}
+          </button>
+        )}
+      </fieldset>
+      <input
+        ref={input}
+        type="file"
+        accept={PHOTO_TYPES}
+        multiple
+        hidden
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (vehicle) addNow(files);
+          else setPending([...pending, ...files].slice(0, MAX_PHOTOS));
+        }}
+      />
       <div className="row">
-        <button type="submit" className="button" disabled={busy}>{busy ? "Saving..." : "Save"}</button>
-        <button type="button" className="button ghost" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="button" disabled={!!busy}>{busy === "Saving..." ? busy : vehicle ? "Done" : "Save vehicle"}</button>
+        <button type="button" className="button ghost" onClick={onDone}>{vehicle ? "Close" : "Cancel"}</button>
       </div>
       {error && <p className="hint warn" role="alert">{error}</p>}
     </form>

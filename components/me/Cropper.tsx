@@ -9,9 +9,11 @@ const MAX_ZOOM = 4;
  * Crop a picture to a fixed shape before upload. Drag to move, pinch, scroll,
  * or use the slider to zoom. Arrow keys move and +/- zoom for keyboard users.
  */
-export default function Cropper({ file, aspect, round, title, onCancel, onDone }: {
-  file: File;
+export default function Cropper({ file, aspect, round, title, initial, onCancel, onDone }: {
+  file: Blob;
   aspect: number;
+  /** Start from an earlier crop (re-cropping). */
+  initial?: CropRect | null;
   round?: boolean;
   title: string;
   onCancel: () => void;
@@ -37,10 +39,21 @@ export default function Cropper({ file, aspect, round, title, onCancel, onDone }
       .then((b) => {
         bm = b;
         setBitmap(b);
-        setCenter({ x: b.width / 2, y: b.height / 2 });
+        if (initial && initial.sw > 0) {
+          // The zoom that shows exactly that area: cover zoom is 1, and the frame's
+          // width in picture pixels at zoom 1 is min(width, aspect * height).
+          const z = Math.min(Math.max(Math.min(b.width, aspect * b.height) / initial.sw, 1), MAX_ZOOM);
+          zoomRef.current = z;
+          setZoom(z);
+          setCenter({ x: initial.sx + initial.sw / 2, y: initial.sy + initial.sh / 2 });
+        } else {
+          setCenter({ x: b.width / 2, y: b.height / 2 });
+        }
       })
       .catch(() => setFailed(true));
     return () => bm?.close();
+    // Only when the picture changes; the starting crop is read once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
   // Fit the frame to the dialog width.

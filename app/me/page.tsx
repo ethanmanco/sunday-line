@@ -53,6 +53,7 @@ export default function Me() {
       <GalleryEditor userId={user.id} />
       <PeopleManager userId={user.id} />
       <h2>Account</h2>
+      <p><Link href="/about">About Sunday Line, terms, and privacy</Link></p>
       {signOutButton}
     </div>
   );

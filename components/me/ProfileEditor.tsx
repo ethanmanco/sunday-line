@@ -6,14 +6,27 @@ import { useAuth } from "@/components/AuthProvider";
 import Cropper from "./Cropper";
 import UsernameField, { BLOCKING, profileSaveError, type Availability } from "./UsernameField";
 import { AVATAR, BANNER, BANNER_ASPECT, ImageError, newPath, prepareImage, type CropRect } from "@/lib/images";
-import { getSupabase, publicImageUrl, USERNAME_PATTERN, type Profile } from "@/lib/supabase";
+import { getSupabase, publicImageUrl, USERNAME_PATTERN, type CropBox, type DmPolicy, type OwnProfile } from "@/lib/supabase";
 
-export default function ProfileEditor({ profile }: { profile: Profile }) {
+type Which = "avatar" | "banner";
+interface Cropping {
+  which: Which;
+  source: Blob;
+  ext: "webp" | "jpg" | "gif";
+  initial: CropBox | null;
+  /** A new upload (keep its original too) rather than a new crop of the old one. */
+  fresh: boolean;
+}
+/** The kept original: resized and stripped, big enough to re-crop well. */
+const SOURCE = { width: 2048, height: 2048, maxBytes: 8 * 1048576 };
+
+export default function ProfileEditor({ profile }: { profile: OwnProfile }) {
   const { refreshProfile } = useAuth();
   const [username, setUsername] = useState(profile.username);
   const [name, setName] = useState(profile.display_name);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [isPrivate, setIsPrivate] = useState(profile.is_private);
+  const [dmPolicy, setDmPolicy] = useState<DmPolicy>(profile.dm_policy);
   const [availability, setAvailability] = useState<Availability>("idle");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -23,6 +36,7 @@ export default function ProfileEditor({ profile }: { profile: Profile }) {
     setName(profile.display_name);
     setBio(profile.bio ?? "");
     setIsPrivate(profile.is_private);
+    setDmPolicy(profile.dm_policy);
   }, [profile]);
 
   async function save(e: React.FormEvent) {
@@ -40,6 +54,7 @@ export default function ProfileEditor({ profile }: { profile: Profile }) {
       display_name: name.trim() || username,
       bio: bio.trim() || null,
       is_private: isPrivate,
+      dm_policy: dmPolicy,
     }).eq("id", profile.id);
     setBusy(false);
     if (error) {
@@ -71,6 +86,15 @@ export default function ProfileEditor({ profile }: { profile: Profile }) {
             bio, and road ratings stay public.
           </span>
         </label>
+        <fieldset>
+          <legend>Who can message you</legend>
+          <div className="seg">
+            {([["everyone", "Everyone"], ["following", "People I follow"], ["nobody", "Nobody"]] as [DmPolicy, string][]).map(([k, label]) => (
+              <button key={k} type="button" aria-pressed={dmPolicy === k} onClick={() => setDmPolicy(k)}>{label}</button>
+            ))}
+          </div>
+          <span className="fine">People you message first can always reply. Blocked people can never message you.</span>
+        </fieldset>
         {profile.is_private && !isPrivate && (
           <p className="fine warn">Going public approves everyone waiting to follow you.</p>
         )}
@@ -83,64 +107,116 @@ export default function ProfileEditor({ profile }: { profile: Profile }) {
   );
 }
 
-function Pictures({ profile }: { profile: Profile }) {
+function Pictures({ profile }: { profile: OwnProfile }) {
   const { refreshProfile } = useAuth();
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
-  const [cropping, setCropping] = useState<{ which: "avatar" | "banner"; file: File } | null>(null);
+  const [cropping, setCropping] = useState<Cropping | null>(null);
   const current = parsePreset(profile.avatar_preset);
   const [shape, setShape] = useState(profile.avatar_preset?.split("-")[0] ?? "roadster");
   const [color, setColor] = useState(profile.avatar_preset?.split("-")[1] ?? "orange");
 
-  async function removeFile(path: string | null) {
+  async function removeImage(path: string | null) {
     if (path) await getSupabase()?.storage.from("profile-images").remove([path]);
   }
+  async function removeSource(path: string | null) {
+    if (path) await getSupabase()?.storage.from("profile-media").remove([path]);
+  }
 
-  function choose(which: "avatar" | "banner", file: File | undefined) {
+  // New picture: shrink it and strip its hidden details first, then crop.
+  async function choose(which: Which, file: File | undefined) {
     if (!file) return;
     setError(null);
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setError(file.type === "image/gif" ? "GIFs work in the gallery. Use a photo here." : "Use a JPEG, PNG, or WebP photo.");
       return;
     }
-    setCropping({ which, file });
+    setBusy(which);
+    try {
+      const src = await prepareImage(file, SOURCE);
+      setCropping({ which, source: src.blob, ext: src.ext, initial: null, fresh: true });
+    } catch (e) {
+      setError(e instanceof ImageError ? e.message : "Couldn't read that picture.");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  async function upload(which: "avatar" | "banner", file: File, rect: CropRect) {
+  // Change the crop of the picture already uploaded.
+  async function adjust(which: Which) {
     const sb = getSupabase();
-    if (!sb) return;
+    const path = which === "avatar" ? profile.avatar_source_path : profile.banner_source_path;
+    if (!sb || !path) return;
     setBusy(which);
     setError(null);
+    const { data, error } = await sb.storage.from("profile-media").download(path);
+    setBusy(null);
+    if (error || !data) {
+      setError("Couldn't open the original picture. Upload it again to crop it.");
+      return;
+    }
+    setCropping({
+      which,
+      source: data,
+      ext: path.endsWith(".jpg") ? "jpg" : "webp",
+      initial: which === "avatar" ? profile.avatar_crop : profile.banner_crop,
+      fresh: false,
+    });
+  }
+
+  async function finish(c: Cropping, rect: CropRect) {
+    const sb = getSupabase();
+    if (!sb) return;
+    setBusy(c.which);
+    setError(null);
+    const made: { image?: string; source?: string } = {};
     try {
-      const img = await prepareImage(file, { ...(which === "avatar" ? AVATAR : BANNER), rect });
-      const path = newPath(profile.id, which, img.ext);
-      const up = await sb.storage.from("profile-images").upload(path, img.blob, { contentType: img.contentType, cacheControl: "31536000" });
+      const type = c.source.type || (c.ext === "jpg" ? "image/jpeg" : "image/webp");
+      const sourceFile = new File([c.source], `source.${c.ext}`, { type });
+      const img = await prepareImage(sourceFile, { ...(c.which === "avatar" ? AVATAR : BANNER), rect });
+      made.image = newPath(profile.id, c.which, img.ext);
+      const up = await sb.storage.from("profile-images").upload(made.image, img.blob, { contentType: img.contentType, cacheControl: "31536000" });
       if (up.error) throw new ImageError("Couldn't upload. Try again.");
-      const old = which === "avatar" ? profile.avatar_path : profile.banner_path;
-      const { error } = await sb.from("profiles").update(which === "avatar" ? { avatar_path: path } : { banner_path: path }).eq("id", profile.id);
-      if (error) {
-        await removeFile(path);
-        throw new ImageError("Couldn't save. Try again.");
+      if (c.fresh) {
+        made.source = newPath(profile.id, `source-${c.which}`, c.ext);
+        const upSrc = await sb.storage.from("profile-media").upload(made.source, c.source, { contentType: type });
+        if (upSrc.error) throw new ImageError("Couldn't upload. Try again.");
       }
-      await removeFile(old);
+      const crop = { sx: rect.sx, sy: rect.sy, sw: rect.sw, sh: rect.sh };
+      const row =
+        c.which === "avatar"
+          ? { avatar_path: made.image, avatar_crop: crop, avatar_preset: null, ...(c.fresh ? { avatar_source_path: made.source } : {}) }
+          : { banner_path: made.image, banner_crop: crop, ...(c.fresh ? { banner_source_path: made.source } : {}) };
+      const { error } = await sb.from("profiles").update(row).eq("id", profile.id);
+      if (error) throw new ImageError("Couldn't save. Try again.");
+      await removeImage(c.which === "avatar" ? profile.avatar_path : profile.banner_path);
+      if (c.fresh) await removeSource(c.which === "avatar" ? profile.avatar_source_path : profile.banner_source_path);
       await refreshProfile();
     } catch (e) {
+      await removeImage(made.image ?? null);
+      await removeSource(made.source ?? null);
       setError(e instanceof ImageError ? e.message : "Couldn't upload. Try again.");
     } finally {
       setBusy(null);
     }
   }
 
-  async function clear(which: "avatar" | "banner") {
+  async function clear(which: Which) {
     const sb = getSupabase();
     if (!sb) return;
     setBusy(which);
-    const old = which === "avatar" ? profile.avatar_path : profile.banner_path;
-    await sb.from("profiles").update(which === "avatar" ? { avatar_path: null, avatar_preset: null } : { banner_path: null }).eq("id", profile.id);
-    await removeFile(old);
+    if (which === "avatar") {
+      await sb.from("profiles").update({ avatar_path: null, avatar_preset: null, avatar_source_path: null, avatar_crop: null }).eq("id", profile.id);
+      await removeImage(profile.avatar_path);
+      await removeSource(profile.avatar_source_path);
+    } else {
+      await sb.from("profiles").update({ banner_path: null, banner_source_path: null, banner_crop: null }).eq("id", profile.id);
+      await removeImage(profile.banner_path);
+      await removeSource(profile.banner_source_path);
+    }
     await refreshProfile();
     setBusy(null);
   }
@@ -149,9 +225,11 @@ function Pictures({ profile }: { profile: Profile }) {
     const sb = getSupabase();
     if (!sb) return;
     setBusy("avatar");
-    const old = profile.avatar_path;
-    await sb.from("profiles").update({ avatar_preset: `${shape}-${color}`, avatar_path: null }).eq("id", profile.id);
-    await removeFile(old);
+    await sb.from("profiles")
+      .update({ avatar_preset: `${shape}-${color}`, avatar_path: null, avatar_source_path: null, avatar_crop: null })
+      .eq("id", profile.id);
+    await removeImage(profile.avatar_path);
+    await removeSource(profile.avatar_source_path);
     await refreshProfile();
     setBusy(null);
     setPicking(false);
@@ -165,6 +243,9 @@ function Pictures({ profile }: { profile: Profile }) {
         <button type="button" className="button ghost" disabled={!!busy} onClick={() => bannerInput.current?.click()}>
           {busy === "banner" ? "Uploading..." : banner ? "Change banner" : "Add a banner"}
         </button>
+        {banner && profile.banner_source_path && (
+          <button type="button" className="button ghost" disabled={!!busy} onClick={() => adjust("banner")}>Adjust crop</button>
+        )}
         {banner && <button type="button" className="link" disabled={!!busy} onClick={() => clear("banner")}>Remove banner</button>}
       </div>
       <div className="avatar-row">
@@ -173,6 +254,9 @@ function Pictures({ profile }: { profile: Profile }) {
           <button type="button" className="button ghost" disabled={!!busy} onClick={() => avatarInput.current?.click()}>
             {busy === "avatar" ? "Saving..." : "Upload a photo"}
           </button>
+          {profile.avatar_path && profile.avatar_source_path && (
+            <button type="button" className="button ghost" disabled={!!busy} onClick={() => adjust("avatar")}>Adjust crop</button>
+          )}
           <button type="button" className="button ghost" disabled={!!busy} onClick={() => setPicking(!picking)} aria-expanded={picking}>
             Pick a drawing
           </button>
@@ -213,15 +297,16 @@ function Pictures({ profile }: { profile: Profile }) {
       <input ref={bannerInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { choose("banner", e.target.files?.[0]); e.target.value = ""; }} />
       {cropping && (
         <Cropper
-          file={cropping.file}
+          file={cropping.source}
           aspect={cropping.which === "avatar" ? 1 : BANNER_ASPECT}
           round={cropping.which === "avatar"}
+          initial={cropping.initial}
           title={cropping.which === "avatar" ? "Crop your profile picture" : "Crop your banner"}
           onCancel={() => setCropping(null)}
           onDone={(rect) => {
             const c = cropping;
             setCropping(null);
-            upload(c.which, c.file, rect);
+            finish(c, rect);
           }}
         />
       )}

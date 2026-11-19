@@ -68,10 +68,29 @@ export interface Profile {
   avatar_preset: string | null;
   banner_path: string | null;
   is_private: boolean;
+  dm_policy: DmPolicy;
 }
 
+/** Extra columns only loaded for your own profile. */
+export interface OwnProfile extends Profile {
+  avatar_source_path: string | null;
+  avatar_crop: CropBox | null;
+  banner_source_path: string | null;
+  banner_crop: CropBox | null;
+}
+
+export interface CropBox {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+}
+
+export type DmPolicy = "everyone" | "following" | "nobody";
+
 /** Columns safe to show anyone. */
-export const PROFILE_COLUMNS = "id, username, display_name, bio, avatar_path, avatar_preset, banner_path, is_private";
+export const PROFILE_COLUMNS = "id, username, display_name, bio, avatar_path, avatar_preset, banner_path, is_private, dm_policy";
+export const OWN_PROFILE_COLUMNS = `${PROFILE_COLUMNS}, avatar_source_path, avatar_crop, banner_source_path, banner_crop`;
 
 export interface Vehicle {
   id: string;
@@ -80,8 +99,101 @@ export interface Vehicle {
   year: number | null;
   make: string | null;
   model: string;
-  photo_path: string | null;
   sort: number;
+}
+
+export interface VehiclePhoto {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  path: string;
+  sort: number;
+  created_at: string;
+}
+
+/** Cover first, then upload order. */
+export function sortPhotos<T extends { sort: number; created_at: string }>(photos: T[]): T[] {
+  return [...photos].sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at));
+}
+
+export type GroupVisibility = "public" | "private";
+export type JoinPolicy = "open" | "request";
+export type GroupRole = "organizer" | "moderator" | "member";
+export type GroupPermission = "approve" | "remove" | "invites";
+
+export const PERMISSION_LABEL: Record<GroupPermission, string> = {
+  approve: "Approve join requests",
+  remove: "Remove members",
+  invites: "Make and revoke invite links",
+};
+
+export interface Group {
+  id: string;
+  short_id: string;
+  name: string;
+  description: string | null;
+  home_area: string | null;
+  visibility: GroupVisibility;
+  join_policy: JoinPolicy;
+  created_at: string;
+}
+
+export interface GroupMember {
+  group_id: string;
+  user_id: string;
+  role: GroupRole;
+  permissions: string[];
+  joined_at: string;
+  person: Profile | null;
+}
+
+export interface ConversationSummary {
+  id: string;
+  kind: "direct" | "group";
+  group_name: string | null;
+  group_short_id: string | null;
+  other_id: string | null;
+  other_username: string | null;
+  other_display_name: string | null;
+  other_avatar_path: string | null;
+  other_avatar_preset: string | null;
+  last_message_at: string | null;
+  last_body: string | null;
+  last_has_media: boolean | null;
+  last_sender_id: string | null;
+  unread: number;
+  can_send: boolean;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  media_path: string | null;
+  media_kind: "image" | "gif" | null;
+  created_at: string;
+  edited_at: string | null;
+}
+
+/** Signed links for chat photos (only people in the conversation get them). */
+export async function signedChatUrls(paths: string[]): Promise<Record<string, string>> {
+  const sb = getSupabase();
+  const out: Record<string, string> = {};
+  if (!sb || !paths.length) return out;
+  const { data } = await sb.storage.from("message-media").createSignedUrls(paths, 3600);
+  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  return out;
+}
+
+/** Short relative time: "now", "5m", "3h", "2d", or a date. */
+export function timeAgo(iso: string): string {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return "now";
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 7 * 86400) return `${Math.floor(s / 86400)}d`;
+  return new Date(iso).toLocaleDateString();
 }
 
 export interface Media {

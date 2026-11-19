@@ -2,18 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import VehicleCard from "./VehicleCard";
 import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
 import {
-  accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, vehicleName,
-  type FollowStatus, type Media, type Profile, type Vehicle,
+  accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, sortPhotos,
+  type FollowStatus, type Media, type Profile, type Vehicle, type VehiclePhoto,
 } from "@/lib/supabase";
 
 type Tab = "garage" | "photos" | "followers" | "following";
 
 export default function ProfileView({ username }: { username: string }) {
   const { ready, user, profile: me } = useAuth();
+  const router = useRouter();
+  const [vehiclePhotos, setVehiclePhotos] = useState<VehiclePhoto[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Counts | null>(null);
@@ -36,9 +40,10 @@ export default function ProfileView({ username }: { username: string }) {
     }
     const person = p as Profile;
     setProfile(person);
-    const [c, v, m, f, b] = await Promise.all([
+    const [c, v, vp, m, f, b] = await Promise.all([
       sb.rpc("follow_counts", { person: person.id }).single(),
       sb.from("vehicles").select("*").eq("user_id", person.id).order("sort").order("created_at"),
+      sb.from("vehicle_photos").select("*").eq("user_id", person.id),
       sb.from("profile_media").select("*").eq("user_id", person.id).order("sort").order("created_at", { ascending: false }),
       user
         ? sb.from("follows").select("status").eq("follower_id", user.id).eq("followee_id", person.id).maybeSingle()
@@ -50,11 +55,13 @@ export default function ProfileView({ username }: { username: string }) {
     setCounts((c.data as Counts | null) ?? null);
     const vs = (v.data as Vehicle[] | null) ?? [];
     const ms = (m.data as Media[] | null) ?? [];
+    const vps = (vp.data as VehiclePhoto[] | null) ?? [];
     setVehicles(vs);
+    setVehiclePhotos(vps);
     setMedia(ms);
     setFollow(((f.data as { status: FollowStatus } | null)?.status) ?? null);
     setBlocked(Boolean(b.data));
-    setUrls(await signedMediaUrls([...vs.flatMap((x) => (x.photo_path ? [x.photo_path] : [])), ...ms.map((x) => x.path)]));
+    setUrls(await signedMediaUrls([...vps.map((x) => x.path), ...ms.map((x) => x.path)]));
   }, [username, user]);
 
   useEffect(() => {
@@ -103,6 +110,17 @@ export default function ProfileView({ username }: { username: string }) {
     load();
   }
 
+  async function message() {
+    const sb = getSupabase();
+    if (!sb || !profile) return;
+    setBusy(true);
+    setError(null);
+    const { data, error } = await sb.rpc("start_direct", { p_user: profile.id });
+    setBusy(false);
+    if (error || !data) setError(`@${profile.username} isn't taking messages from you right now.`);
+    else router.push(`/messages/${data as string}`);
+  }
+
   async function block() {
     const sb = getSupabase();
     if (!sb || !profile) return;
@@ -135,6 +153,15 @@ export default function ProfileView({ username }: { username: string }) {
   } else if (follow === "pending") {
     action = <button type="button" className="button ghost" disabled={busy} onClick={unfollow}>Requested</button>;
   } else action = <button type="button" className="button" disabled={busy} onClick={doFollow}>Follow</button>;
+  const canMessage = user && me && !isMe && !blocked && profile.dm_policy !== "nobody";
+  if (canMessage) {
+    action = (
+      <>
+        {action}
+        <button type="button" className="button ghost" disabled={busy} onClick={message}>Message</button>
+      </>
+    );
+  }
 
   return (
     <div className="page profile">
@@ -169,7 +196,7 @@ export default function ProfileView({ username }: { username: string }) {
             ))}
           </div>
           <div role="tabpanel">
-            {tab === "garage" && <Garage vehicles={vehicles} urls={urls} isMe={isMe} />}
+            {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
@@ -186,22 +213,19 @@ export default function ProfileView({ username }: { username: string }) {
   );
 }
 
-function Garage({ vehicles, urls, isMe }: { vehicles: Vehicle[]; urls: Record<string, string>; isMe: boolean }) {
+function Garage({ vehicles, photos, urls, isMe }: {
+  vehicles: Vehicle[];
+  photos: VehiclePhoto[];
+  urls: Record<string, string>;
+  isMe: boolean;
+}) {
   if (!vehicles.length) {
     return <p className="fine">{isMe ? <>Nothing in your garage yet. <Link href="/me#garage">Add a vehicle</Link></> : "Nothing in the garage yet."}</p>;
   }
   return (
     <ul className="garage">
       {vehicles.map((v) => (
-        <li key={v.id}>
-          {v.photo_path && urls[v.photo_path] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={urls[v.photo_path]} alt={vehicleName(v)} loading="lazy" />
-          ) : (
-            <div className="garage-blank" aria-hidden="true">{v.kind === "motorcycle" ? "Motorcycle" : "Car"}</div>
-          )}
-          <p><b>{vehicleName(v)}</b></p>
-        </li>
+        <VehicleCard key={v.id} vehicle={v} photos={sortPhotos(photos.filter((p) => p.vehicle_id === v.id))} urls={urls} />
       ))}
     </ul>
   );

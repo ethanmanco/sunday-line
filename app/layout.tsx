@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
+import MessagesLink from "@/components/MessagesLink";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -37,7 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <nav aria-label="Main">
             <Link href="/">Roads</Link>
-            <Link href="/about">About</Link>
+            <Link href="/groups">Groups</Link>
+            <Link href="/about" className="nav-about">About</Link>
+            <MessagesLink />
             <AccountLink />
           </nav>
         </header>

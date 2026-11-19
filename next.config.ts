@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: { root: process.cwd() },
+  // Development only: lets a second test account run at 127.0.0.1 next to localhost.
+  allowedDevOrigins: ["127.0.0.1"],
   // Road pages read the data file on the server.
   // Road pages and preview images read the data file and fonts on the server.
   outputFileTracingIncludes: {
