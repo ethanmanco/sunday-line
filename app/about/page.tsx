@@ -74,6 +74,19 @@ export default async function About() {
         &quot;Measure from my location&quot; uses your location inside this page only. It is never sent to a server or
         saved.
       </p>
+      <ul>
+        <li>Your email is used only to sign you in. It is never shown to other members.</li>
+        <li>
+          Photos you upload are resized in your browser first, which removes hidden details such as where a photo was
+          taken.
+        </li>
+        <li>
+          A private profile shows your garage, photos, and follow lists only to followers you approve. Your name,
+          picture, bio, and road ratings stay public.
+        </li>
+        <li>Blocking someone is private: they aren&apos;t told. You stop following each other, and they can&apos;t follow you or see your garage and photos.</li>
+        <li>You can change or delete anything you post at any time.</li>
+      </ul>
 
       <p className="fine">Contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
     </div>

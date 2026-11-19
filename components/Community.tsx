@@ -158,7 +158,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
             <li key={i}>
               <p>{n.note}</p>
               <p className="fine">
-                {n.profiles ? `${n.profiles.display_name} (@${n.profiles.username})` : "A member"}
+                {n.profiles ? <Link href={`/u/${n.profiles.username}`}>{n.profiles.display_name}</Link> : "A member"}
                 {n.vehicle ? `, ${n.vehicle === "car" ? "car" : "motorcycle"}` : ""}
                 {n.fun ? `, ${n.fun} of 5 fun` : ""}
                 {n.pavement ? `, ${PAVEMENT_LABEL[n.pavement].toLowerCase()}` : ""}

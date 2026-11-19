@@ -14,6 +14,9 @@ function projectUrl(raw: string | undefined): string | undefined {
   return /^https?:\/\/[^\s/]+/.test(v) ? v : undefined;
 }
 
+/** For server-side reads with the public key (share previews, page titles). */
+export const supabaseRest = URL && KEY ? { url: URL, key: KEY } : null;
+
 let client: SupabaseClient | null = null;
 
 /** True when this build has Supabase settings (accounts and ratings turn on). */
@@ -60,7 +63,56 @@ export interface Profile {
   id: string;
   username: string;
   display_name: string;
-  vehicle_note: string | null;
+  bio: string | null;
+  avatar_path: string | null;
+  avatar_preset: string | null;
+  banner_path: string | null;
+  is_private: boolean;
+}
+
+/** Columns safe to show anyone. */
+export const PROFILE_COLUMNS = "id, username, display_name, bio, avatar_path, avatar_preset, banner_path, is_private";
+
+export interface Vehicle {
+  id: string;
+  user_id: string;
+  kind: VehicleKind;
+  year: number | null;
+  make: string | null;
+  model: string;
+  photo_path: string | null;
+  sort: number;
+}
+
+export interface Media {
+  id: string;
+  user_id: string;
+  path: string;
+  kind: "image" | "gif";
+  caption: string | null;
+  sort: number;
+  created_at: string;
+}
+
+export type FollowStatus = "pending" | "accepted";
+
+export function vehicleName(v: Pick<Vehicle, "year" | "make" | "model">): string {
+  return [v.year, v.make, v.model].filter(Boolean).join(" ");
+}
+
+/** Avatars and banners are public files. */
+export function publicImageUrl(path: string | null): string | null {
+  return path && URL ? `${URL}/storage/v1/object/public/profile-images/${path}` : null;
+}
+
+/** Vehicle and gallery photos need a short-lived signed link (the database decides who may see them). */
+export async function signedMediaUrls(paths: string[]): Promise<Record<string, string>> {
+  const sb = getSupabase();
+  const out: Record<string, string> = {};
+  if (!sb || !paths.length) return out;
+  const { data } = await sb.storage.from("profile-media").createSignedUrls(paths, 3600);
+  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  return out;
 }
 
 export interface RoadRating {

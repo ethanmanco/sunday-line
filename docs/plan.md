@@ -498,3 +498,16 @@ Things a phone app will need first:
 - **Sign-in by code.** Email links open a browser, not the app, so the 6-digit code matters on phones. That needs a custom email sender (see `docs/setup.md` step 5).
 - **In-app account deletion.** Apple and Google both require it. The website should get "Delete my account" before then (an Edge Function, since removing the sign-in record needs a server key).
 - **A decision on reporting.** Apple's and Google's store rules for apps with user posts require a way to report objectionable content and block abusive users. That conflicts with the "no report button" rule for the website. A block feature is already planned. Reporting would need your call before an app store submission; the website is not affected.
+
+### 11.14 Profiles and follows (built 2026-11-19)
+- **Profile:** username, display name, avatar (an uploaded photo or one of 72 original drawings: 8 body styles in 9 colors, no brand logos), banner, bio up to 300 characters, and a private switch. Public page at `/u/<username>`, editing at `/me`.
+- **Garage:** up to 10 cars or motorcycles with year, make (optional), model, and a photo. The old one-line "what I drive" moved into the garage.
+- **Photos:** up to 24 photos or GIFs, each up to 8 MB, with captions.
+- **Follows:** public profiles follow instantly. **Following a private profile sends a request the owner approves** (my call: if anyone could follow and then see, the private switch would mean nothing). Switching to public approves everyone waiting. Owners can remove followers. Counts are always public; the lists follow the same privacy as the garage.
+- **Private profiles** hide the garage, photos, and follow lists from anyone but approved followers. Name, picture, banner, bio, and road ratings stay public.
+- **Blocking** is private to the blocker. It removes follows both ways, stops new ones in either direction, and hides the garage and photos from the blocked person even on a public profile.
+- **Files:** avatars and banners are public files. Garage and gallery photos are not: each view gets a link that expires in an hour, and storage checks the same rules as the database before handing one out. Everyone can only write inside their own folder, with caps on file size, type, and count.
+- **Photo privacy:** photos are redrawn in the browser before upload, which strips GPS and camera data (tested with a GPS-tagged photo). GIFs are kept as is so they still move; the GIF format has no place for GPS. A person who skips this step could only leak their own data.
+- **Database tests:** 40 new checks (76 in total) cover all of the above.
+
+Not built yet: search for people, account deletion, and the "who can message me" setting (comes with messages).
