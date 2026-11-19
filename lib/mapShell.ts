@@ -82,6 +82,8 @@ export interface MapShell {
   closeSpot: () => void;
   /** The scored road a road-spot sits on (null: none or not checked yet). */
   spotRoad: (spotId: string) => import("./roadData").RoadOnMap | null;
+  /** Constants for scoring part of a road (null until the data loads or with older data). */
+  stretchModel: import("./stretch").StretchModel | null;
   fitTo: (bbox: Bounds) => void;
   // Adding a spot on this map.
   setPick: (state: PickState | null, handlers?: PickHandlers) => void;

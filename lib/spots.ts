@@ -50,6 +50,15 @@ export function linkedSpots(rows: unknown): Spot[] {
   return out;
 }
 
+/**
+ * Every spot uses one cool gradient (teal, sky, lavender) so spots read as
+ * their own thing next to the warm Driver's road colors, whatever their
+ * category or score (11.26).
+ */
+export const SPOT_STOPS = ["#2dd4bf", "#38bdf8", "#a78bfa"] as const;
+export const SPOT_COLOR = SPOT_STOPS[1];
+export const SPOT_GRADIENT_CSS = `linear-gradient(135deg, ${SPOT_STOPS.join(", ")})`;
+
 export const CATEGORY_LABEL: Record<SpotCategory, string> = {
   meetup: "Meetup spot",
   scenic: "Scenic stop",
@@ -175,7 +184,7 @@ export function spotFeatures(spots: Spot[]): GeoJSON.FeatureCollection {
         id: s.id,
         name: s.name,
         kind: s.kind,
-        color: s.kind === "road" ? "#f5a524" : CATEGORY_COLOR[s.category ?? "other"],
+        color: SPOT_COLOR,
       },
       geometry:
         s.kind === "road" && s.line

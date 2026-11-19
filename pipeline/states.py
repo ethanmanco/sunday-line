@@ -166,9 +166,18 @@ def write_state_files() -> list[Path]:
     return written
 
 
+# States whose extract reaches far past where the roads are. Hawaii's runs out
+# to Midway, which would need an 11.5 GB land-cover grid; its roads are all on
+# the main islands.
+FIXED_BBOX = {"hi": (-160.6, 18.8, -154.7, 22.4)}
+
+
 def bbox_from_extract(region: Region) -> Region:
     """Use the box from the downloaded extract's header, saving it to the region file."""
     import osmium
+
+    if region.slug in FIXED_BBOX:
+        return region
 
     from .fetch import osm_paths
 

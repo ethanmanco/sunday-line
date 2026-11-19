@@ -403,7 +403,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     addRoad: (r: RoadOnMap) => selectRoad(r.id, r),
     selectedId, selectRoad, closeRoad, hoverId, setHoverId,
     overlay, setOverlay, focusSpot: doFocusSpot, selectedSpotId, selectedSpot, closeSpot,
-    spotRoad: (id) => spotRoads[id] ?? null, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
+    spotRoad: (id) => spotRoads[id] ?? null, stretchModel: index?.stretch ?? null, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
     setPick, startAdding,
     sheet, setSheet, setPanelWide, isSheet,
   };

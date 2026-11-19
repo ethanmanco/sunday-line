@@ -84,13 +84,14 @@ export default function MapView(props: Props) {
       map.on("load", () => {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         for (const layer of roadLayers()) map.addLayer(layer, "places");
-        map.addSource("public-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        // lineMetrics: road spots are drawn with a gradient along their length.
+        map.addSource("public-spots", { type: "geojson", lineMetrics: true, data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-segment", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-vertices", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({
           id: "ps-line", type: "line", source: "public-spots", filter: ["==", ["geometry-type"], "LineString"],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#7cc4ff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 14, 5], "line-dasharray": [2, 1.5] },
+          paint: { "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#2dd4bf", 0.5, "#38bdf8", 1, "#a78bfa"], "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2.5, 14, 6] },
         });
         map.addLayer({
           id: "ps-focus-line", type: "line", source: "public-spots",
@@ -102,7 +103,7 @@ export default function MapView(props: Props) {
           id: "ps-focus-line-top", type: "line", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#7cc4ff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 4, 14, 9] },
+          paint: { "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#2dd4bf", 0.5, "#38bdf8", 1, "#a78bfa"], "line-width": ["interpolate", ["linear"], ["zoom"], 8, 4, 14, 9] },
         });
         map.addLayer({
           id: "ps-focus-point", type: "circle", source: "public-spots",

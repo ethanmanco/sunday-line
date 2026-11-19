@@ -99,6 +99,23 @@ def _light(r: dict, key: str) -> dict:
     return light
 
 
+def _stretch_model() -> dict:
+    """The constants the app needs to score a stretch of a road the same way
+    the pipeline scores the whole road (docs/plan.md 11.26)."""
+    from .config import load_scoring
+
+    cfg = load_scoring()
+    d = cfg["drive"]
+    return {
+        "reference": {k: d["reference"][k] for k in ("mean_lat_g", "braking_ms_per_km", "transitions_per_km")},
+        "twisty_mix": {k: d["twisty_mix"][k] for k in ("cornering", "braking", "transitions")},
+        "track_ratio_scale": d["track_ratio_scale"],
+        "speed": {k: d["speed"][k] for k in ("zero_at_mph", "full_at_mph")},
+        "elevation_scale": cfg["elevation"]["scale"],
+        "overall": dict(cfg["overall"]),
+    }
+
+
 def tiles() -> None:
     exports = sorted(OUT.glob("*/export.json"))
     if not exports:
@@ -171,6 +188,7 @@ def tiles() -> None:
         "roads": len(best),
         "cells": counts,
         "blocks": sorted(blocks),
+        "stretch": _stretch_model(),
     }
     (DEST / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
     size = sum(p.stat().st_size for p in DEST.rglob("*.json")) / 1e6

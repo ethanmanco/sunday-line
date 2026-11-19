@@ -10,6 +10,7 @@ import PeopleManager from "@/components/me/PeopleManager";
 import ProfileEditor from "@/components/me/ProfileEditor";
 import UsernameField, { BLOCKING, profileSaveError, type Availability } from "@/components/me/UsernameField";
 import { getSupabase, takeReturn, USERNAME_PATTERN } from "@/lib/supabase";
+import { GITHUB_URL } from "@/lib/config";
 
 export default function Me() {
   const router = useRouter();
@@ -59,6 +60,9 @@ export default function Me() {
       <h2>Account</h2>
       <p><Link href="/about">About Sunday Line, terms, and privacy</Link></p>
       {signOutButton}
+      <p className="fine quiet-star">
+        Enjoying Sunday Line? <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"><span aria-hidden="true">&#9733;</span> Star it on GitHub</a>
+      </p>
     </div>
   );
 }

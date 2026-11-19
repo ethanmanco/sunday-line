@@ -29,6 +29,7 @@ def analyze(xy: np.ndarray, limit_ms_at, cand_cfg: dict, bands: list, drive_cfg:
         a_brake=drive_cfg["brake_g"] * g.G,
     )
     m = g.trace_metrics(v, lat, r, step, turn, drive_cfg)
+    m["bins"] = g.trace_bins(v, lat, step, turn, drive_cfg)
     m["weighted_curve_m"] = float((lens * w).sum())
     m["length_m"] = float(lens.sum())
     return m

@@ -95,6 +95,7 @@ def export(region: Region) -> None:
             "elevation": {"climb_ft": ft(p.get("climb_m")), "descent_ft": ft(p.get("descent_m")),
                           "min_ft": ft(p.get("elev_min_m")), "max_ft": ft(p.get("elev_max_m")),
                           "profile_ft": profile_ft(p.get("elev_profile"))},
+            **({"bins": p["drive_bins"]} if p.get("drive_bins") else {}),
             "scenery": {"forest": sc.get("forest", 0), "water": sc.get("water", 0),
                         "wetland": sc.get("wetland", 0), "byway": sc.get("byway"),
                         "tags": p.get("scenery_tags") or []},

@@ -37,3 +37,21 @@ def test_unposted_numbered_routes_use_typical_posted_limit():
     assert default_limit({"ref": "FM 2015"}, "tertiary", sd, "Texas", typical, None) == (55, "estimated")
     assert default_limit({"name": "County Road 202"}, "unclassified", sd, "Texas", typical, None) == (60, "state_default")
     assert default_limit({"ref": "FM 9"}, "secondary", sd, "Texas", {}, None) == (70, "state_default")
+
+
+def test_sections_add_back_up_to_the_whole_drive():
+    """Per-section sums (11.26) reproduce the whole-road drive metrics."""
+    from pipeline import drive
+    from pipeline.config import load_scoring
+
+    cfg = load_scoring()
+    t = np.linspace(0, 6 * np.pi, 400)
+    xy = np.column_stack([t * 160, np.sin(t) * 220])  # an S-curvy road, about 3 km
+    m = drive.analyze(xy, lambda d: np.full(len(d), 55 * drive.MPH), cfg["candidate"], cfg["curvature"]["bands"], cfg["drive"])
+    b = m["bins"]
+    assert len(b["d"]) == g.BINS
+    km = sum(b["d"]) / 1000
+    assert abs(sum(b["lat"]) / sum(b["t"]) - m["mean_lat_g"]) < 0.01
+    assert abs(sum(b["brake"]) / km - m["braking_ms_per_km"]) < 0.5
+    assert abs(sum(b["tr"]) / km - m["transitions_per_km"]) < 0.05
+    assert abs(sum(b["d"]) / sum(b["t"]) - m["avg_speed_ms"]) < 0.2

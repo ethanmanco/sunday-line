@@ -617,3 +617,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Road-spots on scored roads show the road's score in lists and cards instead of a dot.
 - A spot's groups are all private or all public. Spots are picked for the profile one by one ("Show on profile"); the old all/groups/none modes were folded into those picks. Spots in a private group can't be picked. Approved followers of a private profile see its picks.
 - Scores for a trimmed stretch: not yet. The scores are for the whole road; the box says so. Stretch scores need the pipeline to save per-section data (see 11.26 if built).
+
+### 11.26 Scores for a stretch, spot colors, quiet star link (built 2026-11-21)
+
+- The pipeline saves each road's simulated drive in 16 equal sections (distance, time, cornering load x time, speed scrubbed, left-right changes). The app adds up the sections a saved stretch covers and runs the pipeline's own Twisty and Speed formulas (constants in index.json "stretch"); Elevation comes from the road's height profile, calibrated to its measured climb and descent; Overall is recomputed with the stretch's Twisty, Speed, and Elevation and the road's Pavement, Flow, Quiet, and Scenic. Whole-road sums match each road's scores within 1 point (checked on Delaware's 251 roads; pipeline test added).
+- States finished before this are re-run after the all-states run (`scripts/rerun_without_bins.py`). Hawaii's box is fixed to the main islands (its extract reaches Midway; 11.5 GB land-cover grid).
+- Spots use one cool gradient (teal, sky, lavender) instead of category colors, so they read apart from the warm Driver's road ramp. Road spots draw the gradient along their length.
+- A quiet "Star it on GitHub" line sits at the bottom of the account page (the About page has the main button).

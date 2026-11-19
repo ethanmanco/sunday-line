@@ -232,6 +232,44 @@ def trace_metrics(v: np.ndarray, lat: np.ndarray, r: np.ndarray, step: float, si
     }
 
 
+BINS = 16
+
+
+def trace_bins(v: np.ndarray, lat: np.ndarray, step: float, signed_turn: np.ndarray, cfg: dict, n: int = BINS) -> dict | None:
+    """The drive split into n equal sections, as sums, so any stretch of the road
+    can be scored by adding up the sections it covers (docs/plan.md 11.26).
+
+    d: meters, t: seconds, lat: cornering load x seconds (g*s), brake: speed
+    scrubbed (m/s), tr: left-right changes between loaded corners.
+    """
+    m = len(v) - 1
+    if m < 1:
+        return None
+    seg_v = (v[:-1] + v[1:]) / 2
+    seg_lat = (lat[:-1] + lat[1:]) / 2
+    seg_t = step / np.maximum(seg_v, 0.5)
+    idx = np.minimum((np.arange(m) * n) // m, n - 1)
+    dv = np.diff(v)
+    t = np.bincount(idx, seg_t, n)
+    latt = np.bincount(idx, seg_lat * seg_t, n)
+    brake = np.bincount(idx, np.where(dv < 0, -dv, 0.0), n)
+    d = np.bincount(idx, minlength=n) * step
+    tr = np.zeros(n)
+    loaded = np.nonzero((lat >= cfg["working_g"]) & (signed_turn != 0))[0]
+    if len(loaded) > 1:
+        signs = np.sign(signed_turn[loaded])
+        at = loaded[1:][np.diff(signs) != 0]
+        if len(at):
+            tr = np.bincount(np.minimum((np.minimum(at, m - 1) * n) // m, n - 1), minlength=n).astype(float)
+    return {
+        "d": [int(round(x)) for x in d],
+        "t": [round(float(x), 1) for x in t],
+        "lat": [round(float(x), 2) for x in latt],
+        "brake": [round(float(x), 1) for x in brake],
+        "tr": [int(x) for x in tr],
+    }
+
+
 def split_at_straights(lens: np.ndarray, w: np.ndarray, split_len: float) -> list[tuple[int, int]]:
     """Split a road at straights at least split_len long.
 

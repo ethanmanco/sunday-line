@@ -748,6 +748,8 @@ def build(region: Region) -> list[dict]:
                 "esses_per_km": round(dm["transitions_per_km"], 2),
                 "legal_avg_speed": round(ds["avg_mph"] if imperial else dm["avg_speed_ms"] * 3.6),
             },
+            # Per-section sums so the app can score a stretch of the road (11.26).
+            "drive_bins": dm.get("bins"),
             "score_scenic": round(scenic),
             "score_elevation": round(elevation),
             "score_flow": round(flow),

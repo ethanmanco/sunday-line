@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, type View } from "@/lib/roads";
 import { useMapShell, type ListItem } from "@/lib/mapShell";
-import { CATEGORY_COLOR, spotLabel, type Spot } from "@/lib/spots";
+import { SPOT_GRADIENT_CSS, spotLabel, type Spot } from "@/lib/spots";
+import { spotStretch } from "@/lib/stretch";
 import type { LoadedRoad } from "@/lib/types";
 
 interface Props {
@@ -107,10 +108,13 @@ export default function RoadList({ items, view, scoreKey, units, originName, onS
 
 /** A spot's marker in lists: the score of the road it sits on, or a colored dot. */
 export function SpotMark({ spot, scoreKey }: { spot: Spot; scoreKey: keyof LoadedRoad["scores"] }) {
-  const road = useMapShell()?.spotRoad(spot.id);
+  const shell = useMapShell();
+  const road = shell?.spotRoad(spot.id);
   if (road) {
-    const s = road.scores[scoreKey];
+    // A stretch of the road gets its own score.
+    const part = spotStretch(spot, road, shell?.stretchModel);
+    const s = (part?.scores ?? road.scores)[scoreKey];
     return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`${road.name}: ${s}`}>{s}</span>;
   }
-  return <span className="spot-dot" style={{ background: spot.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[spot.category ?? "other"] }} aria-hidden="true" />;
+  return <span className={`spot-dot${spot.kind === "road" ? " is-road" : ""}`} style={{ background: SPOT_GRADIENT_CSS }} aria-hidden="true" />;
 }

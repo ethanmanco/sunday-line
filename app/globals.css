@@ -767,3 +767,9 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 @media (max-width: 899px) and (orientation: landscape) {
   .map-actions .locate-button { width: 46px; height: 46px; }
 }
+.stretch-scores { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }
+.stretch-scores .badge { min-width: 36px; height: 36px; border-radius: 10px; font-size: 18px; }
+/* Road spots get a short bar instead of a dot. */
+.spot-dot.is-road { border-radius: 5px; width: 24px; height: 10px; margin: 10px 6px; }
+.quiet-star { margin-top: 40px; text-align: center; opacity: 0.7; }
+.quiet-star a { color: var(--dim); }

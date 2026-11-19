@@ -25,6 +25,8 @@ export interface DataIndex {
   roads: number;
   cells: Record<string, number>;
   blocks: string[];
+  /** Constants for scoring part of a road (11.26). */
+  stretch?: import("./stretch").StretchModel;
 }
 
 /** The lower 48 (used before the data says otherwise). */

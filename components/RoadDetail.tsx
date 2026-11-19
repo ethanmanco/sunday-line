@@ -11,6 +11,8 @@ import type { LoadedRoad } from "@/lib/types";
 import SpotFacts from "./spots/SpotFacts";
 import { decodePolyline } from "@/lib/polyline";
 import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
+import { spotStretch } from "@/lib/stretch";
+import { useMapShell } from "@/lib/mapShell";
 
 interface Props {
   road: LoadedRoad;
@@ -216,17 +218,33 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
 
 /** A saved spot on a scored road: its name, who added it, its groups, and how much of the road it covers. */
 function SpotOnRoad({ spot, road }: { spot: Spot; road: LoadedRoad }) {
+  const model = useMapShell()?.stretchModel;
   const stretch = spot.line ? lineMiles(decodePolyline(spot.line)) : null;
   const roadMi = lineMiles(road.coords);
-  const part = stretch !== null && stretch < roadMi * 0.9;
+  const own = spotStretch(spot, road, model);
+  const part = !!own || (stretch !== null && stretch < roadMi * 0.9);
+  // A stretch picked by start and end points: its length is that share of the road.
+  const shownMi = own ? roadMi * (own.f1 - own.f0) : stretch;
   return (
     <section className="spot-on-road" aria-label="Saved spot">
       <p className="fine">Saved spot</p>
       <h2 className="spot-on-road-name">{spot.name}</h2>
       <p className="fine">
-        {[spotLabel(spot), stretch !== null ? `${stretch.toFixed(1)} mi` : null].filter(Boolean).join(" · ")}
-        {part && ` of this road's ${roadMi.toFixed(1)} mi. Scores below are for the whole road.`}
+        {[spotLabel(spot), shownMi !== null ? `${shownMi.toFixed(1)} mi` : null].filter(Boolean).join(" · ")}
+        {part && ` of this road's ${roadMi.toFixed(1)} mi.`}
       </p>
+      {own ? (
+        <div className="stretch-scores" aria-label="Scores for this stretch">
+          <span className="badge" style={{ background: scoreColor(own.scores.overall), color: scoreInk(own.scores.overall) }}>{own.scores.overall}</span>
+          <span>
+            <b>This stretch</b>
+            <span className="fine"> Twisty {own.scores.twisty} · Speed {own.scores.speed} · Elevation {own.scores.elevation}</span>
+          </span>
+        </div>
+      ) : part ? (
+        <p className="fine">Scores below are for the whole road. This stretch gets its own once the road data is refreshed.</p>
+      ) : null}
+      {own && <p className="fine">Pavement, flow, and scenery below are for the whole road.</p>}
       {spot.description && <p>{spot.description}</p>}
       <SpotFacts spot={spot} />
     </section>
