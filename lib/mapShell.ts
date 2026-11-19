@@ -59,6 +59,13 @@ export interface MapShell {
   locateMe: () => void;
   clearMyLocation: () => void;
   bounds: Bounds | null;
+  satellite: boolean;
+  setSatellite: (on: boolean) => void;
+  /** Waiting for a tap on the map to set the person's location. */
+  settingLocation: boolean;
+  startSettingLocation: () => void;
+  /** Show a road from a shared link (loaded on the server). */
+  addRoad: (r: LoadedRoad) => void;
   // Roads.
   selectedId: string | null;
   selectRoad: (id: string) => void;

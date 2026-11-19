@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import { CONTACT_EMAIL, DATA_URL, GITHUB_URL, MORE_PROJECTS_URL } from "@/lib/config";
-import { loadRoadData } from "@/lib/serverData";
+import { CONTACT_EMAIL, GITHUB_URL, MORE_PROJECTS_URL } from "@/lib/config";
+import { loadIndex } from "@/lib/serverData";
 
 export const metadata: Metadata = { title: "About" };
 
 export default async function About() {
-  const data = await loadRoadData();
+  const data = await loadIndex();
   return (
     <div className="page">
       <h1>About Sunday Line</h1>
       <p className="lead">
-        Sunday Line finds the roads that are fun to drive: twisty, fast, paved, and quiet. It starts with{" "}
-        {data.region.area} and is built to work anywhere.
+        Sunday Line finds the roads that are fun to drive across the United States: twisty, fast, paved, and quiet.
       </p>
       <p className="links">
         <a className="button" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">Star on GitHub</a>
@@ -60,7 +59,7 @@ export default async function About() {
         <li>
           Road data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>,
           available under the Open Database License. Our scored road list is a derived database, also under the ODbL:{" "}
-          <a href={DATA_URL}>download it</a> (updated {data.generated}).
+          <a href="/data/us/index.json">see the index</a> (updated {data.generated}; one file per map square under /data/us/cells).
         </li>
         <li>Base map: <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, &copy; OpenMapTiles. Satellite view: USGS The National Map.</li>
         <li>Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0).</li>

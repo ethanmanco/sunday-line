@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { vehicleName, type Vehicle, type VehiclePhoto } from "@/lib/supabase";
+import { openPhoto } from "@/components/PhotoViewer";
 
 /** A garage vehicle: swipe through its photos (cover first). */
 export default function VehicleCard({ vehicle, photos, urls, children }: {
@@ -27,7 +28,16 @@ export default function VehicleCard({ vehicle, photos, urls, children }: {
           >
             {shown.map((p, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={p.id} src={urls[p.path]} alt={`${name}, photo ${i + 1} of ${shown.length}`} loading="lazy" />
+              <img
+                key={p.id}
+                src={urls[p.path]}
+                alt={`${name}, photo ${i + 1} of ${shown.length}`}
+                loading="lazy"
+                role="button"
+                tabIndex={0}
+                onClick={() => openPhoto(urls[p.path], `${name}, photo ${i + 1}`)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openPhoto(urls[p.path], `${name}, photo ${i + 1}`)}
+              />
             ))}
           </div>
           {shown.length > 1 && (

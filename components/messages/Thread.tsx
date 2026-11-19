@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import GroupAvatar from "@/components/groups/GroupAvatar";
+import { openPhoto } from "@/components/PhotoViewer";
 import { useAuth } from "@/components/AuthProvider";
 import { GALLERY, ImageError, prepareImage } from "@/lib/images";
 import {
@@ -268,10 +269,10 @@ function Bubble({ message: m, mine, who, showName, url, onChanged }: {
       )}
       <div className="bubble">
         {url && (
-          <a href={url} target="_blank" rel="noreferrer">
+          <button type="button" className="photo-button" onClick={() => openPhoto(url, m.media_kind === "gif" ? "GIF" : "Photo")}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt={m.media_kind === "gif" ? "GIF" : "Photo"} loading="lazy" />
-          </a>
+          </button>
         )}
         {editing ? (
           <div className="edit">

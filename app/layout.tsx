@@ -5,6 +5,7 @@ import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
 import MessagesLink from "@/components/MessagesLink";
 import PeopleLink from "@/components/PeopleLink";
+import PhotoViewer from "@/components/PhotoViewer";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -15,9 +16,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   openGraph: { siteName: SITE_NAME, type: "website" },
   twitter: { card: "summary_large_image" },
-  title: { default: `${SITE_NAME}: great local driving roads`, template: `%s | ${SITE_NAME}` },
+  title: { default: `${SITE_NAME}: great driving roads`, template: `%s | ${SITE_NAME}` },
   description:
-    "Find twisty, fast, paved roads near you, rated against real race tracks at legal speeds. Starting with northwest Louisiana, east Texas, and south Arkansas.",
+    "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
 };
 
 export const viewport: Viewport = {
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main id="main">{children}</main>
+        <PhotoViewer />
         </AuthProvider>
       </body>
     </html>

@@ -46,7 +46,7 @@ function Brand() {
   );
 }
 
-export function RoadCard({ road: r, region }: { road: Road; region: RegionInfo }) {
+export function RoadCard({ road: r }: { road: Road }) {
   const coords = decodePolyline(r.line);
   const d = linePath(coords, 470, 470, 40);
   const color = scoreColor(r.scores.overall);
@@ -80,7 +80,7 @@ export function RoadCard({ road: r, region }: { road: Road; region: RegionInfo }
             ))}
           </div>
           <div style={{ display: "flex", fontSize: 26, color: TEXT }}>
-            {`${lengthText(r, region.units)} · ${speedShort(r)} · ${STATUS_LABEL[r.status]}`}
+            {`${lengthText(r, "imperial")} · ${speedShort(r)} · ${STATUS_LABEL[r.status]}`}
           </div>
         </div>
         <div style={{ display: "flex", fontSize: 18, color: DIM }}>Road data © OpenStreetMap contributors</div>
@@ -95,14 +95,14 @@ export function RoadCard({ road: r, region }: { road: Road; region: RegionInfo }
   );
 }
 
-export function SiteCard({ region, count }: { region: RegionInfo; count: number }) {
+export function SiteCard({ count }: { count: number }) {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: BG, color: TEXT, fontFamily: "Body", padding: 64 }}>
       <Brand />
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ fontFamily: "Display", fontSize: 92, lineHeight: 1 }}>Great local driving roads</div>
+        <div style={{ fontFamily: "Display", fontSize: 92, lineHeight: 1 }}>Great driving roads</div>
         <div style={{ fontSize: 32, color: DIM }}>
-          {`${count} paved roads near ${region.home_name}, rated against real race tracks at legal speeds.`}
+          {`${count.toLocaleString("en-US")} roads across the United States, rated against real race tracks at legal speeds.`}
         </div>
       </div>
       <div style={{ display: "flex", height: 12, borderRadius: 6, background: "linear-gradient(90deg, #4b2c86, #9a3290, #d4466a, #f27d3b, #fbd44c)" }} />

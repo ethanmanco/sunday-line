@@ -675,3 +675,55 @@ button.link.danger { color: #ff8a80; }
 .directions summary { list-style: none; }
 .directions summary::-webkit-details-marker { display: none; }
 .directions-menu { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+/* Sheet v2: the handle sits outside the scrolling area (no hairline), swipe to snap. */
+.shell-panel { display: flex; flex-direction: column; overflow: hidden; }
+.shell-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.shell.is-sheet .shell-panel.sheet-half { height: 45%; }
+.shell.is-sheet .shell-panel.sheet-peek { height: 56px; }
+.shell.is-sheet .shell-panel.dragging { transition: none; }
+.sheet-grip {
+  flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 36px; padding: 8px 16px 6px; cursor: grab; touch-action: none; user-select: none;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.sheet-grip:active { cursor: grabbing; }
+.grip-bar { width: 44px; height: 5px; border-radius: 3px; background: #4a5260; }
+.grip-title { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sheet-handle, .sheet-hide { display: none; }
+
+/* Full-screen photos, over everything */
+.photo-viewer { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.92); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.photo-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+.photo-close { position: absolute; top: 12px; right: 12px; width: 48px; height: 48px; border-radius: 50%; border: 1px solid #444; background: rgba(20, 20, 20, 0.8); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.photo-button { display: block; padding: 0; border: none; background: none; cursor: zoom-in; width: 100%; }
+.vehicle-photos .strip img { cursor: zoom-in; }
+
+/* Filters, tidier: Show chips, then sort and More options, then the list. */
+.filters { display: grid; gap: 12px; }
+.filters .show-group { margin: 0; }
+.sort-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.sort-select { display: grid; gap: 4px; flex: 1 1 160px; font-size: 13px; color: var(--dim); }
+.sort-select select { min-height: 40px; }
+.more-options { display: grid; gap: 12px; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.option-selects { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.option-selects label { display: grid; gap: 4px; font-size: 13px; color: var(--dim); }
+.more-options .chips { gap: 8px; }
+.more-options .fine { margin: 0; }
+.filters .count { margin: 0; }
+
+/* The locate button: round, like a map app's. */
+.locate-button {
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer;
+  background: rgba(16, 19, 24, 0.95); color: var(--text); display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.locate-button:disabled { opacity: 0.7; }
+.cancel-pick { position: absolute; left: 50%; transform: translateX(-50%); top: 102px; z-index: 3; }
+
+/* Events tab spacing */
+.group-events > button.link { margin-top: 12px; }
+.group-events .fine + button.link { margin-top: 12px; }
+.sort-select select, .option-selects select {
+  background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 15px; width: 100%;
+}

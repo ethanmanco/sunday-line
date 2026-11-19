@@ -1,16 +1,34 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
-import { REGION_SLUG } from "./config";
-import type { Road, RoadData } from "./types";
+import { SITE_URL } from "./config";
+import type { DataIndex } from "./roadData";
+import type { Road } from "./types";
 
-export const loadRoadData = cache(async (): Promise<RoadData> => {
-  const file = path.join(process.cwd(), "public", "data", REGION_SLUG, "roads.json");
-  return JSON.parse(await readFile(file, "utf8")) as RoadData;
+// Small files are read from disk (bundled with the server code). The road
+// squares are many and large, so they're fetched from the site's own static
+// files instead of being bundled into every server function.
+const DIR = path.join(process.cwd(), "public", "data", "us");
+const read = async <T,>(rel: string): Promise<T> => JSON.parse(await readFile(path.join(DIR, rel), "utf8")) as T;
+
+export const loadIndex = cache(() => read<DataIndex>("index.json"));
+const loadRoadCells = cache(() => read<Record<string, string>>("road-cells.json"));
+
+const loadCell = cache(async (key: string): Promise<{ roads: Road[] }> => {
+  const res = await fetch(`${SITE_URL}/data/us/cells/${key}.json`, { next: { revalidate: 3600 } });
+  if (!res.ok) throw new Error(`cell ${key}: ${res.status}`);
+  return res.json() as Promise<{ roads: Road[] }>;
 });
 
+/** A road by ID, from its square's file. */
 export async function findRoad(id: string): Promise<Road | null> {
   if (!/^[a-f0-9]{12}$/.test(id)) return null;
-  const data = await loadRoadData();
-  return data.roads.find((r) => r.id === id) ?? null;
+  const key = (await loadRoadCells())[id];
+  if (!key || !/^-?\d+_-?\d+$/.test(key)) return null;
+  try {
+    const cell = await loadCell(key);
+    return cell.roads.find((r) => r.id === id) ?? null;
+  } catch {
+    return null;
+  }
 }

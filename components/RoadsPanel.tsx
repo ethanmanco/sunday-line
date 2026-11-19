@@ -6,6 +6,8 @@ import RoadDetail from "./RoadDetail";
 import RoadList from "./RoadList";
 import { useMapShell } from "@/lib/mapShell";
 import { badgeKey } from "@/lib/roads";
+import { decodePolyline } from "@/lib/polyline";
+import type { Road } from "@/lib/types";
 
 function roadIdFromPath(path: string): string | null {
   const m = path.match(/^\/road\/([A-Za-z0-9_-]+)\/?$/);
@@ -13,16 +15,17 @@ function roadIdFromPath(path: string): string | null {
 }
 
 /** The home page's panel: filters and the list, or one road's details. */
-export default function RoadsPanel({ initialRoadId }: { initialRoadId?: string }) {
+export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoadId?: string; initialRoad?: Road }) {
   const shell = useMapShell()!;
   const opened = useRef(false);
 
   // A road opened from a link.
   useEffect(() => {
-    if (opened.current || !initialRoadId || !shell.byId.size) return;
+    if (opened.current || !initialRoadId) return;
     opened.current = true;
-    shell.selectRoad(initialRoadId);
-  }, [initialRoadId, shell]);
+    if (initialRoad) shell.addRoad({ ...initialRoad, coords: decodePolyline(initialRoad.line) });
+    else shell.selectRoad(initialRoadId);
+  }, [initialRoadId, initialRoad, shell]);
 
   // A link like /?spot=<id> opens the map on that spot.
   useEffect(() => {

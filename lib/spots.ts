@@ -1,6 +1,6 @@
-import { DATA_URL, REGION_SLUG } from "./config";
 import { decodePolyline } from "./polyline";
-import type { LoadedRoad, RoadData } from "./types";
+import { loadIndex, loadTop } from "./roadData";
+import type { LoadedRoad } from "./types";
 
 export type SpotKind = "point" | "road";
 export type SpotCategory = "meetup" | "scenic" | "food" | "gas" | "parking" | "track" | "other";
@@ -135,9 +135,8 @@ export function lineMiles(coords: [number, number][]): number {
 /** The region's roads, loaded once per page. */
 let roadsPromise: Promise<{ bbox: [number, number, number, number]; roads: LoadedRoad[] }> | null = null;
 export function loadRoads(): Promise<{ bbox: [number, number, number, number]; roads: LoadedRoad[] }> {
-  roadsPromise ??= fetch(DATA_URL)
-    .then((r) => r.json() as Promise<RoadData>)
-    .then((d) => ({ bbox: d.region.bbox, roads: d.roads.map((r) => ({ ...r, coords: decodePolyline(r.line) })) }))
+  roadsPromise ??= Promise.all([loadIndex(), loadTop()])
+    .then(([i, roads]) => ({ bbox: i.bbox, roads: roads as LoadedRoad[] }))
     .catch((e) => {
       roadsPromise = null;
       throw e;
@@ -145,7 +144,8 @@ export function loadRoads(): Promise<{ bbox: [number, number, number, number]; r
   return roadsPromise;
 }
 
-export const ROAD_REGION = REGION_SLUG;
+/** Road spots record the data set they came from. */
+export const ROAD_REGION = "us";
 
 /** Spots as map features: points and road stretches. */
 export function spotFeatures(spots: Spot[]): GeoJSON.FeatureCollection {

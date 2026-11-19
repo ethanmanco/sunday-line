@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VehicleCard from "./VehicleCard";
+import { openPhoto } from "@/components/PhotoViewer";
 import ProfileSpots from "./ProfileSpots";
 import { usePageOnMap } from "@/lib/usePageOnMap";
 import type { Spot } from "@/lib/spots";
@@ -252,10 +253,10 @@ function Photos({ media, urls, isMe }: { media: Media[]; urls: Record<string, st
       {media.map((m) =>
         urls[m.path] ? (
           <li key={m.id}>
-            <a href={urls[m.path]} target="_blank" rel="noreferrer">
+            <button type="button" className="photo-button" onClick={() => openPhoto(urls[m.path], m.caption ?? "Photo")}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={urls[m.path]} alt={m.caption ?? "Photo"} loading="lazy" />
-            </a>
+            </button>
             {m.caption && <p className="fine">{m.caption}</p>}
           </li>
         ) : null,

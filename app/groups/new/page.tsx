@@ -54,11 +54,11 @@ export default function NewGroup() {
       <form onSubmit={create} className="form">
         <label>
           <span>Name</span>
-          <input required minLength={3} maxLength={60} value={name} onChange={(e) => setName(e.target.value)} placeholder="Shreveport Sunday Drivers" />
+          <input required minLength={3} maxLength={60} value={name} onChange={(e) => setName(e.target.value)} placeholder="Sunday Morning Drivers" />
         </label>
         <label>
           <span>Area (optional)</span>
-          <input maxLength={80} value={area} onChange={(e) => setArea(e.target.value)} placeholder="Shreveport, LA" />
+          <input maxLength={80} value={area} onChange={(e) => setArea(e.target.value)} placeholder="Asheville, NC" />
         </label>
         <label>
           <span>About the group (optional)</span>

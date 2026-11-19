@@ -2,7 +2,7 @@
 
     python -m pipeline export --region shreveport
 
-Writes public/data/<region>/roads.json: every candidate at least 3 km long,
+Writes data/out/<region>/export.json (then `python -m pipeline tiles` builds public/data/us): every candidate at least 3 km long,
 with scores, labels, a simplified line (Google polyline encoding, 5 digits),
 and a short elevation profile. This file is a derived database of
 OpenStreetMap and is published under the ODbL (see the about page).
@@ -119,7 +119,7 @@ def export(region: Region) -> None:
         "license": "Derived from OpenStreetMap. Database: ODbL 1.0. (c) OpenStreetMap contributors.",
         "roads": roads,
     }
-    dest = REPO / "public" / "data" / region.slug / "roads.json"
+    dest = REPO / "data" / "out" / region.slug / "export.json"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
     kinds = {}

@@ -27,6 +27,8 @@ export function usePageOnMap(title: string | null, spots: Spot[] | null) {
   useEffect(() => {
     if (!shell || !title || !spots) return;
     shell.setOverlay({ title, spots });
+    // Nothing to show on the map: give the page the whole screen.
+    shell.setSheet(spots.length ? "half" : "full");
     // Spots are compared by their IDs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, key]);

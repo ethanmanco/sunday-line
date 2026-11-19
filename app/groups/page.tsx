@@ -87,7 +87,7 @@ export default function GroupsPage() {
         <div className="form">
           <label>
             <span>Search by name or area</span>
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Shreveport, Miata, track..." />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Town, car, track..." />
           </label>
         </div>
         {!found ? <p className="fine">Loading...</p> : found.length === 0 ? (
