@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { accountsEnabled, getSupabase, takeReturn } from "@/lib/supabase";
+import { accountsEnabled, emailHasCode, getSupabase, takeReturn } from "@/lib/supabase";
 
 export default function SignIn() {
   const router = useRouter();
@@ -59,16 +59,30 @@ export default function SignIn() {
       <h1>Sign in</h1>
       {step === "email" ? (
         <form onSubmit={sendCode} className="form">
-          <p>We&apos;ll email you a 6-digit code. No password needed. New here? This creates your account.</p>
+          <p>
+            {emailHasCode ? "We'll email you a 6-digit code." : "We'll email you a sign-in link."} No password needed. New
+            here? This creates your account.
+          </p>
           <label>
             <span>Email</span>
             <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
-          <button type="submit" className="button" disabled={busy}>{busy ? "Sending..." : "Email me a code"}</button>
+          <button type="submit" className="button" disabled={busy}>{busy ? "Sending..." : emailHasCode ? "Email me a code" : "Email me a link"}</button>
           <p className="fine">
             By signing in you agree to the <Link href="/about#terms">terms of use</Link>.
           </p>
         </form>
+      ) : !emailHasCode ? (
+        <div className="form">
+          <p>
+            We sent a sign-in link to <b>{email}</b>. Tap it to sign in. It works on any device, so you can open the
+            email on your phone or computer.
+          </p>
+          <p className="fine">Not there? Check spam, or wait a minute. The link works once and expires after an hour.</p>
+          <button type="button" className="link" onClick={() => setStep("email")}>
+            Use a different email or send a new link
+          </button>
+        </div>
       ) : (
         <form onSubmit={checkCode} className="form">
           <p>We sent a code to <b>{email}</b>. Type it here, or tap the link in the email.</p>

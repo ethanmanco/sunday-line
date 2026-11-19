@@ -10,6 +10,10 @@ let client: SupabaseClient | null = null;
 /** True when this build has Supabase settings (accounts and ratings turn on). */
 export const accountsEnabled = Boolean(URL && KEY);
 
+/** True when the sign-in email has the 6-digit code (our own template, which
+ * Supabase only allows with a custom email sender). Otherwise it has a link only. */
+export const emailHasCode = process.env.NEXT_PUBLIC_EMAIL_HAS_CODE === "1";
+
 /** The browser Supabase client, or null when accounts are not set up. */
 export function getSupabase(): SupabaseClient | null {
   if (!accountsEnabled || typeof window === "undefined") return null;
