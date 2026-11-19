@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(36);
+select plan(37);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -90,10 +90,11 @@ select is((select count(*)::int from public.spots where owner_id = '5b000000-000
 
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
 update public.profiles set spots_display = 'groups', is_private = false where id = '5b000000-0000-0000-0000-000000000002';
-insert into public.profile_spot_groups (group_id) values (pg_temp.id('g'));
+select throws_ok($$ insert into public.profile_spot_groups (group_id) values (pg_temp.id('g')) $$, '42501', null,
+  'a private group can''t be picked for a profile');
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002'), 1,
-  '"groups" shows only your own spots from the groups you picked');
+select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002'), 0,
+  'spots in a private group never show on a profile');
 select is((select count(*)::int from public.spots where id = pg_temp.id('org_spot')), 0,
   'other people''s spots in that group stay private');
 select throws_ok(

@@ -1,6 +1,6 @@
 -- Security tests for groups: visibility, joining, invites, roles, removal.
 begin;
-select plan(38);
+select plan(39);
 
 -- O organizes, M will moderate, X and S are regular people, E is a latecomer.
 insert into auth.users (id, email) values
@@ -98,6 +98,11 @@ select throws_ok($$ select public.redeem_invite((select v from ids where k = 'to
 select throws_ok(
   $$ insert into public.join_requests (group_id) values (pg_temp.id('priv')) $$,
   '42501', null, 'nobody can ask to join a group they can''t see');
+
+-- ---- Outsiders ----
+select pg_temp.act_as('0e000000-0000-0000-0000-000000000005');
+select throws_ok($$ select public.remove_member(pg_temp.id('pub'), '0d000000-0000-0000-0000-000000000004') $$,
+  '42501', null, 'people outside a group cannot remove its members');
 
 -- ---- Roles and permissions ----
 select pg_temp.act_as('0b000000-0000-0000-0000-000000000002');
