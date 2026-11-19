@@ -1,0 +1,103 @@
+"""Road facts from the federal Highway Performance Monitoring System (HPMS).
+
+    python -m pipeline hpms --region shreveport
+
+Each state DOT reports its roads to the Federal Highway Administration every
+year: who maintains each road, its functional class, surface type, posted
+speed limit, traffic, lane width, shoulders, and (on sampled roads) measured
+roughness (IRI). FHWA publishes it as public domain data at geo.dot.gov.
+
+This downloads the sections inside the region's box and caches them under
+data/raw/hpms/. `score` then matches them to candidate roads.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+from .config import Region, load_region
+from .fetch import USER_AGENT
+
+try:
+    import truststore
+
+    truststore.inject_into_ssl()
+except ImportError:  # pragma: no cover
+    pass
+
+YEAR = 2024
+SERVICE = "https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_{st}_{year}/FeatureServer/0/query"
+FIELDS = [
+    "f_system", "ownership", "surface_type", "iri", "speed_limit", "aadt",
+    "through_lanes", "lane_width", "shoulder_type", "routesigning", "routenumber",
+]
+STATE_CODES = {"Texas": "TX", "Louisiana": "LA", "Arkansas": "AR"}
+PAGE = 2000
+
+# HPMS Field Manual code tables (only the values we use).
+OWNER_STATE = {1}                 # State Highway Agency
+OWNER_COUNTY = {2}                # County Highway Agency
+OWNER_CITY = {3, 4}               # Town or township, city or municipal
+SURFACE_UNPAVED = {1}             # 1 = unpaved
+
+
+def _get(url: str) -> dict:
+    for attempt in range(5):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                return json.load(resp)
+        except (urllib.error.URLError, TimeoutError) as e:
+            print(f"    retry {attempt + 1}: {e}")
+            time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"HPMS request failed: {url[:120]}")
+
+
+def cache_path(region: Region, st: str):
+    return region.raw_dir / "hpms" / f"{st}_{YEAR}_{region.slug}.geojson"
+
+
+def download(region: Region, states: list[str]) -> None:
+    w, s, e, n = region.bbox
+    for st in states:
+        dest = cache_path(region, st)
+        if dest.exists():
+            print(f"  {st}: cached")
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        feats, offset = [], 0
+        while True:
+            q = dict(
+                where="1=1", geometry=f"{w},{s},{e},{n}", geometryType="esriGeometryEnvelope",
+                inSR=4326, outSR=4326, spatialRel="esriSpatialRelIntersects",
+                outFields=",".join(FIELDS), returnGeometry="true", geometryPrecision=6,
+                orderByFields="objectid", resultOffset=offset, resultRecordCount=PAGE, f="geojson",
+            )
+            d = _get(SERVICE.format(st=st, year=YEAR) + "?" + urllib.parse.urlencode(q))
+            batch = [f for f in d.get("features", []) if f.get("geometry")]
+            feats += batch
+            offset += PAGE
+            if offset % 20000 == 0:
+                print(f"  {st}: {len(feats)} sections")
+            if len(d.get("features", [])) < PAGE and not d.get("properties", {}).get("exceededTransferLimit"):
+                break
+        part = dest.with_suffix(".part")
+        part.write_text(json.dumps({"type": "FeatureCollection", "features": feats}), encoding="utf-8")
+        part.replace(dest)
+        print(f"  {st}: {len(feats)} sections saved")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--region", default="shreveport")
+    args = ap.parse_args()
+    region = load_region(args.region)
+    download(region, ["TX", "LA", "AR"])
+
+
+if __name__ == "__main__":
+    main()

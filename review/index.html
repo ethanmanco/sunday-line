@@ -99,7 +99,8 @@ const VERDICTS = [
   ["neighborhood", "Neighborhood", "3"],
   ["offroad", "Off-road, park, or private", "4"],
   ["slow", "Too slow", "5"],
-  ["unsure", "Not sure", "6"],
+  ["rough", "Rough pavement", "6"],
+  ["unsure", "Not sure", "7"],
 ];
 const KEY = "sunday-line-review-v1";
 let store = {};
@@ -144,7 +145,7 @@ function renderList() {
 
 function renderCard() {
   const c = document.getElementById("card");
-  if (!current) { c.innerHTML = '<p class="meta">Pick a road from the list. Keys: 1 to 6 to mark it, J and K to move down and up.</p>'; return; }
+  if (!current) { c.innerHTML = '<p class="meta">Pick a road from the list. Keys: 1 to 7 to mark it, J and K to move down and up.</p>'; return; }
   const r = current, mid = r.coords[Math.floor(r.coords.length / 2)];
   const sv = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mid[1]},${mid[0]}`;
   const gm = `https://www.google.com/maps/search/?api=1&query=${mid[1]},${mid[0]}`;
@@ -167,7 +168,7 @@ function renderCard() {
     </div>
     <textarea id="note" placeholder="Note (optional): what did you see?">${v.note || ""}</textarea>
     <div class="actions"><a href="${sv}" target="_blank" rel="noopener">Street View</a><a href="${gm}" target="_blank" rel="noopener">Google Maps</a></div>
-    <p class="help">Keys: 1 to 6 mark, J next, K previous, S satellite.</p>`;
+    <p class="help">Keys: 1 to 7 mark, J next, K previous, S satellite.</p>`;
   c.querySelectorAll(".verdicts button").forEach(b => b.onclick = () => mark(b.dataset.v));
   c.querySelector("#note").oninput = e => { store[r.id] = { ...(store[r.id] || {}), note: e.target.value, name: r.name }; save(); };
 }

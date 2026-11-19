@@ -4,6 +4,7 @@ export interface Scores {
   overall: number;
   twisty: number;
   speed: number;
+  pavement: number;
   flow: number;
   elevation: number;
   scenic: number;
@@ -26,6 +27,7 @@ export interface Road {
   scores: Scores;
   speed: { min: number | null; max: number | null; units: string; source: string; text: string; note: string | null };
   surface: { text: string; paved: boolean; gravel: boolean };
+  pavement: { why: string | null; maintained_by: string | null; traffic_aadt: number | null; iri: number | null };
   elevation: { climb_ft: number | null; descent_ft: number | null; min_ft: number | null; max_ft: number | null; profile_ft: number[] };
   scenery: { forest: number; water: number; wetland: number; byway: string | null; tags: string[] };
   stops: { junctions: number; stops: number; signals: number };

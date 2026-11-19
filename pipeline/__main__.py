@@ -17,7 +17,7 @@ from .config import load_region
 
 def main() -> None:
     p = argparse.ArgumentParser(prog="pipeline")
-    p.add_argument("step", choices=["fetch", "score", "surface", "report", "review", "export", "all"])
+    p.add_argument("step", choices=["fetch", "score", "surface", "report", "review", "export", "hpms", "all"])
     p.add_argument("--region", default="shreveport")
     p.add_argument("--top", type=int, default=20)
     args = p.parse_args()
@@ -39,6 +39,10 @@ def main() -> None:
         from .export import export
 
         export(region)
+    if args.step == "hpms":
+        from .hpms import download
+
+        download(region, ["TX", "LA", "AR"])
     if args.step in ("surface", "review"):
         import sys
 

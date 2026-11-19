@@ -468,3 +468,13 @@ After you okay the road list: map and list, sharing, accounts and road ratings, 
 
 ### 11.10 Map and list (built 2026-11-18)
 The road list is served as a static file (`public/data/<region>/roads.json`, written by `python -m pipeline export`) instead of from Supabase. Roads are public and change only when the data script runs, so a file is faster, free, and keeps working if a free Supabase project pauses. Supabase arrives with sign-in, ratings, groups, and meets; member ratings will be read from the database and joined to these roads by road ID.
+
+### 11.11 Pavement score (added 2026-11-18, after your second road check)
+Your check of the top 20 found 6 gravel roads and 9 rough ones, all county or parish roads. Aerial photos alone missed them. Changes:
+- **Federal road data (FHWA HPMS 2024, public domain)** is matched to every road: who maintains it (state, county, city), surface type (Arkansas reports unpaved county roads), posted speed limits (about a quarter of Texas road sections), traffic counts, and measured roughness where the state samples it.
+- **Pavement score (0 to 100)** starts from who maintains the road: state highways 85, Louisiana parish roads 60, Arkansas county roads 55, Texas county roads 40 (from your check: 2 of 16 Texas county roads near the top were good, 5 of 8 parish roads). Busy county roads (1,000+ cars a day) get +15, measured smooth or rough pavement +10 or -10, aerial photos that look like gravel subtract. Your checks always win.
+- **Driver's roads need Pavement 55 or more.** Lower roads go to "Needs a check" with the reason, so a quick Street View look (or the community Verify flow later) can bring them back.
+- **Overall weights (v3):** Twisty 28, Speed 28, Pavement 16, Flow 12, Elevation 10, Quiet 4, Scenic 2.
+- **Quiet** now uses traffic counts where the state has them.
+- The road-check page has a new "Rough pavement" verdict.
+

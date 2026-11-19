@@ -27,20 +27,22 @@ export default async function About() {
       <ul>
         <li><b>Twisty:</b> cornering, braking, and direction changes compared with those tracks. 70 is track average.</li>
         <li><b>Speed:</b> the average legal speed through the corners. 35 mph scores 0, 65 mph scores 100.</li>
-        <li><b>Overall:</b> needs both Twisty and Speed, so a slow twisty road and a fast straight one both score low. Flow (few stops), elevation, surface, quiet, and scenery add a little.</li>
+        <li><b>Pavement:</b> how likely the pavement is smooth and kept up. Public data rarely measures pavement on county roads, so it starts from who maintains the road (state highways are kept up; many county roads here are rough chip seal or gravel), then uses federal road data, traffic counts, aerial photos, and people&apos;s checks, which always win.</li>
+        <li><b>Overall:</b> needs both Twisty and Speed, so a slow twisty road and a fast straight one both score low. Pavement counts next, then flow (few stops), elevation, quiet, and scenery.</li>
         <li><b>Scenic:</b> forest, water, and wetland along the road (ESA WorldCover). It counts least in Overall and has its own list.</li>
       </ul>
       <p>
-        <b>Driver&apos;s roads</b> must be paved, have a speed limit of at least 40 mph on most of their length, not run
-        through a neighborhood, and not sit inside a park, fee area, or off-road park. Most rural roads here have no
-        surface on the map, so we read it from USDA aerial photos; the photo check is right about 9 times in 10.
-        Roads where the photos are unclear wait for a person to check them.
+        <b>Driver&apos;s roads</b> must be paved with a good Pavement score, have a speed limit of at least 40 mph on
+        most of their length, not run through a neighborhood, and not sit inside a park, fee area, or off-road park.
+        Most rural roads here have no surface on the map, so we also read it from USDA aerial photos. County roads
+        whose pavement we can&apos;t confirm, and roads where the photos are unclear, wait in &quot;Needs a
+        check&quot; until a person looks.
       </p>
 
       <h2>Labels</h2>
       <ul>
         <li><b>Candidate:</b> found from map data, not yet checked by members.</li>
-        <li><b>Speed limits:</b> &quot;posted&quot; comes from the map; &quot;state default&quot; is the legal limit where no sign is mapped; &quot;estimated&quot; comes from similar roads nearby. Always follow the signs.</li>
+        <li><b>Speed limits:</b> &quot;posted&quot; comes from the map or from limits the state DOT reports to the Federal Highway Administration; &quot;state default&quot; is the legal limit where no sign is recorded; &quot;estimated&quot; comes from similar roads nearby. Always follow the signs.</li>
       </ul>
 
       <h2 id="terms">Terms of use</h2>
@@ -62,6 +64,7 @@ export default async function About() {
         </li>
         <li>Base map: <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, &copy; OpenMapTiles. Satellite view: USGS The National Map.</li>
         <li>Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0).</li>
+        <li>Road owner, surface, posted limits, traffic counts, and roughness: FHWA Highway Performance Monitoring System, 2024 (public domain).</li>
         <li>Buildings and places: Overture Maps Foundation.</li>
         <li>The curvature approach follows the published method of the <a href="https://github.com/adamfranco/curvature" target="_blank" rel="noopener noreferrer">Curvature project</a>, written independently.</li>
       </ul>

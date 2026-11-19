@@ -47,7 +47,8 @@ def category(p: dict) -> str:
         return "drivers"
     if p.get("gravel_road"):
         return "gravel"
-    if p.get("surface_check"):
+    # "Needs a check": the only reasons it's out are things a quick look would settle.
+    if p["not_drivers_road_because"] and all("needs a check" in r for r in p["not_drivers_road_because"]):
         return "unsure"
     return "other"
 
@@ -86,10 +87,12 @@ def export(region: Region) -> None:
             "length_m": p["length_m"],
             "home_mi": p["home_mi"],
             "scores": {k: p[f"score_{k}"] for k in
-                       ("overall", "twisty", "speed", "flow", "elevation", "scenic", "surface", "quiet")},
+                       ("overall", "twisty", "speed", "pavement", "flow", "elevation", "scenic", "surface", "quiet")},
             "speed": {"min": p["speed_min"], "max": p["speed_max"], "units": p["speed_units"],
                       "source": p["speed_source"], "text": speed_text(p), "note": p.get("speed_default_note")},
             "surface": {"text": surface_text(p), "paved": p["paved"], "gravel": bool(p.get("gravel_road"))},
+            "pavement": {"why": p.get("pavement_why"), "maintained_by": p.get("maintained_by"),
+                         "traffic_aadt": p.get("traffic_aadt"), "iri": p.get("iri")},
             "elevation": {"climb_ft": ft(p.get("climb_m")), "descent_ft": ft(p.get("descent_m")),
                           "min_ft": ft(p.get("elev_min_m")), "max_ft": ft(p.get("elev_max_m")),
                           "profile_ft": profile_ft(p.get("elev_profile"))},

@@ -19,7 +19,7 @@ const PAGE = 60;
 
 function warning(r: LoadedRoad, view: View): string | null {
   if (r.category === "gravel" && view !== "gravel") return "Gravel or dirt";
-  if (r.category === "unsure") return "Surface needs a check";
+  if (r.category === "unsure") return `Needs a check: ${(r.excluded[0] ?? "surface unclear").replace(/ \(needs a check\)$/, "")}`;
   if (r.category === "other" && view === "all") return `Left out: ${r.excluded[0] ?? ""}`;
   return null;
 }
@@ -61,7 +61,7 @@ export default function RoadList({ roads, view, scoreKey, units, origin, originN
                     <span className="rank">{i + 1}.</span> {r.name}
                   </span>
                   <span className="road-meta">
-                    Twisty {r.scores.twisty} · Speed {r.scores.speed} · Scenic {r.scores.scenic}
+                    Twisty {r.scores.twisty} · Speed {r.scores.speed} · Pavement {r.scores.pavement}
                   </span>
                   <span className="road-meta">
                     {lengthText(r, units)} · {speedShort(r)} · {milesText(distanceMi(r, origin))} from {originName}

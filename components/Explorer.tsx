@@ -36,7 +36,8 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   const listBounds = useRef<Bounds | null>(null);
 
   useEffect(() => {
-    fetch(DATA_URL)
+    // Revalidate every load so a data update never pairs with stale data.
+    fetch(DATA_URL, { cache: "no-cache" })
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return r.json() as Promise<RoadData>;

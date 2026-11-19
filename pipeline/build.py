@@ -26,6 +26,7 @@ from .dem import Dem
 from .landcover import Landcover
 from . import drive
 from .fetch import osm_paths
+from . import hpms
 from .osm_read import read_extracts
 
 KMH_PER_MPH = 1.609344
@@ -80,11 +81,62 @@ def is_numbered(tags: dict, sd: dict | None) -> bool:
     return bool(sd and ref and re.match(sd.get("numbered_ref", r"^\S+ ?\d"), ref))
 
 
+STATE_ROUTE_REF = re.compile(r"^(FM|RM|SH|TX|US|LA|AR|SR|I|IH)[ -]?\d")
+
+
+def pavement_score(pc: dict, *, state: str | None, owner: int | None, state_ref: bool, hp_unpaved: bool,
+                   aadt: float | None, iri: float | None, tagged_paved: bool, p_unpaved: float | None,
+                   photo_used: bool, verdict: str | None) -> tuple[float, str]:
+    """Pavement quality, 0 to 100, and a plain-language reason.
+
+    Public data rarely measures pavement on county roads, so this leans on who
+    maintains the road (state highways are kept up; many county roads here are
+    rough chip seal or gravel), backed by federal road data, aerial photos, and
+    people's checks, which always win.
+    """
+    if verdict == "good":
+        return pc["verified_good"], "checked by a person: good pavement"
+    if verdict == "rough":
+        return pc["verified_rough"], "checked by a person: rough pavement"
+    if verdict == "gravel":
+        return 0.0, "checked by a person: gravel or dirt"
+    if hp_unpaved:
+        return 0.0, "unpaved in federal road data"
+    state_kept = owner in hpms.OWNER_STATE or state_ref
+    if state_kept:
+        score, why = pc["state_route"], "state highway"
+    elif owner in hpms.OWNER_COUNTY:
+        score = pc["county"].get(state or "", pc["unknown"])
+        why = "parish road" if state == "Louisiana" else "county road"
+    elif owner in hpms.OWNER_CITY:
+        score, why = pc["city"], "city street"
+    else:
+        score, why = pc["unknown"], "owner unknown"
+    notes = []
+    if aadt is not None and aadt >= pc["busy_aadt"] and not state_kept:
+        score += pc["busy_bonus"]
+        notes.append(f"about {int(round(aadt, -2)):,} cars a day")
+    if iri is not None:
+        if iri < pc["iri_good"]:
+            score += pc["iri_good_bonus"]
+            notes.append("measured smooth")
+        elif iri > pc["iri_poor"]:
+            score -= pc["iri_poor_penalty"]
+            notes.append("measured rough")
+    if tagged_paved:
+        score += pc["tagged_paved_bonus"]
+    if photo_used and p_unpaved is not None:
+        score -= pc["photo_penalty"] * p_unpaved
+    why = why + (f" ({', '.join(notes)})" if notes else "")
+    return float(np.clip(score, 0, 100)), why
+
+
 VERDICT_REASONS = {
     "gravel": "gravel or dirt (checked by a person)",
     "neighborhood": "runs through a neighborhood (checked by a person)",
     "offroad": "off-road, park, or private (checked by a person)",
     "slow": "too slow (checked by a person)",
+    "rough": "rough or poorly kept pavement (checked by a person)",
 }
 
 
@@ -99,8 +151,9 @@ def overall_score(f: dict, ow: dict) -> float:
         core = (ow["twisty"] + ow["speed"]) * float(np.sqrt(f["twisty"] * f["speed"]))
     else:
         core = ow["twisty"] * f["twisty"] + ow["speed"] * f["speed"]
-    rest = sum(ow[k] * f[k] for k in ("scenic", "flow", "elevation", "quiet", "surface"))
-    return (core + rest) / sum(ow[k] for k in ("twisty", "speed", "scenic", "flow", "elevation", "quiet", "surface"))
+    others = [k for k, w in ow.items() if k not in ("combine", "twisty", "speed") and isinstance(w, (int, float))]
+    rest = sum(ow[k] * f[k] for k in others)
+    return (core + rest) / (ow["twisty"] + ow["speed"] + sum(ow[k] for k in others))
 
 
 def default_limit(tags: dict, highway: str, sd: dict | None, state: str | None,
@@ -313,6 +366,22 @@ def build(region: Region) -> list[dict]:
     vp_tree = STRtree(shapely.points([v[2] for v in venue_points])) if venue_points else None
     print(f"  off-road and motor venues (points): {len(venue_points)}")
     service_nodes = np.unique(np.frombuffer(osm.service_refs, dtype=np.int64))
+    # Federal road data (FHWA HPMS, public domain): owner, surface, posted limits, traffic, roughness.
+    hp_geoms, hp_props = [], []
+    for st in ("TX", "LA", "AR"):
+        pth = hpms.cache_path(region, st)
+        if not pth.exists():
+            continue
+        for f in json.loads(pth.read_text(encoding="utf-8"))["features"]:
+            gg = f["geometry"]
+            parts = gg["coordinates"] if gg["type"] == "MultiLineString" else [gg["coordinates"]]
+            for part in parts:
+                if len(part) >= 2:
+                    hp_geoms.append(shapely.LineString(proj(np.asarray(part, dtype=float)[:, :2])))
+                    hp_props.append(f["properties"])
+    hp_tree = STRtree(hp_geoms) if hp_geoms else None
+    print(f"  federal road sections (HPMS {hpms.YEAR}): {len(hp_geoms)}")
+    pc = cfg["pavement"]
     hc = cfg["homes"]
 
     for ch, xy, cum, oa, ob, length, wc in pieces:
@@ -326,6 +395,21 @@ def build(region: Region) -> list[dict]:
         mid_ll = ch.lonlat[(oa + ob) // 2]
         state = state_of(mid_ll[0], mid_ll[1])
         sd = region.speed_defaults.get(state) if state else None
+
+        # Match each segment to the nearest federal road section (within 12 m).
+        seg_hp = [None] * len(seg_len)
+        if hp_tree is not None:
+            cand = hp_tree.query(shapely.LineString(pxy), predicate="dwithin", distance=15)
+            if len(cand):
+                ctree = STRtree([hp_geoms[j] for j in cand])
+                mids = shapely.points((pxy[:-1] + pxy[1:]) / 2)
+                pairs = ctree.query_nearest(mids, max_distance=12)
+                for mi, cj in zip(*pairs):
+                    if seg_hp[mi] is None:
+                        seg_hp[mi] = hp_props[cand[cj]]
+        hp_len = 0.0
+        own_len = Counter()
+        aadt_sum = aadt_len = iri_sum = iri_len = hp_unpaved_len = fhwa_posted_len = 0.0
 
         # Per-segment tag factors, length weighted
         surf_vals, surf_kinds, quiet_vals = [], Counter(), []
@@ -346,11 +430,28 @@ def build(region: Region) -> list[dict]:
             surf_kinds[kind] += L
             quiet_vals.append(quiet_score(tags, hw, cfg["quiet"]))
             class_len[hw] += L
+            hp = seg_hp[i]
+            if hp is not None:
+                hp_len += L
+                if hp.get("ownership") is not None:
+                    own_len[int(hp["ownership"])] += L
+                if hp.get("aadt"):
+                    aadt_sum += hp["aadt"] * L
+                    aadt_len += L
+                if hp.get("iri"):
+                    iri_sum += hp["iri"] * L
+                    iri_len += L
+                if hp.get("surface_type") in hpms.SURFACE_UNPAVED:
+                    hp_unpaved_len += L
             speeds = parse_maxspeed(tags.get("maxspeed"), imperial)
             if speeds:
                 for v in speeds:
                     speed_by_val[v] += L
                 seg_limit[i] = min(speeds)
+            elif imperial and hp is not None and hp.get("speed_limit") and 10 <= hp["speed_limit"] <= 85:
+                # Posted limit the state DOT reported to FHWA.
+                seg_limit[i] = float(hp["speed_limit"])
+                fhwa_posted_len += L
             else:
                 untagged_len += L
                 seg_limit[i], src = default_limit(tags, hw, sd, state, typical, region)
@@ -385,7 +486,25 @@ def build(region: Region) -> list[dict]:
                 paved, surface_label = False, "likely_unpaved"
                 surface_check = "mapped as paved, but aerial photos look like gravel"
 
-        # Speed limits: posted (OpenStreetMap) first, then the state's legal default.
+        owner = max(own_len, key=own_len.get) if own_len and hp_len >= 0.5 * total_len else None
+        aadt = aadt_sum / aadt_len if aadt_len >= 0.5 * total_len else None
+        iri = iri_sum / iri_len if iri_len >= 0.5 * total_len else None
+        hp_unpaved = hp_unpaved_len >= 0.5 * total_len
+        if hp_unpaved and paved and surface_shares.get("paved", 0) < 0.5:
+            paved, surface_label = False, "likely_unpaved"
+            surface_check = "unpaved in federal road data"
+        if aadt is not None:
+            # Traffic counts beat road class for how quiet a road is.
+            quiet = 100.0 * float(np.clip((6000 - aadt) / 5500, 0, 1))
+        state_ref = any(STATE_ROUTE_REF.match(r) for r in refs_c)
+        verdict = verdicts.get(rid, {}).get("verdict")
+        pavement, pavement_why = pavement_score(
+            pc, state=state, owner=owner, state_ref=state_ref, hp_unpaved=hp_unpaved, aadt=aadt, iri=iri,
+            tagged_paved=surface_shares.get("paved", 0) >= 0.5, p_unpaved=p_unpaved,
+            photo_used=surface_shares.get("untagged", 0) >= 0.5, verdict=verdict,
+        )
+
+        # Speed limits: posted (OpenStreetMap or FHWA) first, then estimates.
         main_class = class_len.most_common(1)[0][0]
         share_untagged = untagged_len / total_len
         by_val = Counter()
@@ -534,7 +653,7 @@ def build(region: Region) -> list[dict]:
         ow = cfg["overall"]
         overall = overall_score(
             dict(twisty=twisty, speed=speed_score, scenic=scenic, flow=flow,
-                 elevation=elevation, quiet=quiet, surface=surface), ow)
+                 elevation=elevation, quiet=quiet, surface=surface, pavement=pavement), ow)
         # Driver's roads: the main list. Everything else still appears in the
         # Most Scenic list and in search, just not ranked as a driver's road.
         cat = cfg["categories"]
@@ -542,9 +661,14 @@ def build(region: Region) -> list[dict]:
         if share_40 < cat["min_speed_share"]:
             excluded_because.append(f"speed limit under {cat['min_speed']} {'mph' if imperial else 'km/h'}")
         if not paved:
-            excluded_because.append("looks like gravel in aerial photos" if surface_label == "likely_unpaved" else "tagged unpaved in OpenStreetMap")
+            if surface_check == "unpaved in federal road data":
+                excluded_because.append("unpaved in federal road data")
+            else:
+                excluded_because.append("looks like gravel in aerial photos" if surface_label == "likely_unpaved" else "tagged unpaved in OpenStreetMap")
         elif surface_check:
             excluded_because.append("surface unclear in aerial photos (needs a check)")
+        elif pavement < cat["min_pavement"]:
+            excluded_because.append(f"{pavement_why}: pavement not confirmed (needs a check)")
         if near_venue:
             excluded_because.append(f"next to an off-road or motor venue ({near_venue})")
         if venue_share["offroad"] >= 0.3:
@@ -559,7 +683,6 @@ def build(region: Region) -> list[dict]:
         )
         if neighborhood:
             excluded_because.append("runs through a neighborhood")
-        verdict = verdicts.get(rid, {}).get("verdict")
         if verdict == "good":
             excluded_because = []  # a person checked it
         elif verdict in VERDICT_REASONS:
@@ -619,6 +742,12 @@ def build(region: Region) -> list[dict]:
             "score_flow": round(flow),
             "score_quiet": round(quiet),
             "score_surface": round(surface),
+            "score_pavement": round(pavement),
+            "pavement_why": pavement_why,
+            "maintained_by": {1: "state", 2: "county", 3: "town", 4: "city"}.get(owner) if owner else ("state" if state_ref else None),
+            "traffic_aadt": round(aadt) if aadt is not None else None,
+            "iri": round(iri) if iri is not None else None,
+            "speed_posted_fhwa_share": round(fhwa_posted_len / total_len, 2),
             "curve_m_per_km": round(wc / km),
             "climb_m": round(climb),
             "descent_m": round(descent),
@@ -648,7 +777,9 @@ def build(region: Region) -> list[dict]:
             "speed_max": speed_max,
             "speed_units": "mph" if imperial else "km/h",
             "speed_source": speed_source,
-            "speed_default_note": sd.get("source") if sd and speed_source != "posted" else None,
+            "speed_default_note": (sd.get("source") if sd and speed_source != "posted"
+                                   else "Posted limit reported by the state DOT to FHWA (HPMS 2024)."
+                                   if fhwa_posted_len >= 0.5 * total_len else None),
             "state": state,
             "osm_way_ids": sorted({int(x) for x in seg_way}),
             "mid": [round(mid_lon, 5), round(mid_lat, 5)],

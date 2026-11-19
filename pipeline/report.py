@@ -10,10 +10,10 @@ from .config import Region, load_scoring
 DEFAULT_MIN_LENGTH_M = 3000  # matches the app's default minimum-length filter
 
 WEIGHT_SETS = {
-    "Recommended: Twisty and Speed combined (needs both)": dict(combine="geometric", twisty=30, speed=30, flow=15, elevation=10, surface=5, quiet=5, scenic=5),
-    "Same weights, simply added": dict(twisty=30, speed=30, flow=15, elevation=10, surface=5, quiet=5, scenic=5),
-    "Track purist (combined)": dict(combine="geometric", twisty=35, speed=35, flow=15, elevation=15, surface=0, quiet=0, scenic=0),
-    "Twisty first (added)": dict(twisty=40, speed=25, flow=15, elevation=10, surface=5, quiet=0, scenic=5),
+    "Recommended: Twisty and Speed combined, plus Pavement": dict(combine="geometric", twisty=28, speed=28, pavement=16, flow=12, elevation=10, quiet=4, scenic=2),
+    "Same weights, simply added": dict(twisty=28, speed=28, pavement=16, flow=12, elevation=10, quiet=4, scenic=2),
+    "Pavement first (combined)": dict(combine="geometric", twisty=25, speed=25, pavement=30, flow=10, elevation=10),
+    "Track purist (combined)": dict(combine="geometric", twisty=35, speed=35, pavement=10, flow=10, elevation=10),
 }
 
 
@@ -56,14 +56,14 @@ def maplink(r: dict) -> str:
 
 def drivers_table(rows: list[dict], imperial: bool) -> str:
     lines = [
-        "| # | Road | Near | Length | Overall | Twisty | Speed | Flow | Elev | Scenic | Speed limit | Surface | Map |",
+        "| # | Road | Near | Length | Overall | Twisty | Speed | Pavement | Flow | Elev | Speed limit | Surface | Map |",
         "|---|------|------|--------|---------|--------|-------|------|------|--------|-------------|---------|-----|",
     ]
     for i, r in enumerate(rows, 1):
         lines.append(
             f"| {i} | {r['name']} | {r['near'] or ''} | {length_text(r, imperial)} | "
-            f"**{r['score_overall']}** | {r['score_twisty']} | {r['score_speed']} | {r['score_flow']} | "
-            f"{r['score_elevation']} | {r['score_scenic']} | {speed_text(r)} | {surface_text(r)} | {maplink(r)} |"
+            f"**{r['score_overall']}** | {r['score_twisty']} | {r['score_speed']} | {r['score_pavement']} | "
+            f"{r['score_flow']} | {r['score_elevation']} | {speed_text(r)} | {surface_text(r)} | {maplink(r)} |"
         )
     return "\n".join(lines)
 
@@ -102,7 +102,7 @@ def gravel_table(rows: list[dict], imperial: bool) -> str:
 
 def rescore(r: dict, w: dict) -> float:
     from .build import overall_score
-    f = {k: r[f"score_{k}"] for k in ("twisty", "speed", "scenic", "flow", "elevation", "quiet", "surface")}
+    f = {k: r[f"score_{k}"] for k in ("twisty", "speed", "scenic", "flow", "elevation", "quiet", "surface", "pavement")}
     return overall_score(f, w)
 
 
@@ -117,7 +117,7 @@ def report(region: Region, top: int = 20) -> str:
     drivers = sorted((r for r in long_enough if r["drivers_road"]), key=lambda r: -r["score_overall"])
     scenic = sorted(long_enough, key=lambda r: (-r["score_scenic"], -r["score_overall"]))
     local = [r for r in drivers if r["home_mi"] <= region.local_radius_mi]
-    gravel = sorted((r for r in long_enough if r.get("gravel_road")),
+    gravel = sorted((r for r in long_enough if r.get("gravel_road") and r.get("checked") != "rough"),
                     key=lambda r: -(r["score_twisty"] + r["score_flow"] / 3))
     cat = cfg["categories"]
     unit = "mph" if imperial else "km/h"

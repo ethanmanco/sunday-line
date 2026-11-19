@@ -1,0 +1,274 @@
+{
+ "67a6553a1080": {
+  "verdict": "gravel",
+  "name": "County Road 425",
+  "near": "Suttons Mill",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "68aa41465fc0": {
+  "verdict": "gravel",
+  "name": "County Road 358",
+  "near": "Mound Prairie",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "3d28093a6836": {
+  "verdict": "gravel",
+  "name": "Fyffe Cutoff",
+  "near": "Marshall",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "f69d736867f9": {
+  "verdict": "gravel",
+  "name": "Old Lister Place Road",
+  "near": "Saron",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "66805915494a": {
+  "verdict": "gravel",
+  "name": "County Road 2352",
+  "near": "Marietta",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "5826191817a8": {
+  "verdict": "gravel",
+  "name": "Stonewall Road",
+  "near": "Saint Rest",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "3215b6649b04": {
+  "verdict": "gravel",
+  "name": "County Road 202",
+  "near": "Blackjack",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "d9881442520a": {
+  "verdict": "gravel",
+  "name": "Sammy Davis Road",
+  "near": "Glendale",
+  "note": "looks like dirt or gravel",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "b237c4d52a2e": {
+  "verdict": "rough",
+  "name": "County Road 2329",
+  "near": "Greenpond",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "5c79e2229ff5": {
+  "verdict": "rough",
+  "name": "Routon Road",
+  "near": "Jena",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "092fbd1d6ed2": {
+  "verdict": "rough",
+  "name": "Lovelady Road",
+  "near": "Lapine",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "46e643126a2d": {
+  "verdict": "rough",
+  "name": "County Road 379",
+  "near": "Wells Creek",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "bc3028c4cf89": {
+  "verdict": "rough",
+  "name": "County Road 232",
+  "near": "Harrisburg",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "9d15c40e1cc6": {
+  "verdict": "rough",
+  "name": "Central Road",
+  "near": "Pittsburg",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "4c4009a433e5": {
+  "verdict": "rough",
+  "name": "County Road 1151",
+  "near": "Tyler",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "6b37f2ca66a2": {
+  "verdict": "rough",
+  "name": "County Road 246 South (CR 246)",
+  "near": "Douglas",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "e56e1186c525": {
+  "verdict": "rough",
+  "name": "County Road 2100 (CR 2100)",
+  "near": "Mineola",
+  "note": "really poor quality road",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "4eab0ad3f167": {
+  "verdict": "rough",
+  "name": "County Road 207",
+  "near": "Horton",
+  "note": "paved but lots of loose gravel on it",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "6e2676f6f817": {
+  "verdict": "offroad",
+  "name": "Main Road",
+  "near": "Gilmer",
+  "note": "Barnwell Mountain ORV park, mostly off-road trails",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "d45d21c43670": {
+  "verdict": "neighborhood",
+  "name": "Airport Loop",
+  "near": "Homer",
+  "note": "off a 25 mph road, mostly houses",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "50ef5b327ae8": {
+  "verdict": "good",
+  "name": "County Road 2724",
+  "near": "Mineola",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "e632b6e0f282": {
+  "verdict": "good",
+  "name": "County Road 3990 (CR 3990)",
+  "near": "Ogburn",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "cc57a186516a": {
+  "verdict": "good",
+  "name": "Campbell Road",
+  "near": "Tremont",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "4f18929cc610": {
+  "verdict": "good",
+  "name": "Parish Road (LA 3279)",
+  "near": "Galbraith",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "4268b43101e5": {
+  "verdict": "good",
+  "name": "Valentine Lake Road",
+  "near": "Gardner",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "11a1e804be3e": {
+  "verdict": "good",
+  "name": "Dutch John Road",
+  "near": "Collinsburg",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "f358bcf77a15": {
+  "verdict": "good",
+  "name": "Atlanta Mira Road (PR 25)",
+  "near": "Vivian",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "a18a749125f2": {
+  "verdict": "good",
+  "name": "LA 790",
+  "near": "Tullis",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "24dbb40a18d1": {
+  "verdict": "good",
+  "name": "County Road 5",
+  "near": "Doddridge",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "20a716f17982": {
+  "verdict": "good",
+  "name": "County Road 257",
+  "near": "Arbor",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "5aee18cfd1ea": {
+  "verdict": "good",
+  "name": "Billy Shaw Road",
+  "near": "Homer",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "8ec5437ecdec": {
+  "verdict": "good",
+  "name": "Old Mooringsport Road",
+  "near": "Shreveport",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "fda96354dd66": {
+  "verdict": "good",
+  "name": "Ramblin Road (LA 346)",
+  "near": "Wallace",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ },
+ "472ede917846": {
+  "verdict": "good",
+  "name": "FM 1969",
+  "near": "Rock Springs",
+  "note": "in a checked list and not flagged",
+  "at": "2026-11-18T23:59:00",
+  "source": "Ethan's Street View check, 2026-11-18"
+ }
+}

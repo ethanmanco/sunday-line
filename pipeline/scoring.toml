@@ -2,7 +2,7 @@
 # Any change to this file bumps `version`, and every road records the version
 # that scored it.
 
-version = "2-draft"
+version = "3-draft"
 
 [candidate]
 min_length_m = 2000          # shorter stretches are not candidates
@@ -82,20 +82,44 @@ rail = 1.0
 yield = 0.5
 
 [overall]
-# Recommended "driver's road" weights (v2). Speed ties Twisty; Scenic is lowest.
+# Driver's road weights (v3, 2026-11-18). Speed ties Twisty; Pavement counts
+# because a rough road doesn't work a car the way a smooth one does; Scenic is lowest.
 # "geometric": Twisty and Speed are combined so a road needs both.
 combine = "geometric"
-twisty = 0.30
-speed = 0.30
-flow = 0.15
+twisty = 0.28
+speed = 0.28
+pavement = 0.16
+flow = 0.12
 elevation = 0.10
-surface = 0.05
-quiet = 0.05
-scenic = 0.05
+quiet = 0.04
+scenic = 0.02
 
 [categories]
 min_speed = 40          # driver's roads: speed limit at least this...
 min_speed_share = 0.8   # ...on at least 80% of the stretch, and paved
+min_pavement = 55       # and a Pavement score at least this (below: "needs a check")
+
+# ---- Pavement quality (0 to 100) ------------------------------------------
+# Public data rarely measures pavement on county roads, so the starting point
+# is who keeps the road up (FHWA HPMS ownership, or a state route number).
+# Starting points come from Ethan's 2026-11-18 Street View check of the top
+# roads: 2 of 16 Texas county roads were good, 5 of 8 Louisiana parish roads,
+# and the state highways were fine. People's checks always win.
+[pavement]
+state_route = 85
+city = 55
+unknown = 50
+county = { Texas = 40, Louisiana = 60, Arkansas = 55 }
+busy_aadt = 1000          # county roads this busy are usually kept up
+busy_bonus = 15
+iri_good = 95             # inches per mile; FHWA "good" is under 95
+iri_poor = 170            # FHWA "poor" is over 170
+iri_good_bonus = 10
+iri_poor_penalty = 10
+tagged_paved_bonus = 5    # someone mapped the surface as asphalt or concrete
+photo_penalty = 40        # times the aerial-photo chance of gravel
+verified_good = 85            # "paved and fine", same as a state highway
+verified_rough = 15
 
 # ---- Driving model (track-style), version 2 -----------------------------
 [drive]

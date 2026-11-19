@@ -30,13 +30,13 @@ def main():
     drivers = [f for f in by_score if f["properties"]["drivers_road"]]
     local = [f for f in drivers if f["properties"]["home_mi"] <= region.local_radius_mi]
     gravel = [f for f in by_score if f["properties"].get("gravel_road")]
-    unsure = [f for f in by_score if not f["properties"]["drivers_road"] and f["properties"].get("surface_check")
-              and not f["properties"].get("gravel_road")]
-    left_out = [f for f in by_score if not f["properties"]["drivers_road"] and not f["properties"].get("gravel_road")
-                and not f["properties"].get("surface_check")]
+    from .export import category
+
+    unsure = [f for f in by_score if category(f["properties"]) == "unsure"]
+    left_out = [f for f in by_score if category(f["properties"]) == "other"]
     chosen, seen = [], set()
     for group, items in (("drivers", drivers[: args.top]), ("local", local[:100]),
-                         ("unsure", unsure[:150]), ("gravel", gravel[:60]), ("left_out", left_out[:60])):
+                         ("unsure", unsure[:200]), ("gravel", gravel[:60]), ("left_out", left_out[:60])):
         for f in items:
             pid = f["properties"]["id"]
             if pid in seen:

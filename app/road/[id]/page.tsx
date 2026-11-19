@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!r) return { title: "Road not found" };
   const { region } = await loadRoadData();
   const title = `${r.name}${r.near ? ` near ${r.near}` : ""}`;
-  const description = `Overall ${r.scores.overall}, Twisty ${r.scores.twisty}, Speed ${r.scores.speed}. ${lengthText(r, region.units)}, ${r.speed.text}.`;
+  const description = `Overall ${r.scores.overall}, Twisty ${r.scores.twisty}, Speed ${r.scores.speed}, Pavement ${r.scores.pavement}. ${lengthText(r, region.units)}, ${r.speed.text}.`;
   return {
     title,
     description,

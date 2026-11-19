@@ -1,7 +1,7 @@
 import type { LoadedRoad, Road } from "./types";
 
 export type View = "drivers" | "scenic" | "gravel" | "all";
-export type SortKey = "overall" | "twisty" | "speed" | "scenic" | "elevation" | "length" | "distance";
+export type SortKey = "overall" | "twisty" | "speed" | "pavement" | "scenic" | "elevation" | "length" | "distance";
 export type Bounds = [number, number, number, number]; // west, south, east, north
 
 export interface Filters {
@@ -25,6 +25,7 @@ export const SORTS: { key: SortKey; label: string }[] = [
   { key: "overall", label: "Overall" },
   { key: "twisty", label: "Twisty" },
   { key: "speed", label: "Speed" },
+  { key: "pavement", label: "Pavement" },
   { key: "scenic", label: "Scenic" },
   { key: "elevation", label: "Elevation" },
   { key: "length", label: "Length" },
