@@ -45,3 +45,17 @@ Note: the built-in email sender only sends a few sign-in emails per hour. Fine f
 
 ## Meanwhile
 I can build accounts and ratings against a local copy of Supabase in Docker, including the security tests, so none of this blocks the work.
+
+## 5. Sign-in email (later, needs a custom email sender)
+Supabase only lets you edit the email templates once a custom email sender (SMTP) is set up. Until then:
+- The email is Supabase's standard one with a sign-in link. The link works on any device.
+- The built-in sender sends only a few emails per hour and may only deliver to people on your Supabase team.
+
+Once a sender (for example Resend) is set up under Authentication, then Emails, then SMTP Settings:
+1. For both **Magic link** and **Confirm signup**, set the subject to `Your Sunday Line sign-in code` and paste `supabase/templates/sign_in.html` as the body.
+2. In Vercel, add the environment variable `NEXT_PUBLIC_EMAIL_HAS_CODE` = `1` and redeploy, so the sign-in page asks for the 6-digit code.
+
+## 6. Turning on accounts in the live site (at your computer)
+Done 2026-11-18.
+1. Run the two commands in step 2.7 (`npx supabase login`, `npx supabase link ...`).
+2. Tell me, and I run `npx supabase db push` to create the tables, then merge the `accounts` branch so the live site gets sign-in and ratings.

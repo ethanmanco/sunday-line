@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Community from "./Community";
 import {
   directionsLinks, distanceMi, endNames, lengthText, midpoint, milesText, pct, scoreColor, scoreInk,
   STATUS_LABEL, streetViewLink,
@@ -170,6 +171,8 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
           </div>
         )}
       </section>
+
+      <Community roadId={r.id} units={r.speed.units} />
 
       <section className="go" aria-label="Directions">
         <h2>Get directions</h2>
