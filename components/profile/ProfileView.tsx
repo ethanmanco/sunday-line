@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VehicleCard from "./VehicleCard";
+import ProfileSpots from "./ProfileSpots";
 import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
@@ -12,7 +13,7 @@ import {
   type FollowStatus, type Media, type Profile, type Vehicle, type VehiclePhoto,
 } from "@/lib/supabase";
 
-type Tab = "garage" | "photos" | "followers" | "following";
+type Tab = "garage" | "photos" | "spots" | "followers" | "following";
 
 export default function ProfileView({ username }: { username: string }) {
   const { ready, user, profile: me } = useAuth();
@@ -189,6 +190,7 @@ export default function ProfileView({ username }: { username: string }) {
             {([
               ["garage", `Garage (${vehicles.length})`],
               ["photos", `Photos (${media.length})`],
+              ["spots", "Spots"],
               ["followers", "Followers"],
               ["following", "Following"],
             ] as [Tab, string][]).map(([k, label]) => (
@@ -198,6 +200,7 @@ export default function ProfileView({ username }: { username: string }) {
           <div role="tabpanel">
             {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
+            {tab === "spots" && <ProfileSpots personId={profile.id} isMe={isMe} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
           </div>

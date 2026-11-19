@@ -7,9 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 import Thread from "@/components/messages/Thread";
 import GroupManage from "./GroupManage";
 import GroupMembers from "./GroupMembers";
-import { accountsEnabled, getSupabase, rememberReturn, type Group, type GroupRole } from "@/lib/supabase";
+import GroupSpots from "./GroupSpots";
+import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
 
-type Tab = "chat" | "members" | "manage";
+type Tab = "spots" | "chat" | "members" | "manage";
 
 export interface Membership {
   role: GroupRole;
@@ -29,7 +30,8 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [count, setCount] = useState<number | null>(null);
   const [requested, setRequested] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("chat");
+  const [tab, setTab] = useState<Tab>("spots");
+  const [urls, setUrls] = useState<Record<string, string>>({});
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -45,6 +47,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
     }
     const g = data as Group;
     setGroup(g);
+    signedGroupUrls([g.avatar_path, g.banner_path]).then(setUrls);
     const [c, m, r, conv] = await Promise.all([
       sb.rpc("group_member_count", { p_group: g.id }),
       user
@@ -123,7 +126,16 @@ export default function GroupView({ shortId }: { shortId: string }) {
   return (
     <div className="page group">
       <header className="group-head">
-        <p className="fine"><Link href="/groups">Groups</Link></p>
+        <div className="banner" style={g.banner_path && urls[g.banner_path] ? { backgroundImage: `url("${urls[g.banner_path]}")` } : undefined} />
+        <div className="group-id">
+          {g.avatar_path && urls[g.avatar_path] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={urls[g.avatar_path]} alt="" className="group-avatar big" width={88} height={88} />
+          ) : (
+            <span className="group-mark big" aria-hidden="true">{g.name.trim()[0]?.toUpperCase()}</span>
+          )}
+          <p className="fine"><Link href="/groups">All groups</Link></p>
+        </div>
         <h1>{g.name}</h1>
         <p className="handle">
           {[g.home_area, g.visibility === "private" ? "Private group" : "Public group", count !== null ? `${count} ${count === 1 ? "member" : "members"}` : null]
@@ -149,20 +161,24 @@ export default function GroupView({ shortId }: { shortId: string }) {
       {me ? (
         <>
           <div className="tabs" role="tablist" aria-label="Group sections">
-            {([["chat", "Chat"], ["members", "Members"], ...(manages ? [["manage", "Manage"]] : [])] as [Tab, string][]).map(([k, label]) => (
+            {([["spots", "Spots"], ["chat", "Chat"], ["members", "Members"], ...(manages ? [["manage", "Manage"]] : [])] as [Tab, string][]).map(([k, label]) => (
               <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
             ))}
           </div>
           <div role="tabpanel">
+            {tab === "spots" && <GroupSpots group={g} me={me} myId={user!.id} />}
             {tab === "chat" && chatId && <Thread conversationId={chatId} embedded />}
             {tab === "members" && <GroupMembers group={g} me={me} myId={user!.id} onChanged={load} />}
             {tab === "manage" && manages && (
-              <GroupManage group={g} me={me} onChanged={load} onDeleted={() => router.replace("/groups")} />
+              <GroupManage group={g} me={me} urls={urls} onChanged={load} onDeleted={() => router.replace("/groups")} />
             )}
           </div>
         </>
       ) : (
-        <p className="panel-note">Members see the group chat and who&apos;s in the group.</p>
+        <>
+          <p className="panel-note">Members see the group&apos;s spots, chat, and who&apos;s in the group.</p>
+          <GroupSpots group={g} me={null} myId={user?.id ?? null} />
+        </>
       )}
     </div>
   );

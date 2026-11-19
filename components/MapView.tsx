@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { directionsLinks } from "@/lib/roads";
+import { spotFeatures, spotLabel, type Spot } from "@/lib/spots";
 import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
@@ -24,6 +26,8 @@ interface Props {
   myLocation: [number, number] | null;
   /** Changes when the space around the map changes (phone full-map button). */
   layoutKey?: string;
+  /** Spots approved for the public map. */
+  spots?: Spot[];
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
@@ -35,6 +39,7 @@ export default function MapView(props: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const markerRef = useRef<MLMarker | null>(null);
+  const popupRef = useRef<import("maplibre-gl").Popup | null>(null);
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null);
   const [ready, setReady] = useState(false);
   const cb = useRef(props);
@@ -66,6 +71,21 @@ export default function MapView(props: Props) {
       map.on("load", () => {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         for (const layer of roadLayers()) map.addLayer(layer, "places");
+        map.addSource("public-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "ps-line", type: "line", source: "public-spots", filter: ["==", ["geometry-type"], "LineString"],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#7cc4ff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 14, 5], "line-dasharray": [2, 1.5] },
+        });
+        map.addLayer({
+          id: "ps-point", type: "circle", source: "public-spots", filter: ["==", ["geometry-type"], "Point"],
+          paint: {
+            "circle-color": ["get", "color"],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 3, 14, 8],
+            "circle-stroke-color": "#0b0d11",
+            "circle-stroke-width": 1.5,
+          },
+        });
         setReady(true);
         const b = map.getBounds();
         cb.current.onBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
@@ -77,6 +97,17 @@ export default function MapView(props: Props) {
       // Pick the road under a click or tap, with some room for fingers.
       map.on("click", (e) => {
         const p = e.point;
+        // Spots first: they sit on top of the roads.
+        const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line"] });
+        const spot = spotHits.length ? cb.current.spots?.find((s) => s.id === spotHits[0].properties.id) : undefined;
+        if (spot) {
+          popupRef.current?.remove();
+          popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
+            .setLngLat(e.lngLat)
+            .setDOMContent(spotPopup(spot))
+            .addTo(map);
+          return;
+        }
         const hits = map.queryRenderedFeatures(
           [[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]],
           { layers: ["sl-line", "sl-selected"] },
@@ -112,6 +143,12 @@ export default function MapView(props: Props) {
   useEffect(() => {
     mapRef.current?.resize();
   }, [props.layoutKey]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("public-spots") as GeoJSONSource | undefined)?.setData(spotFeatures(props.spots ?? []));
+  }, [ready, props.spots]);
 
   // Road lines.
   useEffect(() => {
@@ -178,4 +215,34 @@ export default function MapView(props: Props) {
       aria-label="Map of the roads. The list next to it has every road on the map, with the same scores."
     />
   );
+}
+
+/** The little card shown when a spot on the map is tapped. Built from DOM nodes, so names can't inject markup. */
+function spotPopup(s: Spot): HTMLElement {
+  const box = document.createElement("div");
+  const title = document.createElement("b");
+  title.textContent = s.name;
+  const kind = document.createElement("div");
+  kind.className = "fine";
+  kind.textContent = spotLabel(s) + (s.kind === "road" ? " (community pick)" : "");
+  box.append(title, kind);
+  if (s.description) {
+    const d = document.createElement("p");
+    d.textContent = s.description;
+    box.append(d);
+  }
+  const go = document.createElement("div");
+  go.className = "fine";
+  go.append(s.kind === "road" ? "Directions to the start: " : "Directions: ");
+  directionsLinks([s.lng, s.lat]).forEach((l, i) => {
+    if (i) go.append(" · ");
+    const a = document.createElement("a");
+    a.href = l.href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = l.label;
+    go.append(a);
+  });
+  box.append(go);
+  return box;
 }

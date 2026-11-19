@@ -527,3 +527,27 @@ Not built yet: search for people, account deletion, and the "who can message me"
 - **Database tests:** 152 in total (67 new), including that outsiders can't read or post in a conversation by guessing its ID, invite links stop at their limit, and moderators can't do what they weren't given.
 
 Still to come (next step): events with RSVPs, private events, spots, and notifications. Moderator permissions for events and spots are already in the database.
+
+### 11.16 Group pages, spots, and the public review (built 2026-11-19)
+- **Group pages** have a picture and a banner (organizer only, cropped and re-croppable like profiles). Group pictures are private files: only people who can see the group get a link, so a private group's pictures never leak.
+- **Spots** are places people save. Two kinds:
+  - **A place:** a pin for a meetup spot, scenic stop, food, gas, parking, a track, or other. Meetup spots will be what events point to.
+  - **A road:** tap a road on the map, keep the whole road or slide a start and an end. The chosen stretch is saved with its own line, so it keeps drawing even if the road data changes (for example when the app expands to the whole country).
+- **Your library** (`/spots`) has every spot you made, personal or added to groups. Add a spot to a group with one tap (a copy for that group).
+- **On your profile:** show all your spots, only ones you pick, only your own spots from groups you pick, or none. Private profiles still limit them to approved followers. Group membership alone never puts someone's group spots on their profile.
+- **Group spots:** members suggest, managers accept or decline. Managers are the organizer and moderators with the new "spots" permission. Declining or removing a spot from a group leaves it in its owner's library.
+- **The public map:** the owner, or a group's spot manager, can submit a spot. Automatic checks:
+  - account at least a week old
+  - no links, email addresses, or phone numbers
+  - no words on a review list (a short starter list in the database; more can be added in the Supabase SQL editor without putting them in the repo)
+  - inside the United States
+  - not "other" for places
+  - not a near-duplicate of a public spot or an overlapping stretch of the same road
+  - no more than 5 submissions a day
+
+  Passing all of them puts the spot on the map right away. Anything else waits at `/admin/spots`, which only the site admin (your account) can open. You approve or turn down with an optional note the person sees, and you can take any public spot off the map. Editing a public spot runs the checks again.
+- **On the main map**, public spots show as colored dots (places) and dashed blue lines (roads), with a tap-for-details card and directions.
+- **Phones:** a "Full map" button hides the list so the map fills the screen.
+- **Database tests:** 188 in total (36 new), including that outsiders never see a private group's spots or pictures, nobody can put a spot on the public map directly, and only the site admin reviews.
+
+If the review queue gets busy later, options include: trusted members whose submissions skip review, more automatic checks, or letting group organizers with a good track record publish directly.

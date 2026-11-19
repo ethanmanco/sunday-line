@@ -8,6 +8,8 @@ import RoadList from "./RoadList";
 import type { FocusRequest } from "./MapView";
 import { DATA_URL } from "@/lib/config";
 import { decodePolyline } from "@/lib/polyline";
+import type { Spot } from "@/lib/spots";
+import { getSupabase } from "@/lib/supabase";
 import { applyFilters, badgeKey, DEFAULT_FILTERS, defaultSort, type Bounds, type Filters, type View } from "@/lib/roads";
 import type { LoadedRoad, RegionInfo, RoadData } from "@/lib/types";
 
@@ -33,6 +35,12 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   const [focus, setFocus] = useState<FocusRequest | null>(null);
   // Phones: hide the list so the map fills the screen.
   const [fullMap, setFullMap] = useState(false);
+  const [publicSpots, setPublicSpots] = useState<Spot[]>([]);
+  useEffect(() => {
+    // Community spots approved for the public map (none until accounts are on).
+    getSupabase()?.from("spots").select("*").eq("public_status", "approved").limit(3000)
+      .then(({ data }) => setPublicSpots((data as Spot[] | null) ?? []));
+  }, []);
   const panel = useRef<HTMLElement>(null);
   const listScroll = useRef(0);
   const listBounds = useRef<Bounds | null>(null);
@@ -199,6 +207,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
             focus={focus}
             myLocation={myLocation}
             layoutKey={fullMap ? "full" : "split"}
+            spots={publicSpots}
             onSelect={select}
             onHover={setHoverId}
             onBounds={setBounds}

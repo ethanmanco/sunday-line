@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -47,7 +47,11 @@ export default function Me() {
   return (
     <div className="page narrow me">
       <h1>Your profile</h1>
-      <p><Link href={`/u/${profile.username}`}>See your profile as others do</Link></p>
+      <p className="row">
+        <Link href={`/u/${profile.username}`}>See your profile as others do</Link>
+        <Link href="/spots">Your spots</Link>
+        <ReviewLink />
+      </p>
       <ProfileEditor profile={profile} />
       <GarageEditor userId={user.id} />
       <GalleryEditor userId={user.id} />
@@ -57,6 +61,22 @@ export default function Me() {
       {signOutButton}
     </div>
   );
+}
+
+/** Only shows for the site admin. */
+function ReviewLink() {
+  const [waiting, setWaiting] = useState<number | null>(null);
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb) return;
+    sb.rpc("am_site_admin").then(async ({ data }) => {
+      if (!data) return;
+      const { count } = await sb.from("spots").select("id", { count: "exact", head: true }).eq("public_status", "pending");
+      setWaiting(count ?? 0);
+    });
+  }, []);
+  if (waiting === null) return null;
+  return <Link href="/admin/spots">Spot review ({waiting} waiting)</Link>;
 }
 
 function CreateProfile({ userId }: { userId: string }) {

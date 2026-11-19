@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PersonRow from "@/components/profile/PersonRow";
+import GroupPictures from "./GroupPictures";
 import { can, type Membership } from "./GroupView";
 import {
   getSupabase, PROFILE_COLUMNS, type Group, type GroupVisibility, type JoinPolicy, type Profile,
@@ -24,14 +25,21 @@ interface Invite {
   created_at: string;
 }
 
-export default function GroupManage({ group, me, onChanged, onDeleted }: {
+export default function GroupManage({ group, me, urls, onChanged, onDeleted }: {
   group: Group;
   me: Membership;
+  urls: Record<string, string>;
   onChanged: () => void;
   onDeleted: () => void;
 }) {
   return (
     <div className="manage">
+      {me.role === "organizer" && (
+        <section aria-labelledby="pictures">
+          <h2 id="pictures">Group picture and banner</h2>
+          <GroupPictures group={group} urls={urls} onChanged={onChanged} />
+        </section>
+      )}
       {can(me, "approve") && <Requests group={group} onChanged={onChanged} />}
       {can(me, "invites") && <Invites group={group} />}
       {me.role === "organizer" && <Settings group={group} onChanged={onChanged} onDeleted={onDeleted} />}

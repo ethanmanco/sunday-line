@@ -69,6 +69,7 @@ export interface Profile {
   banner_path: string | null;
   is_private: boolean;
   dm_policy: DmPolicy;
+  spots_display: "all" | "selected" | "groups" | "none";
 }
 
 /** Extra columns only loaded for your own profile. */
@@ -89,7 +90,7 @@ export interface CropBox {
 export type DmPolicy = "everyone" | "following" | "nobody";
 
 /** Columns safe to show anyone. */
-export const PROFILE_COLUMNS = "id, username, display_name, bio, avatar_path, avatar_preset, banner_path, is_private, dm_policy";
+export const PROFILE_COLUMNS = "id, username, display_name, bio, avatar_path, avatar_preset, banner_path, is_private, dm_policy, spots_display";
 export const OWN_PROFILE_COLUMNS = `${PROFILE_COLUMNS}, avatar_source_path, avatar_crop, banner_source_path, banner_crop`;
 
 export interface Vehicle {
@@ -119,12 +120,13 @@ export function sortPhotos<T extends { sort: number; created_at: string }>(photo
 export type GroupVisibility = "public" | "private";
 export type JoinPolicy = "open" | "request";
 export type GroupRole = "organizer" | "moderator" | "member";
-export type GroupPermission = "approve" | "remove" | "invites";
+export type GroupPermission = "approve" | "remove" | "invites" | "spots";
 
 export const PERMISSION_LABEL: Record<GroupPermission, string> = {
   approve: "Approve join requests",
   remove: "Remove members",
   invites: "Make and revoke invite links",
+  spots: "Add, accept, and publish group spots",
 };
 
 export interface Group {
@@ -136,6 +138,23 @@ export interface Group {
   visibility: GroupVisibility;
   join_policy: JoinPolicy;
   created_at: string;
+  avatar_path: string | null;
+  avatar_source_path: string | null;
+  avatar_crop: CropBox | null;
+  banner_path: string | null;
+  banner_source_path: string | null;
+  banner_crop: CropBox | null;
+}
+
+/** Group pictures are private files: short-lived signed links for people who can see the group. */
+export async function signedGroupUrls(paths: (string | null)[]): Promise<Record<string, string>> {
+  const sb = getSupabase();
+  const list = paths.filter((p): p is string => !!p);
+  const out: Record<string, string> = {};
+  if (!sb || !list.length) return out;
+  const { data } = await sb.storage.from("group-images").createSignedUrls(list, 3600);
+  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  return out;
 }
 
 export interface GroupMember {

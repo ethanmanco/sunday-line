@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { accountsEnabled, getSupabase, rememberReturn, type Group, type GroupRole } from "@/lib/supabase";
+import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
 
 interface Mine extends Group {
   role: GroupRole;
@@ -14,6 +14,14 @@ export default function GroupsPage() {
   const [mine, setMine] = useState<Mine[] | null>(null);
   const [found, setFound] = useState<Group[] | null>(null);
   const [q, setQ] = useState("");
+  const [urls, setUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const paths = [...(mine ?? []), ...(found ?? [])].map((g) => g.avatar_path).filter((p): p is string => !!p && !urls[p]);
+    if (paths.length) signedGroupUrls(paths).then((u) => setUrls((x) => ({ ...x, ...u })));
+    // urls is only read to skip ones already signed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine, found]);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -68,7 +76,7 @@ export default function GroupsPage() {
             <p className="fine">You haven&apos;t joined any groups yet.</p>
           ) : (
             <ul className="group-list">
-              {mine.map((g) => <GroupRow key={g.id} group={g} role={g.role} />)}
+              {mine.map((g) => <GroupRow key={g.id} group={g} role={g.role} url={g.avatar_path ? urls[g.avatar_path] : undefined} />)}
             </ul>
           )}
         </section>
@@ -86,7 +94,7 @@ export default function GroupsPage() {
           <p className="fine">{q ? "No public groups match." : "No public groups yet. Start the first one."}</p>
         ) : (
           <ul className="group-list">
-            {found.map((g) => <GroupRow key={g.id} group={g} />)}
+            {found.map((g) => <GroupRow key={g.id} group={g} url={g.avatar_path ? urls[g.avatar_path] : undefined} />)}
           </ul>
         )}
         <p className="fine">Private groups don&apos;t show up here. You join them with an invite link.</p>
@@ -95,11 +103,16 @@ export default function GroupsPage() {
   );
 }
 
-function GroupRow({ group, role }: { group: Group; role?: GroupRole }) {
+function GroupRow({ group, role, url }: { group: Group; role?: GroupRole; url?: string }) {
   return (
     <li>
       <Link href={`/g/${group.short_id}`} className="group-row">
-        <span className="group-mark" aria-hidden="true">{group.name.trim()[0]?.toUpperCase()}</span>
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="" className="group-avatar" width={40} height={40} />
+        ) : (
+          <span className="group-mark" aria-hidden="true">{group.name.trim()[0]?.toUpperCase()}</span>
+        )}
         <span>
           <b>{group.name}</b>
           <span className="fine">
