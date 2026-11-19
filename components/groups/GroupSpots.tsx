@@ -5,7 +5,7 @@ import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
 import { can, type Membership } from "./GroupView";
 import { getSupabase, PROFILE_COLUMNS, type Group, type Profile } from "@/lib/supabase";
-import type { Spot } from "@/lib/spots";
+import { linkedSpots, type Spot } from "@/lib/spots";
 
 /** The group's places and roads. Members propose; spot managers accept and publish. */
 export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
@@ -26,8 +26,8 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
   const load = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return;
-    const { data } = await sb.from("spots").select("*").eq("group_id", group.id).order("created_at", { ascending: false });
-    const list = (data as Spot[] | null) ?? [];
+    const { data } = await sb.from("spot_groups").select("status, spot:spots!inner(*)").eq("group_id", group.id).order("created_at", { ascending: false });
+    const list = linkedSpots(data);
     setSpots(list);
     const ids = [...new Set(list.map((s) => s.owner_id))];
     if (ids.length) {
@@ -99,9 +99,9 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
             {proposals.map((s) => (
               <SpotCard key={s.id} spot={s} showStatus onOpen={() => onFocus(s.id)}>
                 <span className="fine by-line">From {owners[s.owner_id]?.display_name ?? "a member"}</span>
-                {manager && <button type="button" className="button small" onClick={() => run(() => sb.rpc("accept_group_spot", { p_spot: s.id }), `${s.name} added.`)}>Accept</button>}
+                {manager && <button type="button" className="button small" onClick={() => run(() => sb.rpc("accept_group_spot", { p_spot: s.id, p_group: group.id }), `${s.name} added.`)}>Accept</button>}
                 {(manager || s.owner_id === myId) && (
-                  <button type="button" className="button ghost small" onClick={() => run(() => sb.rpc("remove_spot_from_group", { p_spot: s.id }), manager ? "Declined." : "Withdrawn.")}>
+                  <button type="button" className="button ghost small" onClick={() => run(() => sb.rpc("remove_spot_from_group", { p_spot: s.id, p_group: group.id }), manager ? "Declined." : "Withdrawn.")}>
                     {manager ? "Decline" : "Withdraw"}
                   </button>
                 )}
@@ -135,7 +135,7 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
                 {(manager || s.owner_id === myId) && (
                   <button type="button" className="link danger" onClick={() => {
                     if (window.confirm(`Take ${s.name} out of ${group.name}? It stays in ${s.owner_id === myId ? "your" : "its owner's"} spots.`)) {
-                      run(() => sb.rpc("remove_spot_from_group", { p_spot: s.id }), "Taken out of the group.");
+                      run(() => sb.rpc("remove_spot_from_group", { p_spot: s.id, p_group: group.id }), "Taken out of the group.");
                     }
                   }}>Remove from group</button>
                 )}

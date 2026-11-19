@@ -10,7 +10,7 @@ import GroupMembers from "./GroupMembers";
 import GroupSpots from "./GroupSpots";
 import GroupEvents from "@/components/events/GroupEvents";
 import { usePageOnMap } from "@/lib/usePageOnMap";
-import type { Spot } from "@/lib/spots";
+import { linkedSpots, type Spot } from "@/lib/spots";
 import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
 
 type Tab = "events" | "spots" | "chat" | "members" | "manage";
@@ -42,10 +42,10 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const loadMap = useCallback(async (groupId: string, member: boolean) => {
     const sb = getSupabase();
     if (!sb) return;
-    let q = sb.from("spots").select("*").eq("group_id", groupId).eq("group_status", "accepted");
-    if (!member) q = q.eq("public_status", "approved");
-    const { data } = await q.limit(500);
-    setMapSpots((data as Spot[] | null) ?? []);
+    const { data } = await sb.from("spot_groups").select("status, spot:spots!inner(*)")
+      .eq("group_id", groupId).eq("status", "accepted").limit(500);
+    const list = linkedSpots(data);
+    setMapSpots(member ? list : list.filter((s) => s.public_status === "approved"));
   }, []);
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");

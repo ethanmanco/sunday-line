@@ -21,16 +21,33 @@ export interface Spot {
   start_frac: number | null;
   end_frac: number | null;
   line: string | null;
-  group_id: string | null;
-  group_status: "proposed" | "accepted" | null;
   show_on_profile: boolean;
   public_status: SpotPublicStatus;
   public_note: string | null;
   submitted_at: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** A group's view of the spot: suggested or accepted there. */
+  group_status?: "proposed" | "accepted";
+  /** Groups the spot is in (filled in where it matters). */
+  group_ids?: string[];
   /** Filled in by the main map for group spots. */
   group_name?: string | null;
+}
+
+export type SpotGroupStatus = "proposed" | "accepted";
+export interface SpotLink {
+  group_id: string;
+  status: SpotGroupStatus;
+}
+
+/** Rows from spot_groups with the spot embedded, flattened to spots. */
+export function linkedSpots(rows: unknown): Spot[] {
+  const out: Spot[] = [];
+  for (const r of (rows as { status: SpotGroupStatus; group_id?: string; spot: Spot | null }[] | null) ?? []) {
+    if (r.spot) out.push({ ...r.spot, group_status: r.status });
+  }
+  return out;
 }
 
 export const CATEGORY_LABEL: Record<SpotCategory, string> = {

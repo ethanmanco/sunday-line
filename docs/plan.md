@@ -588,3 +588,9 @@ The map is the app. The road list, a road, a profile, a group, and an event all 
 - **Group pictures** show in the inbox and group chat headers.
 
 Domain for email: not needed yet. Free stopgap when friends join: send sign-in email through Gmail with an app password. Proper fix: a domain (about $10 a year, at cost through Cloudflare) plus Resend's free plan.
+
+### 11.21 One spot, many groups (built 2026-11-21)
+
+- **No more copies.** Adding a spot to a group used to copy it, so the same place showed twice in All. Now a spot is one row owned by its creator, and a `spot_groups` link table says which groups it's in, each with its own status (suggested or accepted). The migration folded existing copies (same owner, name, and place) back into one spot that keeps all its groups.
+- **Rules kept:** members see a group's accepted spots plus their own suggestions; managers see all suggestions. A spot in any private group never shows on a profile, even with "All my spots". Visitors see only the public-map spots a public group shared.
+- **Your spots is on the main map** like profiles and groups. Each spot's groups show as chips (tap to take it out); "Add to a group" puts the same spot in another group.

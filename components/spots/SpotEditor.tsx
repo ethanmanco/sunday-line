@@ -174,7 +174,16 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
     setBusy(true);
     const res = spot
       ? await sb.from("spots").update(row).eq("id", spot.id).select("id").single()
-      : await sb.from("spots").insert({ ...row, group_id: groupId }).select("id").single();
+      : await sb.from("spots").insert(row).select("id").single();
+    // A new spot made from a group page goes into that group too (one spot, not a copy).
+    if (!spot && groupId && !res.error) {
+      const link = await sb.rpc("add_spot_to_group", { p_spot: (res.data as { id: string }).id, p_group: groupId });
+      if (link.error) {
+        setBusy(false);
+        setError("Saved to your spots, but couldn't add it to the group. Try again from Your spots.");
+        return;
+      }
+    }
     setBusy(false);
     if (res.error) {
       setError(

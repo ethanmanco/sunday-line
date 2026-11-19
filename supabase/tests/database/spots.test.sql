@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(37);
+select plan(51);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -40,34 +40,56 @@ select set_config('role', 'postgres', true);
 insert into public.group_members (group_id, user_id) values (pg_temp.id('g'), '5b000000-0000-0000-0000-000000000002');
 
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
-with x as (insert into public.spots (kind, name, category, lat, lng, group_id) values ('point', 'Coffee meetup', 'meetup', 32.5, -93.75, pg_temp.id('g')) returning id)
+with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Coffee meetup', 'meetup', 32.5, -93.75) returning id)
 insert into ids select 'org_spot', id from x;
-select is((select group_status::text from public.spots where id = pg_temp.id('org_spot')), 'accepted', 'organizers add group spots directly');
+select is(public.add_spot_to_group(pg_temp.id('org_spot'), pg_temp.id('g'))::text, 'accepted', 'organizers add group spots directly');
 
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-with x as (insert into public.spots (kind, name, category, lat, lng, group_id) values ('point', 'Scenic overlook', 'scenic', 32.6, -93.8, pg_temp.id('g')) returning id)
+with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Scenic overlook', 'scenic', 32.6, -93.8) returning id)
 insert into ids select 'mem_spot', id from x;
-select is((select group_status::text from public.spots where id = pg_temp.id('mem_spot')), 'proposed', 'members propose spots');
-select is((select count(*)::int from public.spots where group_id = pg_temp.id('g')), 2, 'members see accepted spots and their own proposals');
-select throws_ok($$ select public.accept_group_spot(pg_temp.id('mem_spot')) $$, '42501', null, 'members cannot accept their own proposal');
-select throws_ok($$ update public.spots set group_status = 'accepted' where id = pg_temp.id('mem_spot') $$, '42501', null,
+select is(public.add_spot_to_group(pg_temp.id('mem_spot'), pg_temp.id('g'))::text, 'proposed', 'members suggest spots');
+select is((select count(*)::int from public.spots s join public.spot_groups sg on sg.spot_id = s.id where sg.group_id = pg_temp.id('g')), 2,
+  'members see accepted spots and their own suggestions');
+select throws_ok($$ select public.accept_group_spot(pg_temp.id('mem_spot'), pg_temp.id('g')) $$, '42501', null, 'members cannot accept their own suggestion');
+select throws_ok($$ update public.spot_groups set status = 'accepted' where spot_id = pg_temp.id('mem_spot') $$, '42501', null,
   'nobody sets group status directly');
 select throws_ok($$ update public.spots set public_status = 'approved' where id = pg_temp.id('mem_spot') $$, '42501', null,
   'nobody puts a spot on the public map directly');
 select throws_ok($$ select public.submit_spot_public(pg_temp.id('org_spot')) $$, '42501', null,
   'members cannot publish someone else''s group spot');
+select throws_ok($$ select public.add_spot_to_group(pg_temp.id('org_spot'), pg_temp.id('g')) $$, '42501', null,
+  'nobody adds someone else''s spot to a group');
 
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where group_id = pg_temp.id('g')), 0, 'outsiders never see a private group''s spots');
-select throws_ok(
-  $$ insert into public.spots (kind, name, category, lat, lng, group_id) values ('point', 'Sneaky', 'other', 32.5, -93.7, pg_temp.id('g')) $$,
-  '42501', null, 'outsiders cannot add spots to a group');
+select is((select count(*)::int from public.spots s join public.spot_groups sg on sg.spot_id = s.id where sg.group_id = pg_temp.id('g')), 0,
+  'outsiders never see a private group''s spots');
+select is((select count(*)::int from public.spot_groups where group_id = pg_temp.id('g')), 0, 'outsiders never see a private group''s spot list');
+with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Sneaky', 'other', 32.5, -93.7) returning id)
+insert into ids select 'sneaky', id from x;
+select throws_ok($$ select public.add_spot_to_group(pg_temp.id('sneaky'), pg_temp.id('g')) $$, '42501', null, 'outsiders cannot add spots to a group');
+select throws_ok($$ insert into public.spot_groups (spot_id, group_id, status) values (pg_temp.id('sneaky'), pg_temp.id('g'), 'accepted') $$,
+  '42501', null, 'nobody writes group links directly');
 
 select pg_temp.act_anon();
 select is((select count(*)::int from public.spots where owner_id::text like '5_000000-%'), 0, 'signed-out visitors see no group or personal spots');
 
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
-select lives_ok($$ select public.accept_group_spot(pg_temp.id('mem_spot')) $$, 'the organizer accepts a proposal');
+select lives_ok($$ select public.accept_group_spot(pg_temp.id('mem_spot'), pg_temp.id('g')) $$, 'the organizer accepts a suggestion');
+create temp table made2 as select public.create_group('Open Club', null, null, 'public', 'open') as sid;
+insert into ids select 'g2', g.id from public.groups g join made2 on g.short_id = made2.sid;
+select set_config('role', 'postgres', true);
+insert into public.group_members (group_id, user_id) values (pg_temp.id('g2'), '5b000000-0000-0000-0000-000000000002');
+
+-- ---- One spot, many groups ----
+select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
+select is(public.add_spot_to_group(pg_temp.id('mem_spot'), pg_temp.id('g2'))::text, 'proposed', 'the same spot goes into a second group');
+select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002' and name = 'Scenic overlook'), 1, 'it stays one spot, not a copy');
+select is((select count(*)::int from public.spot_groups where spot_id = pg_temp.id('mem_spot')), 2, 'linked to both groups');
+select lives_ok($$ select public.remove_spot_from_group(pg_temp.id('mem_spot'), pg_temp.id('g2')) $$, 'the owner takes it out of a group');
+select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 1, 'the spot stays in the library');
+select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
+select throws_ok($$ select public.remove_spot_from_group(pg_temp.id('mem_spot'), pg_temp.id('g')) $$, '42501', null,
+  'outsiders cannot take spots out of a group');
 
 -- ---- Personal spots and the profile setting ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
@@ -81,6 +103,13 @@ select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
 update public.profiles set spots_display = 'none' where id = '5b000000-0000-0000-0000-000000000002';
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.spots where id = pg_temp.id('mine')), 0, '"none" hides every spot from the profile');
+
+select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
+update public.profiles set spots_display = 'all' where id = '5b000000-0000-0000-0000-000000000002';
+select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.spots where id = pg_temp.id('mine')), 1, '"all" shows personal spots');
+select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 0, '"all" still hides spots in a private group');
+select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0, 'so does the profile list');
 
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
 update public.profiles set spots_display = 'all', is_private = true where id = '5b000000-0000-0000-0000-000000000002';
@@ -134,12 +163,20 @@ select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
 update public.spots set description = 'Join us at bit.ly/xyz' where id = pg_temp.id('org_spot');
 select is(pg_temp.status('org_spot'), 'pending', 'editing a public spot runs the checks again');
 
+-- ---- A public group's shared spots ----
+select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
+select public.add_spot_to_group(pg_temp.id('linky'), pg_temp.id('g2'));
+select pg_temp.act_anon();
+select is((select count(*)::int from public.spot_groups sg join public.spots s on s.id = sg.spot_id where sg.group_id = pg_temp.id('g2')), 1,
+  'visitors see the public-map spots a public group shared');
+select is((select count(*)::int from public.spot_groups where group_id = pg_temp.id('g')), 0, 'but never a private group''s');
+
 -- ---- What a profile shows ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
 update public.profiles set spots_display = 'selected' where id = '5b000000-0000-0000-0000-000000000002';
 update public.spots set show_on_profile = false where owner_id = '5b000000-0000-0000-0000-000000000002';
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where group_id is not null), 0,
+select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0,
   'sharing a group doesn''t put someone''s group spots on their profile');
 
 -- ---- Group pictures ----

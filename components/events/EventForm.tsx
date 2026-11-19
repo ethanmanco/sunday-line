@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
-import { spotLabel, type Spot } from "@/lib/spots";
+import { linkedSpots, spotLabel, type Spot } from "@/lib/spots";
 import {
   browserTimeZone, RELEASE_PRESETS, REMINDER_PRESETS, toLocalInput, type GroupEvent,
 } from "@/lib/events";
@@ -37,11 +37,13 @@ export default function EventForm({ groupId, userId, event, currentSpotId, onSav
     const sb = getSupabase();
     if (!sb) return;
     Promise.all([
-      sb.from("spots").select("*").eq("group_id", groupId).eq("group_status", "accepted").order("name"),
+      sb.from("spot_groups").select("status, spot:spots!inner(*)").eq("group_id", groupId).eq("status", "accepted"),
       sb.from("spots").select("*").eq("owner_id", userId).order("name"),
     ]).then(([g, m]) => {
-      setGroupSpots((g.data as Spot[] | null) ?? []);
-      setMySpots(((m.data as Spot[] | null) ?? []).filter((s) => s.group_id !== groupId));
+      const inGroup = linkedSpots(g.data).sort((a, b) => a.name.localeCompare(b.name));
+      const ids = new Set(inGroup.map((s) => s.id));
+      setGroupSpots(inGroup);
+      setMySpots(((m.data as Spot[] | null) ?? []).filter((s) => !ids.has(s.id)));
     });
   }, [groupId, userId]);
 

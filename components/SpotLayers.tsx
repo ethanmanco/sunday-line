@@ -66,11 +66,20 @@ export function useSpotLayers() {
       setGroupSpots([]);
       return;
     }
-    const { data } = await sb.from("spots").select("*").in("group_id", gs.map((g) => g.id)).eq("group_status", "accepted").limit(3000);
-    const spots = (data as Spot[] | null) ?? [];
-    const withSpots = new Set(spots.map((s) => s.group_id));
+    const { data } = await sb.from("spot_groups").select("group_id, spot:spots(*)")
+      .in("group_id", gs.map((g) => g.id)).eq("status", "accepted").limit(5000);
+    // One spot can be in several groups: keep it once, with all its groups.
+    const byId = new Map<string, Spot>();
+    const withSpots = new Set<string>();
+    for (const r of (data as unknown as { group_id: string; spot: Spot | null }[] | null) ?? []) {
+      if (!r.spot) continue;
+      withSpots.add(r.group_id);
+      const s = byId.get(r.spot.id) ?? { ...r.spot, group_ids: [] };
+      s.group_ids!.push(r.group_id);
+      byId.set(s.id, s);
+    }
     setGroups(gs.filter((g) => withSpots.has(g.id)));
-    setGroupSpots(spots);
+    setGroupSpots([...byId.values()]);
   }, [user]);
 
   useEffect(() => {
@@ -90,13 +99,16 @@ export function useSpotLayers() {
   const spots = useMemo(() => {
     const shown: Spot[] = [];
     const seen = new Set<string>();
+    const inGroups = new Map(groupSpots.map((s) => [s.id, s.group_ids ?? []]));
     const add = (s: Spot) => {
       if (seen.has(s.id)) return;
       seen.add(s.id);
-      shown.push(s.group_id ? { ...s, group_name: names.get(s.group_id) ?? null } : s);
+      const gids = inGroups.get(s.id) ?? [];
+      const label = gids.map((g) => names.get(g)).filter(Boolean).join(", ");
+      shown.push(gids.length ? { ...s, group_ids: gids, group_name: label || null } : s);
     };
     if (saved.mine) mySpots.forEach(add);
-    for (const s of groupSpots) if (s.group_id && !saved.hidden.includes(s.group_id)) add(s);
+    for (const s of groupSpots) if ((s.group_ids ?? []).some((g) => !saved.hidden.includes(g))) add(s);
     if (saved.public) publicSpots.forEach(add);
     return shown;
   }, [mySpots, groupSpots, publicSpots, saved, names]);

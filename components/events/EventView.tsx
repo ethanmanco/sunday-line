@@ -39,7 +39,7 @@ export default function EventView({ eventId }: { eventId: string }) {
       ? [{
         id: `event-${event.id}`, owner_id: "", kind: location.kind, name: location.name, description: location.notes, category: location.category,
         lat: location.lat, lng: location.lng, road_id: null, road_region: null, start_frac: null, end_frac: null, line: location.line,
-        group_id: null, group_status: null, show_on_profile: false, public_status: "none", public_note: null,
+        show_on_profile: false, public_status: "none", public_note: null,
         submitted_at: null, reviewed_at: null, created_at: "",
       } satisfies Spot]
       : event ? [] : null,
