@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar, { COLORS, parsePreset, PresetDrawing, SHAPES } from "@/components/Avatar";
 import { useAuth } from "@/components/AuthProvider";
+import Cropper from "./Cropper";
 import UsernameField, { BLOCKING, profileSaveError, type Availability } from "./UsernameField";
-import { ACCEPT_ATTR, AVATAR, BANNER, ImageError, newPath, prepareImage } from "@/lib/images";
+import { AVATAR, BANNER, BANNER_ASPECT, ImageError, newPath, prepareImage, type CropRect } from "@/lib/images";
 import { getSupabase, publicImageUrl, USERNAME_PATTERN, type Profile } from "@/lib/supabase";
 
 export default function ProfileEditor({ profile }: { profile: Profile }) {
@@ -89,6 +90,7 @@ function Pictures({ profile }: { profile: Profile }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [cropping, setCropping] = useState<{ which: "avatar" | "banner"; file: File } | null>(null);
   const current = parsePreset(profile.avatar_preset);
   const [shape, setShape] = useState(profile.avatar_preset?.split("-")[0] ?? "roadster");
   const [color, setColor] = useState(profile.avatar_preset?.split("-")[1] ?? "orange");
@@ -97,13 +99,23 @@ function Pictures({ profile }: { profile: Profile }) {
     if (path) await getSupabase()?.storage.from("profile-images").remove([path]);
   }
 
-  async function upload(which: "avatar" | "banner", file: File | undefined) {
+  function choose(which: "avatar" | "banner", file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError(file.type === "image/gif" ? "GIFs work in the gallery. Use a photo here." : "Use a JPEG, PNG, or WebP photo.");
+      return;
+    }
+    setCropping({ which, file });
+  }
+
+  async function upload(which: "avatar" | "banner", file: File, rect: CropRect) {
     const sb = getSupabase();
-    if (!sb || !file) return;
+    if (!sb) return;
     setBusy(which);
     setError(null);
     try {
-      const img = await prepareImage(file, which === "avatar" ? AVATAR : BANNER);
+      const img = await prepareImage(file, { ...(which === "avatar" ? AVATAR : BANNER), rect });
       const path = newPath(profile.id, which, img.ext);
       const up = await sb.storage.from("profile-images").upload(path, img.blob, { contentType: img.contentType, cacheControl: "31536000" });
       if (up.error) throw new ImageError("Couldn't upload. Try again.");
@@ -197,8 +209,22 @@ function Pictures({ profile }: { profile: Profile }) {
       )}
       <p className="fine">Photos are resized and their hidden details (like where they were taken) are removed before upload.</p>
       {error && <p className="hint warn" role="alert">{error}</p>}
-      <input ref={avatarInput} type="file" accept={ACCEPT_ATTR} hidden onChange={(e) => { upload("avatar", e.target.files?.[0]); e.target.value = ""; }} />
-      <input ref={bannerInput} type="file" accept={ACCEPT_ATTR} hidden onChange={(e) => { upload("banner", e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={avatarInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { choose("avatar", e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={bannerInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { choose("banner", e.target.files?.[0]); e.target.value = ""; }} />
+      {cropping && (
+        <Cropper
+          file={cropping.file}
+          aspect={cropping.which === "avatar" ? 1 : BANNER_ASPECT}
+          round={cropping.which === "avatar"}
+          title={cropping.which === "avatar" ? "Crop your profile picture" : "Crop your banner"}
+          onCancel={() => setCropping(null)}
+          onDone={(rect) => {
+            const c = cropping;
+            setCropping(null);
+            upload(c.which, c.file, rect);
+          }}
+        />
+      )}
     </div>
   );
 }

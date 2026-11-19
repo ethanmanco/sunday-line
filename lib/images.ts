@@ -14,12 +14,22 @@ export interface Prepared {
   contentType: string;
 }
 
+/** Part of the picture to keep, in the picture's own pixels (after rotation). */
+export interface CropRect {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+}
+
 interface Options {
   /** Box the picture must fit in, in pixels. */
   width: number;
   height: number;
   /** Crop to exactly width x height (avatars, banners) instead of fitting inside. */
   crop?: boolean;
+  /** An exact area chosen in the cropper; overrides the automatic middle crop. */
+  rect?: CropRect;
   maxBytes: number;
   allowGif?: boolean;
 }
@@ -45,7 +55,15 @@ export async function prepareImage(file: File, o: Options): Promise<Prepared> {
   const sw = bitmap.width;
   const sh = bitmap.height;
   let sx = 0, sy = 0, cw = sw, ch = sh, dw: number, dh: number;
-  if (o.crop) {
+  if (o.rect) {
+    sx = Math.max(0, Math.round(o.rect.sx));
+    sy = Math.max(0, Math.round(o.rect.sy));
+    cw = Math.min(sw - sx, Math.round(o.rect.sw));
+    ch = Math.min(sh - sy, Math.round(o.rect.sh));
+    const scale = Math.min(1, o.width / cw);
+    dw = Math.round(cw * scale);
+    dh = Math.round(ch * scale);
+  } else if (o.crop) {
     // Cover: crop the middle to the target shape.
     const target = o.width / o.height;
     if (sw / sh > target) {
@@ -96,6 +114,7 @@ export function newPath(userId: string, prefix: string, ext: string): string {
 }
 
 export const AVATAR = { width: 512, height: 512, crop: true, maxBytes: 5 * 1048576 };
-export const BANNER = { width: 1500, height: 500, crop: true, maxBytes: 5 * 1048576 };
+export const BANNER = { width: 1500, height: 600, crop: true, maxBytes: 5 * 1048576 };
+export const BANNER_ASPECT = 5 / 2;
 export const VEHICLE_PHOTO = { width: 1600, height: 1200, maxBytes: 8 * 1048576 };
 export const GALLERY = { width: 2048, height: 2048, maxBytes: 8 * 1048576, allowGif: true };

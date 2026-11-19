@@ -501,6 +501,7 @@ Things a phone app will need first:
 
 ### 11.14 Profiles and follows (built 2026-11-19)
 - **Profile:** username, display name, avatar (an uploaded photo or one of 72 original drawings: 8 body styles in 9 colors, no brand logos), banner, bio up to 300 characters, and a private switch. Public page at `/u/<username>`, editing at `/me`.
+- **Cropping (added 2026-11-19):** picking a profile photo or banner opens a crop step: drag to move, pinch, scroll, or slider to zoom, arrow keys and +/- for keyboard users. Banners are 5:2 (1500 by 600), a little taller than the first 3:1 version.
 - **Garage:** up to 10 cars or motorcycles with year, make (optional), model, and a photo. The old one-line "what I drive" moved into the garage.
 - **Photos:** up to 24 photos or GIFs, each up to 8 MB, with captions.
 - **Follows:** public profiles follow instantly. **Following a private profile sends a request the owner approves** (my call: if anyone could follow and then see, the private switch would mean nothing). Switching to public approves everyone waiting. Owners can remove followers. Counts are always public; the lists follow the same privacy as the garage.
