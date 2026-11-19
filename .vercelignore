@@ -1,6 +1,7 @@
 # The data script and its files run on a computer, not on Vercel.
-pipeline/
-regions/
-review/
-data/
-.venv/
+# Leading slashes: only these top-level folders (public/data must ship).
+/pipeline/
+/regions/
+/review/
+/data/
+/.venv/
