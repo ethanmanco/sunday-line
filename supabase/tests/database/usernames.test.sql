@@ -21,15 +21,15 @@ select throws_ok(
   $$ insert into public.profiles (id, display_name) values ('11111111-1111-1111-1111-111111111111', 'Alice') $$,
   '23502', null, 'a profile needs a username');
 select lives_ok(
-  $$ insert into public.profiles (id, username, display_name) values ('11111111-1111-1111-1111-111111111111', 'mango', 'Mango') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('11111111-1111-1111-1111-111111111111', 'zz_mango', 'Mango') $$,
   'a valid username is accepted');
 
 select pg_temp.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok(
-  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'mango', 'Other') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'zz_mango', 'Other') $$,
   '23505', null, 'a taken username is refused');
 select throws_ok(
-  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'Mango', 'Other') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'Zz_mango', 'Other') $$,
   '23514', null, 'capital letters are refused, so Mango and mango cannot both exist');
 select throws_ok(
   $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'ab', 'Other') $$,
@@ -48,14 +48,14 @@ select lives_ok(
   'display names do not need to be unique');
 
 select throws_ok(
-  $$ update public.profiles set username = 'mango' where id = '22222222-2222-2222-2222-222222222222' $$,
+  $$ update public.profiles set username = 'zz_mango' where id = '22222222-2222-2222-2222-222222222222' $$,
   '23505', null, 'cannot change to a taken username');
 update public.profiles set username = 'hijack' where id = '11111111-1111-1111-1111-111111111111';
 select is((select username from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
-  'mango', 'nobody can change someone else''s username');
+  'zz_mango', 'nobody can change someone else''s username');
 
 select pg_temp.act_anon();
-select is((select count(*)::int from public.profiles where username = 'mango'), 1,
+select is((select count(*)::int from public.profiles where username = 'zz_mango'), 1,
   'signed-out visitors can look up a username');
 
 select * from finish();

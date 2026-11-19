@@ -12,9 +12,9 @@ insert into public.profiles (id, username, display_name, is_private) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'alice', 'Alice', false),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'bob', 'Bob', true),
   ('cccccccc-0000-0000-0000-000000000003', 'cara', 'Cara', false);
-insert into public.vehicles (user_id, year, make, model) values
-  ('bbbbbbbb-0000-0000-0000-000000000002', 2019, 'Mazda', 'Miata'),
-  ('cccccccc-0000-0000-0000-000000000003', 2021, 'Yamaha', 'MT-09');
+insert into public.vehicles (id, user_id, year, make, model) values
+  ('b0000000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000002', 2019, 'Mazda', 'Miata'),
+  ('c0000000-0000-0000-0000-00000000000c', 'cccccccc-0000-0000-0000-000000000003', 2021, 'Yamaha', 'MT-09');
 insert into public.profile_media (user_id, path, kind) values
   ('bbbbbbbb-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000002/g1.webp', 'image');
 insert into storage.objects (bucket_id, name) values
@@ -144,8 +144,8 @@ select throws_ok(
   $$ insert into public.vehicles (user_id, model) values ('cccccccc-0000-0000-0000-000000000003', 'Fake') $$,
   '42501', null, 'nobody can add a vehicle to someone else''s profile');
 select throws_ok(
-  $$ insert into public.vehicles (model, photo_path) values ('M2', 'cccccccc-0000-0000-0000-000000000003/x.webp') $$,
-  '23514', null, 'a vehicle photo must be in your own folder');
+  $$ insert into public.vehicle_photos (vehicle_id, path) values ('c0000000-0000-0000-0000-00000000000c', 'aaaaaaaa-0000-0000-0000-000000000001/x.webp') $$,
+  '42501', null, 'nobody can add photos to someone else''s vehicle');
 select throws_ok(
   $$ update public.profiles set avatar_path = 'cccccccc-0000-0000-0000-000000000003/avatar.webp' where id = 'aaaaaaaa-0000-0000-0000-000000000001' $$,
   '23514', null, 'an avatar must be in your own folder');
