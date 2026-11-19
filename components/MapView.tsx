@@ -22,6 +22,8 @@ interface Props {
   satellite: boolean;
   focus: FocusRequest | null;
   myLocation: [number, number] | null;
+  /** Changes when the space around the map changes (phone full-map button). */
+  layoutKey?: string;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
@@ -41,6 +43,7 @@ export default function MapView(props: Props) {
   // Create the map once.
   useEffect(() => {
     let cancelled = false;
+    let resize: ResizeObserver | null = null;
     (async () => {
       const ml = await import("maplibre-gl");
       if (cancelled || !el.current) return;
@@ -93,14 +96,22 @@ export default function MapView(props: Props) {
         cb.current.onHover(null);
       });
       mapRef.current = map;
+      // Follow the container's size (for example the phone's full-map button).
+      resize = new ResizeObserver(() => map.resize());
+      resize.observe(el.current);
       if (process.env.NODE_ENV === "development") (window as unknown as { __slmap: MLMap }).__slmap = map;
     })();
     return () => {
       cancelled = true;
+      resize?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    mapRef.current?.resize();
+  }, [props.layoutKey]);
 
   // Road lines.
   useEffect(() => {

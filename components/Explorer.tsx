@@ -31,6 +31,8 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusRequest | null>(null);
+  // Phones: hide the list so the map fills the screen.
+  const [fullMap, setFullMap] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const listScroll = useRef(0);
   const listBounds = useRef<Bounds | null>(null);
@@ -86,6 +88,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
         listBounds.current = bounds;
       }
       setSelectedId(id);
+      setFullMap(false);
       setFocus({ bbox: r.bbox, key: Date.now() });
       if (window.location.pathname !== `/road/${id}`) window.history.pushState(null, "", `/road/${id}`);
       if (panel.current) panel.current.scrollTop = 0;
@@ -146,7 +149,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   if (loadError) return <p className="load-error">{loadError}</p>;
 
   return (
-    <div className="explorer">
+    <div className={`explorer${fullMap ? " full-map" : ""}`}>
       <section ref={panel} className="panel" aria-label={selected ? "Road details" : "Road list"}>
         {selected && region ? (
           <RoadDetail road={selected} units={region.units} origin={origin} originName={originName} onClose={close} />
@@ -195,6 +198,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
             satellite={satellite}
             focus={focus}
             myLocation={myLocation}
+            layoutKey={fullMap ? "full" : "split"}
             onSelect={select}
             onHover={setHoverId}
             onBounds={setBounds}
@@ -202,6 +206,9 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
         )}
         <button type="button" className="sat-toggle" aria-pressed={satellite} onClick={() => setSatellite(!satellite)}>
           {satellite ? "Map" : "Satellite"}
+        </button>
+        <button type="button" className="full-toggle" aria-pressed={fullMap} onClick={() => setFullMap(!fullMap)}>
+          {fullMap ? (selected ? "Show road" : "Show list") : "Full map"}
         </button>
         <div className="legend" aria-hidden="true">
           <span>{scoreKey === "overall" ? "Overall" : scoreKey === "scenic" ? "Scenic" : "Twisty"}</span>

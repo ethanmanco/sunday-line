@@ -2,7 +2,9 @@
 
 Find great local driving roads and organize meets with your car or bike group. Starting with northwest Louisiana, east Texas, and south Arkansas, and built to work anywhere.
 
-**Work in progress.** Built so far: the road data script, the map and list, road pages, and share previews. Coming next: accounts and road ratings, profiles, groups, meets, and messages.
+**Live:** [sunday-line-gamma.vercel.app](https://sunday-line-gamma.vercel.app)
+
+**Work in progress.** Built so far: the road data script, the map and list, road pages, share previews, sign-in, road ratings, profiles with garages and photos, follows, groups with roles and invite links, group spots, and messages. Coming next: events and notifications, then roads for the whole United States.
 
 ## How roads are scored
 
