@@ -1,0 +1,39 @@
+# Sunday Line
+
+Find great local driving roads and organize meets with your car or bike group. Starting with northwest Louisiana, east Texas, and south Arkansas, and built to work anywhere.
+
+**Work in progress.** Built so far: the road data script, the map and list, road pages, and share previews. Coming next: accounts and road ratings, profiles, groups, meets, and messages.
+
+## How roads are scored
+
+Every road comes from OpenStreetMap. A driving model takes each road at the speed limit (slowing for corners, braking in, accelerating out) and compares it with five real race tracks capped at 55 mph.
+
+- **Twisty:** cornering, braking, and direction changes compared with those tracks.
+- **Speed:** average legal speed through the corners.
+- **Pavement:** how likely the pavement is smooth and kept up, from who maintains the road (FHWA HPMS), aerial photos (USDA NAIP), and people's checks.
+- **Overall:** needs both Twisty and Speed, then Pavement, flow, elevation, quiet, and scenery.
+
+Driver's roads must be paved, 40 mph or faster, and not in a neighborhood, park, or off-road area. See [docs/plan.md](docs/plan.md) for the full design.
+
+## Running it
+
+```
+npm install
+npm run dev            # http://localhost:3210
+
+python -m venv .venv && .venv/Scripts/pip install -r pipeline/requirements.txt
+python -m pipeline all --region shreveport   # download, score, report, export
+```
+
+## Data and licenses
+
+- Code: MIT (see [LICENSE](LICENSE)).
+- Road data © OpenStreetMap contributors, ODbL. The scored road list in `public/data` is a derived database, also under the ODbL.
+- Base map: OpenFreeMap, © OpenMapTiles. Satellite: USGS The National Map.
+- Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0). Road owner, traffic, and roughness: FHWA HPMS 2024. Buildings and places: Overture Maps Foundation.
+- The curvature approach follows the published method of the Curvature project, written independently.
+- Fonts: Barlow (SIL Open Font License).
+
+More projects by Ethan: https://mancolabs.dev/lab/
+
+Built with Claude Code. I designed, directed, reviewed, and tested it.
