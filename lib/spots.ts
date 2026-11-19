@@ -177,3 +177,35 @@ export function spotsBbox(spots: Spot[]): [number, number, number, number] | nul
   const ys = pts.map((p) => p[1]);
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
+
+/** Drop points that sit within `tolerance` meters of the line (Douglas-Peucker). Curves keep their shape. */
+export function simplifyLine(coords: [number, number][], tolerance = 3): [number, number][] {
+  if (coords.length < 3) return coords;
+  const lat0 = (coords[0][1] * Math.PI) / 180;
+  const xy = coords.map(([lon, lat]) => [lon * 111320 * Math.cos(lat0), lat * 110540] as [number, number]);
+  const keep = new Uint8Array(coords.length);
+  keep[0] = keep[coords.length - 1] = 1;
+  const stack: [number, number][] = [[0, coords.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const [ax, ay] = xy[a];
+    const [bx, by] = xy[b];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    let worst = -1;
+    let at = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs(dy * (xy[i][0] - ax) - dx * (xy[i][1] - ay)) / len;
+      if (d > worst) {
+        worst = d;
+        at = i;
+      }
+    }
+    if (worst > tolerance && at > 0) {
+      keep[at] = 1;
+      stack.push([a, at], [at, b]);
+    }
+  }
+  return coords.filter((_, i) => keep[i]);
+}

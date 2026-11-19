@@ -5,6 +5,7 @@ import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-g
 import "maplibre-gl/dist/maplibre-gl.css";
 import { baseStyle } from "@/lib/mapStyle";
 import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
+import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
 import type { LoadedRoad } from "@/lib/types";
 
 type Box = [number, number, number, number];
@@ -13,17 +14,21 @@ interface Props {
   spots: Spot[];
   /** Where to look when there is nothing to fit. */
   fallbackBbox: Box;
-  /** "point": tap to drop a pin. "road": tap a road to choose it. */
-  mode?: "view" | "point" | "road";
+  /** "point": tap to drop a pin. "road": tap a road to choose it. "draw": tap points along a road. */
+  mode?: "view" | "point" | "road" | "draw";
   roads?: LoadedRoad[];
   selectedRoadId?: string | null;
   segment?: [number, number][] | null;
   pin?: [number, number] | null;
+  /** Points tapped so far in draw mode. */
+  vertices?: [number, number][];
   /** Change it to fit the view again. */
   fitKey?: string;
   className?: string;
   onPickPoint?: (lngLat: [number, number]) => void;
   onPickRoad?: (id: string) => void;
+  /** A road from the base map that isn't one of the suggested ones. */
+  onTraceRoad?: (road: TracedRoad) => void;
   onSpotClick?: (id: string) => void;
 }
 
@@ -65,6 +70,7 @@ export default function SpotMap(props: Props) {
         map.addSource("pick-roads", { type: "geojson", data: EMPTY });
         map.addSource("segment", { type: "geojson", data: EMPTY });
         map.addSource("spots", { type: "geojson", data: EMPTY });
+        map.addSource("vertices", { type: "geojson", data: EMPTY });
         map.addLayer({
           id: "pick-roads", type: "line", source: "pick-roads",
           layout: { "line-cap": "round", "line-join": "round" },
@@ -78,6 +84,10 @@ export default function SpotMap(props: Props) {
           id: "segment", type: "line", source: "segment",
           layout: { "line-cap": "round", "line-join": "round" },
           paint: { "line-color": "#f5a524", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 4, 14, 9] },
+        });
+        map.addLayer({
+          id: "vertices", type: "circle", source: "vertices",
+          paint: { "circle-color": "#f5a524", "circle-radius": 5, "circle-stroke-color": "#0b0d11", "circle-stroke-width": 2 },
         });
         map.addLayer({
           id: "spots-line", type: "line", source: "spots", filter: ["==", ["geometry-type"], "LineString"],
@@ -112,11 +122,17 @@ export default function SpotMap(props: Props) {
         const pt = e.point;
         const box: [[number, number], [number, number]] = [[pt.x - 12, pt.y - 12], [pt.x + 12, pt.y + 12]];
         if (c.mode === "road") {
+          // Suggested roads first; otherwise trace whatever road is on the base map.
           const hits = map.queryRenderedFeatures(box, { layers: ["pick-roads"] });
-          if (hits.length) c.onPickRoad?.(hits[0].properties.id as string);
+          if (hits.length) {
+            c.onPickRoad?.(hits[0].properties.id as string);
+            return;
+          }
+          const traced = traceRoadAt(map, pt);
+          if (traced) c.onTraceRoad?.(traced);
           return;
         }
-        if (c.mode === "point") {
+        if (c.mode === "point" || c.mode === "draw") {
           c.onPickPoint?.([e.lngLat.lng, e.lngLat.lat]);
           return;
         }
@@ -128,6 +144,7 @@ export default function SpotMap(props: Props) {
         map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
       }
       mapRef.current = map;
+      if (process.env.NODE_ENV === "development") (window as unknown as { __spotmap: MLMap }).__spotmap = map;
       resize = new ResizeObserver(() => map.resize());
       resize.observe(el.current);
     })();
@@ -171,6 +188,15 @@ export default function SpotMap(props: Props) {
         : EMPTY,
     );
   }, [ready, props.segment]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("vertices") as GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: (props.vertices ?? []).map((c) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: c } })),
+    });
+  }, [ready, props.vertices]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -2,16 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { decodePolyline } from "@/lib/polyline";
 import { getSupabase } from "@/lib/supabase";
 import {
-  CATEGORY_LABEL, encodePolyline, lineMiles, loadRoads, ROAD_REGION, sliceLine,
+  CATEGORY_LABEL, encodePolyline, lineMiles, loadRoads, ROAD_REGION, simplifyLine, sliceLine,
   type Spot, type SpotCategory, type SpotKind,
 } from "@/lib/spots";
+import type { TracedRoad } from "@/lib/traceRoad";
 import type { LoadedRoad } from "@/lib/types";
 
 const SpotMap = dynamic(() => import("./SpotMap"), { ssr: false, loading: () => <div className="spot-map map-loading" /> });
 
-/** Add or edit a spot: a point, or a road (whole, or from a start to an end). */
+type LL = [number, number];
+/** Where a road spot's line comes from. */
+type RoadSource =
+  | { from: "suggested"; id: string }
+  | { from: "traced"; name: string | null; coords: LL[] }
+  | null;
+
+/**
+ * Add or edit a spot: a place, or a road. Roads can be one of our suggested
+ * roads, any other road on the map (traced from the base map), or drawn by
+ * tapping points. Suggested and traced roads can be trimmed with a start and end.
+ */
 export default function SpotEditor({ groupId = null, spot = null, groupName, onSaved, onCancel }: {
   groupId?: string | null;
   spot?: Spot | null;
@@ -19,12 +32,15 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const custom = spot?.kind === "road" && !spot.road_id && spot.line ? decodePolyline(spot.line) : null;
   const [kind, setKind] = useState<SpotKind>(spot?.kind ?? "point");
+  const [drawing, setDrawing] = useState(!!custom);
   const [category, setCategory] = useState<SpotCategory>(spot?.category ?? "meetup");
   const [name, setName] = useState(spot?.name ?? "");
   const [description, setDescription] = useState(spot?.description ?? "");
-  const [pin, setPin] = useState<[number, number] | null>(spot?.kind === "point" ? [spot.lng, spot.lat] : null);
-  const [roadId, setRoadId] = useState<string | null>(spot?.road_id ?? null);
+  const [pin, setPin] = useState<LL | null>(spot?.kind === "point" ? [spot.lng, spot.lat] : null);
+  const [source, setSource] = useState<RoadSource>(spot?.road_id ? { from: "suggested", id: spot.road_id } : null);
+  const [points, setPoints] = useState<LL[]>(custom ?? []);
   const [whole, setWhole] = useState(spot ? spot.start_frac === null && spot.end_frac === null : true);
   const [start, setStart] = useState(Math.round((spot?.start_frac ?? 0) * 100));
   const [end, setEnd] = useState(Math.round((spot?.end_frac ?? 1) * 100));
@@ -38,21 +54,47 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
     loadRoads().then(setData).catch(() => setError("The road map didn't load. Check your connection."));
   }, []);
 
-  const road = useMemo(() => data?.roads.find((r) => r.id === roadId) ?? null, [data, roadId]);
-  const segment = useMemo(() => {
-    if (kind !== "road" || !road) return null;
-    return whole ? road.coords : sliceLine(road.coords, start / 100, end / 100);
-  }, [kind, road, whole, start, end]);
+  const suggested = useMemo(
+    () => (source?.from === "suggested" ? data?.roads.find((r) => r.id === source.id) ?? null : null),
+    [data, source],
+  );
+  /** The full line of the chosen road, before trimming. */
+  const baseLine: LL[] | null = suggested ? suggested.coords : source?.from === "traced" ? source.coords : null;
+  const roadName = suggested ? suggested.name : source?.from === "traced" ? source.name : null;
 
-  function pickRoad(id: string) {
-    setRoadId(id);
+  const segment = useMemo((): LL[] | null => {
+    if (kind !== "road") return null;
+    if (drawing) return points.length > 1 ? points : null;
+    if (!baseLine) return null;
+    return whole ? baseLine : sliceLine(baseLine, start / 100, end / 100);
+  }, [kind, drawing, points, baseLine, whole, start, end]);
+
+  function chooseLine(next: RoadSource, newName: string | null) {
+    const oldName = roadName;
+    setSource(next);
     setWhole(true);
     setStart(0);
     setEnd(100);
-    const r = data?.roads.find((x) => x.id === id);
-    if (r && (!name.trim() || name === road?.name)) setName(r.name.slice(0, 60));
+    setError(null);
+    if (newName && (!name.trim() || name === oldName)) setName(newName.slice(0, 60));
     // Zoom to the chosen road so its start and end are easy to set.
-    setFitKey(`road-${id}`);
+    setFitKey(`road-${Date.now()}`);
+  }
+
+  function pickSuggested(id: string) {
+    const r = data?.roads.find((x) => x.id === id);
+    chooseLine({ from: "suggested", id }, r?.name ?? null);
+  }
+
+  function pickTraced(t: TracedRoad) {
+    chooseLine({ from: "traced", name: t.name, coords: t.coords }, t.name);
+  }
+
+  function setMode(next: SpotKind, draw = false) {
+    setKind(next);
+    setDrawing(draw);
+    setError(null);
+    setFitKey(`k${Date.now()}`);
   }
 
   async function save(e: React.FormEvent) {
@@ -65,18 +107,21 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
       if (!pin) return setError("Tap the map to place the spot.");
       row = { kind, category, lat: pin[1], lng: pin[0], road_id: null, road_region: null, start_frac: null, end_frac: null, line: null };
     } else {
-      if (!road || !segment || segment.length < 2) return setError("Tap a road on the map.");
-      if (!whole && end - start < 1) return setError("Move the end past the start.");
+      if (!segment || segment.length < 2) {
+        return setError(drawing ? "Tap at least two points along the road." : "Tap a road on the map.");
+      }
+      if (!drawing && !whole && end - start < 1) return setError("Move the end past the start.");
+      const keepsId = !drawing && source?.from === "suggested";
       row = {
         kind,
         category: null,
         lat: segment[0][1],
         lng: segment[0][0],
-        road_id: road.id,
-        road_region: ROAD_REGION,
-        start_frac: whole ? null : start / 100,
-        end_frac: whole ? null : end / 100,
-        line: encodePolyline(segment),
+        road_id: keepsId ? source.id : null,
+        road_region: keepsId ? ROAD_REGION : null,
+        start_frac: keepsId && !whole ? start / 100 : null,
+        end_frac: keepsId && !whole ? end / 100 : null,
+        line: encodePolyline(simplifyLine(segment)),
       };
     }
     row = { ...row, name: name.trim(), description: description.trim() || null, show_on_profile: onProfile };
@@ -86,11 +131,26 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
       : await sb.from("spots").insert({ ...row, group_id: groupId });
     setBusy(false);
     if (res.error) {
-      setError(res.error.message.includes("Limit") ? "That's the limit of 500 spots." : "Couldn't save. Names are 2 to 60 characters.");
+      setError(
+        res.error.message.includes("Limit") ? "That's the limit of 500 spots."
+          : res.error.message.includes("line") ? "That road is too long to save. Trim it or draw a shorter stretch."
+            : "Couldn't save. Names are 2 to 60 characters.",
+      );
       return;
     }
     onSaved();
   }
+
+  const mapMode = kind === "point" ? "point" : drawing ? "draw" : "road";
+  let hint: string;
+  if (kind === "point") hint = pin ? "Pin placed. Tap again to move it." : "Tap the map where the spot is.";
+  else if (drawing) {
+    hint = points.length === 0
+      ? "Tap along the road, start to end. Zoom in for curves; each tap adds a point."
+      : `${points.length} ${points.length === 1 ? "point" : "points"}, ${lineMiles(points).toFixed(1)} mi. Keep tapping, or save.`;
+  } else if (baseLine) {
+    hint = `${roadName ?? "Unnamed road"}: ${lineMiles(segment ?? baseLine).toFixed(1)} mi selected.${source?.from === "suggested" ? " (a suggested road)" : ""} Tap another road to switch.`;
+  } else hint = "Zoom in, then tap any road. Suggested roads are the gray lines, but any road on the map works.";
 
   return (
     <form onSubmit={save} className="form spot-editor">
@@ -98,8 +158,9 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
       <fieldset>
         <legend>What is it</legend>
         <div className="seg">
-          <button type="button" aria-pressed={kind === "point"} onClick={() => { setKind("point"); setFitKey(`k${Date.now()}`); }}>A place</button>
-          <button type="button" aria-pressed={kind === "road"} onClick={() => { setKind("road"); setFitKey(`k${Date.now()}`); }}>A road</button>
+          <button type="button" aria-pressed={kind === "point"} onClick={() => setMode("point")}>A place</button>
+          <button type="button" aria-pressed={kind === "road" && !drawing} onClick={() => setMode("road")}>A road</button>
+          <button type="button" aria-pressed={kind === "road" && drawing} onClick={() => setMode("road", true)}>Draw a road</button>
         </div>
       </fieldset>
       {kind === "point" && (
@@ -113,34 +174,38 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
         </fieldset>
       )}
 
-      <p className="fine map-hint" aria-live="polite">
-        {kind === "point"
-          ? pin ? "Pin placed. Tap again to move it." : "Tap the map where the spot is."
-          : road ? `${road.name}: ${lineMiles(segment ?? road.coords).toFixed(1)} mi selected. Tap another road to switch.` : "Zoom in, then tap a road (the gray lines)."}
-      </p>
+      <p className="fine map-hint" aria-live="polite">{hint}</p>
       {data ? (
         <SpotMap
           spots={[]}
           fallbackBbox={data.bbox}
-          mode={kind}
+          mode={mapMode}
           roads={data.roads}
-          selectedRoadId={roadId}
+          selectedRoadId={source?.from === "suggested" ? source.id : null}
           segment={segment}
+          vertices={drawing ? points : []}
           pin={kind === "point" ? pin : null}
           fitKey={fitKey}
           className="editor"
-          onPickPoint={setPin}
-          onPickRoad={pickRoad}
+          onPickPoint={(ll) => (drawing ? setPoints((p) => (p.length < 500 ? [...p, ll] : p)) : setPin(ll))}
+          onPickRoad={pickSuggested}
+          onTraceRoad={pickTraced}
         />
       ) : (
         <div className="spot-map editor map-loading" />
       )}
 
-      {kind === "road" && road && (
+      {kind === "road" && drawing && (
+        <div className="row">
+          <button type="button" className="button ghost small" disabled={!points.length} onClick={() => setPoints((p) => p.slice(0, -1))}>Undo last point</button>
+          <button type="button" className="button ghost small" disabled={!points.length} onClick={() => setPoints([])}>Start over</button>
+        </div>
+      )}
+      {kind === "road" && !drawing && baseLine && (
         <fieldset className="stretch">
           <label className="check">
             <input type="checkbox" checked={whole} onChange={(e) => setWhole(e.target.checked)} />
-            <span>The whole road</span>
+            <span>{source?.from === "traced" ? "All of it (as traced)" : "The whole road"}</span>
           </label>
           {!whole && (
             <>
@@ -153,6 +218,11 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
                 <input type="range" min={1} max={100} value={end} onChange={(e) => setEnd(Math.max(Number(e.target.value), start + 1))} />
               </label>
             </>
+          )}
+          {source?.from === "traced" && (
+            <span className="fine">
+              Traced from the map as far as it&apos;s loaded. Zoom out to fit the whole road and tap it again to trace more, or use Draw a road.
+            </span>
           )}
         </fieldset>
       )}
