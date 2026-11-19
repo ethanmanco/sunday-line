@@ -1,13 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Barlow, Barlow_Condensed } from "next/font/google";
-import { SITE_NAME } from "@/lib/config";
+import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
 const body = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-body" });
 const display = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  openGraph: { siteName: SITE_NAME, type: "website" },
+  twitter: { card: "summary_large_image" },
   title: { default: `${SITE_NAME}: great local driving roads`, template: `%s | ${SITE_NAME}` },
   description:
     "Find twisty, fast, paved roads near you, rated against real race tracks at legal speeds. Starting with northwest Louisiana, east Texas, and south Arkansas.",

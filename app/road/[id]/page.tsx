@@ -13,7 +13,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { region } = await loadRoadData();
   const title = `${r.name}${r.near ? ` near ${r.near}` : ""}`;
   const description = `Overall ${r.scores.overall}, Twisty ${r.scores.twisty}, Speed ${r.scores.speed}. ${lengthText(r, region.units)}, ${r.speed.text}.`;
-  return { title, description, openGraph: { title, description } };
+  return {
+    title,
+    description,
+    alternates: { canonical: `/road/${r.id}` },
+    openGraph: { title, description, url: `/road/${r.id}` },
+    twitter: { card: "summary_large_image", title, description },
+  };
 }
 
 export default async function RoadPage({ params }: Params) {
