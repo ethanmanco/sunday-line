@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Explorer from "@/components/Explorer";
+import RoadsPanel from "@/components/RoadsPanel";
 import { lengthText } from "@/lib/roads";
 import { findRoad, loadRoadData } from "@/lib/serverData";
 
@@ -25,5 +25,5 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function RoadPage({ params }: Params) {
   const { id } = await params;
   if (!(await findRoad(id))) notFound();
-  return <Explorer initialRoadId={id} />;
+  return <RoadsPanel initialRoadId={id} />;
 }

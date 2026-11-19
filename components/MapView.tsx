@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { directionsLinks } from "@/lib/roads";
 import { spotFeatures, spotLabel, spotsBbox, type Spot } from "@/lib/spots";
+import type { PickState } from "@/lib/mapShell";
+import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
 import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
@@ -30,6 +32,13 @@ interface Props {
   spots?: Spot[];
   /** Fly to and highlight one spot (change key to repeat). */
   focusSpot?: { id: string; key: number } | null;
+  /** Adding a spot on this map: what to draw, and taps go to the handlers. */
+  pick?: PickState | null;
+  onPickPoint?: (ll: [number, number]) => void;
+  onPickRoad?: (id: string) => void;
+  onTraceRoad?: (t: TracedRoad) => void;
+  /** Pixels hidden at the bottom (the phone sheet), kept clear when fitting views. */
+  bottomInset?: number;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
@@ -42,6 +51,7 @@ export default function MapView(props: Props) {
   const mapRef = useRef<MLMap | null>(null);
   const markerRef = useRef<MLMarker | null>(null);
   const popupRef = useRef<import("maplibre-gl").Popup | null>(null);
+  const pinRef = useRef<MLMarker | null>(null);
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null);
   const [ready, setReady] = useState(false);
   const cb = useRef(props);
@@ -74,6 +84,8 @@ export default function MapView(props: Props) {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         for (const layer of roadLayers()) map.addLayer(layer, "places");
         map.addSource("public-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addSource("pick-segment", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addSource("pick-vertices", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({
           id: "ps-line", type: "line", source: "public-spots", filter: ["==", ["geometry-type"], "LineString"],
           layout: { "line-cap": "round", "line-join": "round" },
@@ -89,6 +101,15 @@ export default function MapView(props: Props) {
           id: "ps-focus-point", type: "circle", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], ""]],
           paint: { "circle-color": "rgba(245,165,36,0.25)", "circle-radius": 22, "circle-stroke-color": "#f5a524", "circle-stroke-width": 3 },
+        });
+        map.addLayer({
+          id: "pick-segment", type: "line", source: "pick-segment",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#f5a524", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 10] },
+        });
+        map.addLayer({
+          id: "pick-vertices", type: "circle", source: "pick-vertices",
+          paint: { "circle-color": "#f5a524", "circle-radius": 5, "circle-stroke-color": "#0b0d11", "circle-stroke-width": 2 },
         });
         map.addLayer({
           id: "ps-point", type: "circle", source: "public-spots", filter: ["==", ["geometry-type"], "Point"],
@@ -110,6 +131,22 @@ export default function MapView(props: Props) {
       // Pick the road under a click or tap, with some room for fingers.
       map.on("click", (e) => {
         const p = e.point;
+        // Adding a spot: taps choose the place or the road.
+        const pk = cb.current.pick;
+        if (pk) {
+          if (pk.mode === "road") {
+            const hits = map.queryRenderedFeatures([[p.x - 12, p.y - 12], [p.x + 12, p.y + 12]], { layers: ["sl-line"] });
+            if (hits.length) {
+              cb.current.onPickRoad?.(hits[0].properties.id as string);
+              return;
+            }
+            const traced = traceRoadAt(map, p);
+            if (traced) cb.current.onTraceRoad?.(traced);
+            return;
+          }
+          cb.current.onPickPoint?.([e.lngLat.lng, e.lngLat.lat]);
+          return;
+        }
         // Spots first: they sit on top of the roads.
         const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line"] });
         const spot = spotHits.length ? cb.current.spots?.find((s) => s.id === spotHits[0].properties.id) : undefined;
@@ -156,6 +193,34 @@ export default function MapView(props: Props) {
   useEffect(() => {
     mapRef.current?.resize();
   }, [props.layoutKey]);
+
+  // While adding a spot: the chosen stretch, drawn points, the pin, and a crosshair.
+  useEffect(() => {
+    const map = mapRef.current;
+    const ml = mlRef.current;
+    if (!ready || !map || !ml) return;
+    const pk = props.pick;
+    const empty = { type: "FeatureCollection" as const, features: [] };
+    (map.getSource("pick-segment") as GeoJSONSource).setData(
+      pk?.segment && pk.segment.length > 1
+        ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pk.segment } }
+        : empty,
+    );
+    (map.getSource("pick-vertices") as GeoJSONSource).setData({
+      type: "FeatureCollection",
+      features: (pk?.mode === "draw" ? pk.vertices : []).map((c) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: c } })),
+    });
+    pinRef.current?.remove();
+    pinRef.current = pk?.mode === "point" && pk.pin ? new ml.Marker({ color: "#f5a524" }).setLngLat(pk.pin).addTo(map) : null;
+    map.getCanvas().style.cursor = pk ? "crosshair" : "";
+    if (pk) popupRef.current?.remove();
+  }, [ready, props.pick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.setPadding({ top: 0, left: 0, right: 0, bottom: props.bottomInset ?? 0 });
+  }, [ready, props.bottomInset]);
 
   useEffect(() => {
     const map = mapRef.current;

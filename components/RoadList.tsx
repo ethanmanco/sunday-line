@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { distanceMi, lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, type View } from "@/lib/roads";
+import { lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, type View } from "@/lib/roads";
+import type { ListItem } from "@/lib/mapShell";
+import { CATEGORY_COLOR, spotLabel } from "@/lib/spots";
 import type { LoadedRoad } from "@/lib/types";
 
 interface Props {
-  roads: LoadedRoad[];
+  items: ListItem[];
   view: View;
   scoreKey: "overall" | "scenic" | "twisty";
   units: "imperial" | "metric";
   origin: [number, number];
   originName: string;
   onSelect: (id: string) => void;
+  onSpot: (id: string) => void;
   onHover: (id: string | null) => void;
 }
 
@@ -24,14 +27,16 @@ function warning(r: LoadedRoad, view: View): string | null {
   return null;
 }
 
-export default function RoadList({ roads, view, scoreKey, units, origin, originName, onSelect, onHover }: Props) {
+/** Roads and spots in one list, in the order the filters chose. */
+export default function RoadList({ items, view, scoreKey, units, originName, onSelect, onSpot, onHover }: Props) {
   const [shown, setShown] = useState(PAGE);
-  useEffect(() => setShown(PAGE), [roads]);
+  useEffect(() => setShown(PAGE), [items]);
+  const roads = items;
 
   if (!roads.length) {
     return (
       <p className="empty">
-        No roads match. Zoom or pan the map out, or turn off &quot;Only roads in the map view&quot;.
+        Nothing matches. Zoom or pan the map out, or turn off &quot;Only what&apos;s in the map view&quot;.
       </p>
     );
   }
@@ -39,7 +44,24 @@ export default function RoadList({ roads, view, scoreKey, units, origin, originN
   return (
     <>
       <ol className="roads">
-        {roads.slice(0, shown).map((r, i) => {
+        {items.slice(0, shown).map((it, i) => {
+          if (it.kind === "spot") {
+            const sp = it.spot;
+            return (
+              <li key={sp.id}>
+                <button type="button" className="road" onClick={() => onSpot(sp.id)}>
+                  <span className="spot-dot" style={{ background: sp.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[sp.category ?? "other"] }} aria-hidden="true" />
+                  <span className="road-main">
+                    <span className="road-name"><span className="rank">{i + 1}.</span> {sp.name}</span>
+                    <span className="road-meta">{spotLabel(sp)}{sp.group_name ? ` · ${sp.group_name}` : ""}</span>
+                    <span className="road-meta">{milesText(it.distance)} from {originName}</span>
+                  </span>
+                  <span className="status">Spot</span>
+                </button>
+              </li>
+            );
+          }
+          const r = it.road;
           const s = r.scores[scoreKey];
           const warn = warning(r, view);
           return (
@@ -64,7 +86,7 @@ export default function RoadList({ roads, view, scoreKey, units, origin, originN
                     Twisty {r.scores.twisty} · Speed {r.scores.speed} · Pavement {r.scores.pavement}
                   </span>
                   <span className="road-meta">
-                    {lengthText(r, units)} · {speedShort(r)} · {milesText(distanceMi(r, origin))} from {originName}
+                    {lengthText(r, units)} · {speedShort(r)} · {milesText(it.distance)} from {originName}
                   </span>
                   {warn && <span className="road-warn">{warn}</span>}
                 </span>

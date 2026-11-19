@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VehicleCard from "./VehicleCard";
 import ProfileSpots from "./ProfileSpots";
-import MapSplit from "@/components/MapSplit";
+import { usePageOnMap } from "@/lib/usePageOnMap";
 import type { Spot } from "@/lib/spots";
 import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
@@ -22,7 +22,8 @@ export default function ProfileView({ username }: { username: string }) {
   const router = useRouter();
   const [vehiclePhotos, setVehiclePhotos] = useState<VehiclePhoto[]>([]);
   const [spots, setSpots] = useState<Spot[] | null>(null);
-  const [focus, setFocus] = useState<{ id: string; key: number } | null>(null);
+  const [title, setTitle] = useState<string | null>(null);
+  const shell = usePageOnMap(title, spots);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Counts | null>(null);
@@ -45,6 +46,7 @@ export default function ProfileView({ username }: { username: string }) {
     }
     const person = p as Profile;
     setProfile(person);
+    setTitle(`${person.display_name}'s spots`);
     const [c, v, vp, m, f, b] = await Promise.all([
       sb.rpc("follow_counts", { person: person.id }).single(),
       sb.from("vehicles").select("*").eq("user_id", person.id).order("sort").order("created_at"),
@@ -172,7 +174,6 @@ export default function ProfileView({ username }: { username: string }) {
   }
 
   return (
-    <MapSplit spots={spots ?? []} title={`${profile.display_name}'s spots`} focus={focus} onFocus={setFocus}>
     <div className="page profile">
       <ProfileHeader profile={profile} counts={counts}>{action}</ProfileHeader>
       {error && <p className="hint warn" role="alert">{error}</p>}
@@ -208,7 +209,7 @@ export default function ProfileView({ username }: { username: string }) {
           <div role="tabpanel">
             {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
-            {tab === "spots" && <ProfileSpots spots={spots} isMe={isMe} onFocus={(id) => setFocus({ id, key: Date.now() })} />}
+            {tab === "spots" && <ProfileSpots spots={spots} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
           </div>
@@ -221,7 +222,6 @@ export default function ProfileView({ username }: { username: string }) {
         </p>
       )}
     </div>
-    </MapSplit>
   );
 }
 

@@ -61,9 +61,7 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
         <h2 id="public-spots">Spots this group shared</h2>
         <ul className="spot-list">
           {shared.map((s) => (
-            <SpotCard key={s.id} spot={s}>
-              <button type="button" className="link" onClick={() => onFocus(s.id)}>Show on map</button>
-            </SpotCard>
+            <SpotCard key={s.id} spot={s} onOpen={() => onFocus(s.id)} />
           ))}
         </ul>
       </section>
@@ -99,8 +97,8 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
           <h2 id="proposals">{manager ? `Suggested by members (${proposals.length})` : "Your suggestions"}</h2>
           <ul className="spot-list">
             {proposals.map((s) => (
-              <SpotCard key={s.id} spot={s} showStatus>
-                <span className="fine">From {owners[s.owner_id]?.display_name ?? "a member"}</span>
+              <SpotCard key={s.id} spot={s} showStatus onOpen={() => onFocus(s.id)}>
+                <span className="fine by-line">From {owners[s.owner_id]?.display_name ?? "a member"}</span>
                 {manager && <button type="button" className="button small" onClick={() => run(() => sb.rpc("accept_group_spot", { p_spot: s.id }), `${s.name} added.`)}>Accept</button>}
                 {(manager || s.owner_id === myId) && (
                   <button type="button" className="button ghost small" onClick={() => run(() => sb.rpc("remove_spot_from_group", { p_spot: s.id }), manager ? "Declined." : "Withdrawn.")}>
@@ -120,9 +118,8 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
         ) : (
           <ul className="spot-list">
             {accepted.map((s) => (
-              <SpotCard key={s.id} spot={s} showStatus={manager || s.owner_id === myId}>
-                <span className="fine">Added by {owners[s.owner_id]?.display_name ?? "a member"}</span>
-                <button type="button" className="link" onClick={() => onFocus(s.id)}>Show on map</button>
+              <SpotCard key={s.id} spot={s} showStatus={manager || s.owner_id === myId} onOpen={() => onFocus(s.id)}>
+                <span className="fine by-line">Added by {owners[s.owner_id]?.display_name ?? "a member"}</span>
                 {s.owner_id === myId && <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>}
                 {manager && (s.public_status === "none" || s.public_status === "rejected") && (
                   <button type="button" className="link" onClick={() => run(() => sb.rpc("submit_spot_public", { p_spot: s.id }),

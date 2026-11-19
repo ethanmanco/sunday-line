@@ -578,3 +578,100 @@ button.link.danger { color: #ff8a80; }
   background: rgba(16, 19, 24, 0.95); border: 1px solid var(--line); color: var(--text); font-weight: 700; cursor: pointer;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* ===== The shared map shell (home, roads, profiles, groups, events) ===== */
+.shell { position: relative; height: calc(100dvh - var(--topbar)); display: grid; grid-template-columns: 420px 1fr; overflow: hidden; }
+.shell.wide { grid-template-columns: 520px 1fr; }
+.shell-panel { position: relative; overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border-right: 1px solid var(--line); min-width: 0; }
+.shell-map { position: relative; min-width: 0; min-height: 0; }
+.shell-panel .page { padding-top: 16px; }
+.shell-panel .profile-head, .shell-panel .group-head { margin-top: -16px; }
+.panel-pad { padding: 12px; }
+.panel-pad .spot-editor { background: none; padding: 4px; }
+
+/* Map chips (top left) */
+.map-top-left { position: absolute; left: 10px; top: 10px; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 70px); }
+.map-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 20px;
+  background: rgba(16, 19, 24, 0.94); border: 1px solid var(--line); color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.map-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pick-hint {
+  position: absolute; left: 50%; top: 60px; transform: translateX(-50%); z-index: 3; margin: 0; pointer-events: none;
+  background: rgba(245, 165, 36, 0.95); color: var(--accent-ink); font-weight: 700; padding: 6px 14px; border-radius: 16px; font-size: 14px;
+}
+.shell .map-actions { position: absolute; right: 12px; bottom: 34px; }
+.shell .map-actions.above-cards { bottom: 122px; }
+.spot-dot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #0b0d11; margin: 6px 9px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15); }
+
+/* Phones in portrait: the map fills the screen; pages come up as a sheet. */
+.shell.is-sheet { display: block; }
+.shell.is-sheet .shell-map { position: absolute; inset: 0; }
+.shell.is-sheet .shell-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; border-right: none;
+  border-radius: 16px 16px 0 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5); transition: height 0.2s ease;
+}
+.shell-panel.sheet-closed { height: 0; overflow: hidden; box-shadow: none; }
+.shell-panel.sheet-peek { height: 132px; overflow: hidden; }
+.shell-panel.sheet-half { height: 50%; }
+.shell-panel.sheet-full { height: 100%; border-radius: 0; }
+@media (prefers-reduced-motion: reduce) { .shell.is-sheet .shell-panel { transition: none; } }
+.sheet-handle {
+  position: sticky; top: 0; z-index: 4; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--panel); padding: 4px 8px; border-bottom: 1px solid var(--line);
+}
+.sheet-grip { flex: 1; min-height: 32px; background: none; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+.sheet-grip span { width: 44px; height: 5px; border-radius: 3px; background: var(--line); display: block; }
+.sheet-hide { position: absolute; right: 8px; min-height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-weight: 600; cursor: pointer; }
+
+/* Phones on their side: page on the left, map on the right, no cards. */
+@media (max-width: 899px) and (orientation: landscape) {
+  .shell, .shell.wide { grid-template-columns: minmax(280px, 44%) 1fr; }
+  .road-cards { display: none !important; }
+  .shell .map-actions { bottom: 16px; }
+  .add-toggle { width: 46px; height: 46px; }
+  .map-chip { min-height: 36px; padding: 0 12px; }
+}
+
+/* ===== One "Show" control: roads and spots ===== */
+.show-group { display: grid; gap: 6px; margin-bottom: 10px; }
+.show-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 18px;
+  background: var(--raised); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  text-decoration: none;
+}
+.chip:hover { border-color: #3a4250; color: var(--text); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip:disabled { opacity: 0.6; cursor: default; }
+.chip.danger { color: #ff8a80; }
+.filters .controls.secondary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* ===== No more underlined text buttons: they're small buttons now ===== */
+button.link {
+  display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border-radius: 17px;
+  background: var(--raised); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 14px; font-weight: 600;
+  text-decoration: none; cursor: pointer; text-align: left;
+}
+button.link:hover { border-color: #3a4250; }
+button.link:disabled { opacity: 0.6; color: var(--text); }
+button.link.danger { color: #ff8a80; }
+.msg-meta button.link { min-height: 26px; padding: 0 8px; font-size: 12px; }
+.form button.link { justify-self: start; }
+
+/* Spot cards: tap the card for the map; actions are buttons */
+.spot-card { padding: 0; overflow: hidden; }
+.spot-open { display: flex; gap: 4px; align-items: flex-start; width: 100%; text-align: left; background: none; border: none; color: var(--text); font: inherit; padding: 10px 12px 4px 4px; cursor: pointer; }
+.spot-open.static { cursor: default; }
+.spot-open:hover:not(.static) { background: rgba(255, 255, 255, 0.03); }
+.spot-open .spot-top { display: grid; gap: 2px; min-width: 0; }
+.spot-open .spot-desc { color: var(--dim); white-space: pre-line; margin: 2px 0 0; }
+.spot-card .spot-status { padding: 0 12px; }
+.spot-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 12px 10px; }
+.spot-actions .by-line { margin: 0 4px 0 0; }
+.directions { position: relative; }
+.directions summary { list-style: none; }
+.directions summary::-webkit-details-marker { display: none; }
+.directions-menu { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }

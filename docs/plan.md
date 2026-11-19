@@ -575,3 +575,16 @@ Not built yet: email or push notifications for events (in-app chat posts only), 
 - **Phones:** the map takes more of the screen, with the top roads in view as swipeable cards along the bottom. Swiping lights up each road; tapping opens it. "Roads" in the top bar gives way to the logo (which goes to the same place) to make room for People and Messages.
 - **Profiles and groups with their map:** on wide screens (1100 px and up), the page sits on the left and a map of its spots on the right; "Show on map" on a spot zooms there. On phones a "Map" button flips to a full-screen map with a back button to the page. Group pages show accepted spots to members and only public-map spots to everyone else; profiles show what the owner chose.
 - **Filters:** the one-line description under the road views is gone (it's a tooltip on each button now).
+
+### 11.20 One map for everything (built 2026-11-20)
+The map is the app. The road list, a road, a profile, a group, and an event all open on the same map instead of separate pages, so moving between them never leaves the map. Ordinary pages (groups list, messages, people, your settings, about) stay full pages.
+- **Wide screens:** a panel on the left (wider for profiles, groups, and events), the map on the right.
+- **Phones (portrait):** the map fills the screen. Pages come up as a sheet: halfway by default, with a handle to go full height and a Map button to tuck it down. On the home screen the list is behind "List and filters"; the road and spot cards along the bottom do most of the work. No more arrow; the + stays.
+- **Phones on their side:** like a wide screen, page on the left, map on the right, no cards.
+- **A page's spots take over the map** while it's open (a profile's chosen spots, a group's spots, an event's location), with "Show everything" to bring the rest back.
+- **Adding a spot happens on the main map:** pick the place or tap the road right there; the settings sit in the panel or sheet. Group pages use the same map for their "Add a spot".
+- **One "Show" control** covers roads (Driver's roads, Scenic, Gravel, All, or Off) and spots (Mine, Public, each group). The list, the cards, and the map all follow it. "Closest first" mixes roads and spots by distance from you or the home town; score sorts list roads first, then spots by distance.
+- **Buttons, not underlined text:** action links became small buttons, and spot cards open the spot on the map when tapped, with Directions as one button.
+- **Group pictures** show in the inbox and group chat headers.
+
+Domain for email: not needed yet. Free stopgap when friends join: send sign-in email through Gmail with an app password. Proper fix: a domain (about $10 a year, at cost through Cloudflare) plus Resend's free plan.

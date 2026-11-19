@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -10,12 +9,12 @@ import EventForm from "./EventForm";
 import { can, type Membership } from "@/components/groups/GroupView";
 import { directionsLinks } from "@/lib/roads";
 import { getSupabase, PROFILE_COLUMNS, rememberReturn, type Group, type Profile } from "@/lib/supabase";
-import { loadRoads, spotLabel, type Spot } from "@/lib/spots";
+import { spotLabel, type Spot } from "@/lib/spots";
+import { usePageOnMap } from "@/lib/usePageOnMap";
 import {
   eventWhen, minutesText, releaseAt, RSVP_LABEL, type EventLocation, type GroupEvent, type RsvpStatus,
 } from "@/lib/events";
 
-const SpotMap = dynamic(() => import("@/components/spots/SpotMap"), { ssr: false, loading: () => <div className="spot-map map-loading" /> });
 
 interface Rsvp {
   user_id: string;
@@ -32,9 +31,19 @@ export default function EventView({ eventId }: { eventId: string }) {
   const [me, setMe] = useState<Membership | null>(null);
   const [location, setLocation] = useState<EventLocation | null>(null);
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
-  const [bbox, setBbox] = useState<[number, number, number, number] | null>(null);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const shell = usePageOnMap(
+    event?.title ?? null,
+    event && location
+      ? [{
+        id: `event-${event.id}`, owner_id: "", kind: location.kind, name: location.name, description: location.notes, category: location.category,
+        lat: location.lat, lng: location.lng, road_id: null, road_region: null, start_frac: null, end_frac: null, line: location.line,
+        group_id: null, group_status: null, show_on_profile: false, public_status: "none", public_note: null,
+        submitted_at: null, reviewed_at: null, created_at: "",
+      } satisfies Spot]
+      : event ? [] : null,
+  );
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -63,7 +72,6 @@ export default function EventView({ eventId }: { eventId: string }) {
 
   useEffect(() => {
     if (ready) load();
-    loadRoads().then((d) => setBbox(d.bbox)).catch(() => setBbox([-95, 31, -92, 34]));
   }, [ready, load]);
 
   // Check again when the location is due, so it appears without a reload.
@@ -134,14 +142,6 @@ export default function EventView({ eventId }: { eventId: string }) {
     );
   }
 
-  const asSpot: Spot[] = location
-    ? [{
-      id: `event-${ev.id}`, owner_id: "", kind: location.kind, name: location.name, description: null, category: location.category,
-      lat: location.lat, lng: location.lng, road_id: null, road_region: null, start_frac: null, end_frac: null, line: location.line,
-      group_id: null, group_status: null, show_on_profile: false, public_status: "none", public_note: null,
-      submitted_at: null, reviewed_at: null, created_at: "",
-    }]
-    : [];
   const byStatus = (s: RsvpStatus) => rsvps.filter((r) => r.status === s && r.person);
   const locationHidden = !location && release && release.getTime() > Date.now();
 
@@ -164,7 +164,7 @@ export default function EventView({ eventId }: { eventId: string }) {
               <b>{location.name}</b> <span className="fine">{spotLabel({ kind: location.kind, category: location.category })}</span>
             </p>
             {location.notes && <p className="fine">{location.notes}</p>}
-            {bbox && <SpotMap spots={asSpot} fallbackBbox={bbox} fitKey={ev.id} />}
+            <p><button type="button" className="chip" onClick={() => shell?.focusSpot(`event-${ev.id}`)}>Show on map</button></p>
             <p className="fine">
               {location.kind === "road" ? "Directions to the start: " : "Directions: "}
               {directionsLinks([location.lng, location.lat]).map((l, i) => (

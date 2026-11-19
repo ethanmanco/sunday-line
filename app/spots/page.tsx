@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
@@ -20,6 +21,7 @@ const DISPLAY: [SpotsDisplay, string][] = [
 
 export default function SpotsPage() {
   const { ready, user, profile, refreshProfile } = useAuth();
+  const router = useRouter();
   const [spots, setSpots] = useState<Spot[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [shownGroups, setShownGroups] = useState<Set<string>>(new Set());
@@ -174,7 +176,8 @@ export default function SpotsPage() {
         ) : (
           <ul className="spot-list">
             {visible.map((s) => (
-              <SpotCard key={s.id} spot={s} groupName={s.group_id ? groupName.get(s.group_id) ?? "a group" : null} showStatus>
+              <SpotCard key={s.id} spot={s} groupName={s.group_id ? groupName.get(s.group_id) ?? "a group" : null} showStatus
+                onOpen={() => router.push(`/?spot=${s.id}`)}>
                 <button type="button" className="link" onClick={() => { setEditing(s); window.scrollTo({ top: 0 }); }}>Edit</button>
                 {display === "selected" && !(s.group_id && groups.find((g) => g.id === s.group_id)?.visibility === "private") && (
                   <button type="button" className="link" onClick={() => run(() => sb.from("spots").update({ show_on_profile: !s.show_on_profile }).eq("id", s.id))}>

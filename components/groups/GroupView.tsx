@@ -9,7 +9,7 @@ import GroupManage from "./GroupManage";
 import GroupMembers from "./GroupMembers";
 import GroupSpots from "./GroupSpots";
 import GroupEvents from "@/components/events/GroupEvents";
-import MapSplit from "@/components/MapSplit";
+import { usePageOnMap } from "@/lib/usePageOnMap";
 import type { Spot } from "@/lib/spots";
 import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
 
@@ -35,8 +35,8 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [chatId, setChatId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("events");
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [mapSpots, setMapSpots] = useState<Spot[]>([]);
-  const [focus, setFocus] = useState<{ id: string; key: number } | null>(null);
+  const [mapSpots, setMapSpots] = useState<Spot[] | null>(null);
+  const shell = usePageOnMap(group?.name ?? null, mapSpots);
 
   // The page's map: accepted spots for members; ones on the public map for everyone else.
   const loadMap = useCallback(async (groupId: string, member: boolean) => {
@@ -140,7 +140,6 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const manages = me && (me.role === "organizer" || can(me, "approve") || can(me, "invites"));
 
   return (
-    <MapSplit spots={mapSpots} title={g.name} focus={focus} onFocus={setFocus}>
     <div className="page group">
       <header className="group-head">
         <div className="banner" style={g.banner_path && urls[g.banner_path] ? { backgroundImage: `url("${urls[g.banner_path]}")` } : undefined} />
@@ -186,7 +185,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
             {tab === "events" && <GroupEvents group={g} me={me} myId={user!.id} />}
             {tab === "spots" && (
               <GroupSpots group={g} me={me} myId={user!.id}
-                onFocus={(id) => setFocus({ id, key: Date.now() })} onChanged={() => loadMap(g.id, true)} />
+                onFocus={(id) => shell?.focusSpot(id)} onChanged={() => loadMap(g.id, true)} />
             )}
             {tab === "chat" && chatId && <Thread conversationId={chatId} embedded />}
             {tab === "members" && <GroupMembers group={g} me={me} myId={user!.id} onChanged={load} />}
@@ -199,10 +198,9 @@ export default function GroupView({ shortId }: { shortId: string }) {
         <>
           <p className="panel-note">Members see the group&apos;s events, spots, chat, and who&apos;s in the group.</p>
           <GroupSpots group={g} me={null} myId={user?.id ?? null}
-            onFocus={(id) => setFocus({ id, key: Date.now() })} onChanged={() => loadMap(g.id, false)} />
+            onFocus={(id) => shell?.focusSpot(id)} onChanged={() => loadMap(g.id, false)} />
         </>
       )}
     </div>
-    </MapSplit>
   );
 }

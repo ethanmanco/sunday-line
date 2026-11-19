@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { decodePolyline } from "@/lib/polyline";
 import { getSupabase } from "@/lib/supabase";
@@ -9,6 +9,7 @@ import {
   type Spot, type SpotCategory, type SpotKind,
 } from "@/lib/spots";
 import type { TracedRoad } from "@/lib/traceRoad";
+import { useMapShell } from "@/lib/mapShell";
 import type { LoadedRoad } from "@/lib/types";
 
 const SpotMap = dynamic(() => import("./SpotMap"), { ssr: false, loading: () => <div className="spot-map map-loading" /> });
@@ -53,10 +54,17 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fitKey, setFitKey] = useState("start");
+  // On the shared map (home, profiles, groups), the editor drives that map
+  // instead of drawing its own.
+  const shell = useMapShell();
 
   useEffect(() => {
+    if (shell?.region && shell.roads.length) {
+      setData({ bbox: shell.region.bbox, roads: shell.roads });
+      return;
+    }
     loadRoads().then(setData).catch(() => setError("The road map didn't load. Check your connection."));
-  }, []);
+  }, [shell?.region, shell?.roads]);
 
   const suggested = useMemo(
     () => (source?.from === "suggested" ? data?.roads.find((r) => r.id === source.id) ?? null : null),
@@ -72,6 +80,35 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
     if (!baseLine) return null;
     return whole ? baseLine : sliceLine(baseLine, start / 100, end / 100);
   }, [kind, drawing, points, baseLine, whole, start, end]);
+
+  const mapModeNow = kind === "point" ? "point" : drawing ? "draw" : "road";
+  const shownPin = kind === "point" ? pin : null;
+  const shownVertices = useMemo(() => (drawing ? points : []), [drawing, points]);
+  const selectedRoadId = source?.from === "suggested" ? source.id : null;
+  useEffect(() => {
+    if (!shell) return;
+    shell.setPick(
+      { mode: mapModeNow, pin: shownPin, segment, vertices: shownVertices, selectedRoadId },
+      {
+        onPickPoint: (ll) => (drawing ? setPoints((p) => (p.length < 500 ? [...p, ll] : p)) : setPin(ll)),
+        onPickRoad: (id) => pickSuggestedRef.current(id),
+        onTraceRoad: (t) => pickTracedRef.current(t),
+      },
+    );
+    // Only when what the map shows changes (setPick itself never changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shell?.setPick, mapModeNow, shownPin, segment, shownVertices, selectedRoadId, drawing]);
+  const setPickFn = shell?.setPick;
+  useEffect(() => () => setPickFn?.(null), [setPickFn]);
+  // Zoom the shared map to a chosen road.
+  useEffect(() => {
+    if (!shell || !fitKey.startsWith("road-") || !segment || segment.length < 2) return;
+    const xs = segment.map((c) => c[0]);
+    const ys = segment.map((c) => c[1]);
+    shell.fitTo([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]);
+    // Only when a new road is chosen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
 
   function chooseLine(next: RoadSource, newName: string | null) {
     const oldName = roadName;
@@ -93,6 +130,11 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
   function pickTraced(t: TracedRoad) {
     chooseLine({ from: "traced", name: t.name, coords: t.coords }, t.name);
   }
+  // The shared map calls these; keep them pointing at the latest state.
+  const pickSuggestedRef = useRef(pickSuggested);
+  const pickTracedRef = useRef(pickTraced);
+  pickSuggestedRef.current = pickSuggested;
+  pickTracedRef.current = pickTraced;
 
   function setMode(next: SpotKind, draw = false) {
     setKind(next);
@@ -179,7 +221,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
       )}
 
       <p className="fine map-hint" aria-live="polite">{hint}</p>
-      {data ? (
+      {shell ? null : data ? (
         <SpotMap
           spots={[]}
           fallbackBbox={initialBbox ?? data.bbox}

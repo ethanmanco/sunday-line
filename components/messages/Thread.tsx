@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
+import GroupAvatar from "@/components/groups/GroupAvatar";
 import { useAuth } from "@/components/AuthProvider";
 import { GALLERY, ImageError, prepareImage } from "@/lib/images";
 import {
@@ -209,7 +210,7 @@ function ThreadHeader({ info }: { info: ConversationSummary }) {
     return (
       <header className="thread-head">
         <Link href="/messages" className="back" aria-label="Back to messages">&larr;</Link>
-        <span className="group-mark" aria-hidden="true">{info.group_name?.trim()[0]?.toUpperCase()}</span>
+        <GroupAvatar shortId={info.group_short_id} name={info.group_name} size={36} />
         <Link href={`/g/${info.group_short_id}`}><b>{info.group_name}</b></Link>
       </header>
     );

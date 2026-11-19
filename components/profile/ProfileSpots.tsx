@@ -19,9 +19,7 @@ export default function ProfileSpots({ spots, isMe, onFocus }: {
       {isMe && <p className="fine">Which spots appear here is up to you. <Link href="/spots">Change it</Link></p>}
       <ul className="spot-list">
         {spots.map((s) => (
-          <SpotCard key={s.id} spot={s}>
-            <button type="button" className="link" onClick={() => onFocus(s.id)}>Show on map</button>
-          </SpotCard>
+          <SpotCard key={s.id} spot={s} onOpen={() => onFocus(s.id)} />
         ))}
       </ul>
     </>

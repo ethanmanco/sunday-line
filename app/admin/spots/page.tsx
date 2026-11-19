@@ -70,12 +70,11 @@ export default function ReviewSpots() {
       {pending.length === 0 ? <p className="fine">Nothing waiting.</p> : (
         <ul className="spot-list">
           {pending.map((s) => (
-            <SpotCard key={s.id} spot={s} showStatus>
+            <SpotCard key={s.id} spot={s} showStatus onOpen={() => { setFocus(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
               <span className="fine">
                 By {by(s) ? <Link href={`/u/${by(s)!.username}`}>{by(s)!.display_name}</Link> : "someone"}
                 {s.submitted_at ? ` · ${new Date(s.submitted_at).toLocaleDateString()}` : ""}
               </span>
-              <button type="button" className="link" onClick={() => { setFocus(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Show on map</button>
               <input
                 className="review-note"
                 aria-label={`Note for ${s.name}`}
@@ -95,11 +94,10 @@ export default function ReviewSpots() {
       {recent.length === 0 ? <p className="fine">None yet.</p> : (
         <ul className="spot-list">
           {recent.map((s) => (
-            <SpotCard key={s.id} spot={s}>
+            <SpotCard key={s.id} spot={s} onOpen={() => { setFocus(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
               <span className="fine">
                 By {by(s)?.display_name ?? "someone"} · {s.reviewed_at ? "approved by you" : "passed the checks"}
               </span>
-              <button type="button" className="link" onClick={() => { setFocus(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Show on map</button>
               <button type="button" className="link danger" onClick={() => decide(s, false)}>Take off the map</button>
             </SpotCard>
           ))}

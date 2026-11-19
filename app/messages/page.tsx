@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
+import GroupAvatar from "@/components/groups/GroupAvatar";
 import { useAuth } from "@/components/AuthProvider";
 import { accountsEnabled, getSupabase, rememberReturn, timeAgo, type ConversationSummary } from "@/lib/supabase";
 
@@ -61,7 +62,7 @@ export default function Inbox() {
               <li key={c.id}>
                 <Link href={`/messages/${c.id}`} className={`inbox-row${c.unread ? " unread" : ""}`}>
                   {c.kind === "group" ? (
-                    <span className="group-mark" aria-hidden="true">{c.group_name?.trim()[0]?.toUpperCase()}</span>
+                    <GroupAvatar shortId={c.group_short_id} name={c.group_name} size={44} />
                   ) : (
                     <Avatar person={{ display_name: c.other_display_name ?? "?", avatar_path: c.other_avatar_path, avatar_preset: c.other_avatar_preset }} size={44} />
                   )}
