@@ -750,3 +750,14 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 .popup-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .popup-actions:empty { display: none; }
 .chip.accent { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+/* Spots open like roads (11.25) */
+.spot-card.is-selected { border-color: #ffffff; box-shadow: 0 0 0 1px #ffffff inset; }
+.spot-badge { border-radius: 50%; }
+.spot-facts { margin: 10px 0 4px; }
+.spot-facts a.chip { text-decoration: none; }
+.spot-detail-desc { margin: 10px 0 0; }
+.spot-on-road { margin: 12px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid #7cc4ff; border-radius: 10px; background: var(--raised); }
+.spot-on-road > .fine:first-child { margin: 0; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+.spot-on-road-name { margin: 2px 0 2px; font-size: 20px; }
+.spot-on-road p { margin: 4px 0; }

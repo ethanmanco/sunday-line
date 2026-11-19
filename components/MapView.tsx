@@ -2,17 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { directionsLinks } from "@/lib/roads";
-import { spotFeatures, spotLabel, spotsBbox, type Spot } from "@/lib/spots";
+import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
 import type { PickState } from "@/lib/mapShell";
 import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
-import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
+import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
-import { findSpotRoad } from "@/lib/spotRoad";
-import type { RoadOnMap } from "@/lib/roadData";
-import { getSupabase } from "@/lib/supabase";
 
 export interface FocusRequest {
   bbox: [number, number, number, number];
@@ -43,10 +39,9 @@ interface Props {
   /** Pixels hidden at the bottom (the phone sheet), kept clear when fitting views. */
   bottomInset?: number;
   onSelect: (id: string) => void;
-  /** A spot's "Road stats" button: open the scored road it sits on. */
-  onOpenRoad?: (road: RoadOnMap) => void;
-  /** A link in a spot's card (a profile or a group). */
-  onNavigate?: (href: string) => void;
+  /** The selected spot, drawn like a selected road. */
+  selectedSpotId?: string | null;
+  onSelectSpot?: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
 }
@@ -57,7 +52,6 @@ export default function MapView(props: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const markerRef = useRef<MLMarker | null>(null);
-  const popupRef = useRef<import("maplibre-gl").Popup | null>(null);
   const pinRef = useRef<MLMarker | null>(null);
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null);
   const [ready, setReady] = useState(false);
@@ -102,12 +96,18 @@ export default function MapView(props: Props) {
           id: "ps-focus-line", type: "line", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#f5a524", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 6, 14, 12], "line-opacity": 0.85 },
+          paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 7, 14, 14] },
+        });
+        map.addLayer({
+          id: "ps-focus-line-top", type: "line", source: "public-spots",
+          filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#7cc4ff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 4, 14, 9] },
         });
         map.addLayer({
           id: "ps-focus-point", type: "circle", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], ""]],
-          paint: { "circle-color": "rgba(245,165,36,0.25)", "circle-radius": 22, "circle-stroke-color": "#f5a524", "circle-stroke-width": 3 },
+          paint: { "circle-color": ["get", "color"], "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 8, 14, 13], "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 },
         });
         map.addLayer({
           id: "pick-segment", type: "line", source: "pick-segment",
@@ -158,11 +158,7 @@ export default function MapView(props: Props) {
         const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line"] });
         const spot = spotHits.length ? cb.current.spots?.find((s) => s.id === spotHits[0].properties.id) : undefined;
         if (spot) {
-          popupRef.current?.remove();
-          popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
-            .setLngLat(e.lngLat)
-            .setDOMContent(spotPopup(spot, cb.current, () => popupRef.current?.remove()))
-            .addTo(map);
+          cb.current.onSelectSpot?.(spot.id);
           return;
         }
         const hits = map.queryRenderedFeatures(
@@ -220,7 +216,6 @@ export default function MapView(props: Props) {
     pinRef.current?.remove();
     pinRef.current = pk?.mode === "point" && pk.pin ? new ml.Marker({ color: "#f5a524" }).setLngLat(pk.pin).addTo(map) : null;
     map.getCanvas().style.cursor = pk ? "crosshair" : "";
-    if (pk) popupRef.current?.remove();
   }, [ready, props.pick]);
 
   useEffect(() => {
@@ -243,21 +238,25 @@ export default function MapView(props: Props) {
     if (!ready || !map || !ml || !f) return;
     const spot = props.spots?.find((s) => s.id === f.id);
     if (!spot) return;
-    map.setFilter("ps-focus-line", ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], f.id]]);
-    map.setFilter("ps-focus-point", ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], f.id]]);
     const b = spotsBbox([spot]);
     if (b) {
       const pad = b[0] === b[2] ? 0.01 : 0;
       map.fitBounds([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad], { padding: 60, maxZoom: 14, duration: 700 });
     }
-    popupRef.current?.remove();
-    popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
-      .setLngLat([spot.lng, spot.lat])
-      .setDOMContent(spotPopup(spot, cb.current, () => popupRef.current?.remove()))
-      .addTo(map);
     // The key decides when to fly; spots can update without moving the map.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, props.focusSpot, props.spots?.length]);
+
+  // The selected spot, outlined like a selected road.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const id = props.selectedSpotId ?? "";
+    const line = ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], id]] as FilterSpecification;
+    map.setFilter("ps-focus-line", line);
+    map.setFilter("ps-focus-line-top", line);
+    map.setFilter("ps-focus-point", ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], id]] as FilterSpecification);
+  }, [ready, props.selectedSpotId]);
 
   // Road lines.
   useEffect(() => {
@@ -326,87 +325,3 @@ export default function MapView(props: Props) {
   );
 }
 
-/**
- * The little card shown when a spot on the map is tapped. Built from DOM
- * nodes, so names can't inject markup. Who added it, its groups, and its road
- * stats fill in after it opens.
- */
-function spotPopup(s: Spot, h: Pick<Props, "onOpenRoad" | "onNavigate">, close: () => void): HTMLElement {
-  const box = document.createElement("div");
-  const title = document.createElement("b");
-  title.textContent = s.name;
-  const kind = document.createElement("div");
-  kind.className = "fine";
-  kind.textContent = s.group_name
-    ? `${spotLabel(s)} · ${s.group_name}`
-    : spotLabel(s) + (s.kind === "road" && s.public_status === "approved" ? " (community pick)" : "");
-  box.append(title, kind);
-  if (s.description) {
-    const d = document.createElement("p");
-    d.textContent = s.description;
-    box.append(d);
-  }
-  const go = document.createElement("div");
-  go.className = "fine";
-  go.append(s.kind === "road" ? "Directions to the start: " : "Directions: ");
-  directionsLinks([s.lng, s.lat]).forEach((l, i) => {
-    if (i) go.append(" · ");
-    const a = document.createElement("a");
-    a.href = l.href;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = l.label;
-    go.append(a);
-  });
-  box.append(go);
-
-  const more = document.createElement("div");
-  more.className = "popup-actions";
-  box.append(more);
-  const link = (label: string, href: string) => {
-    const a = document.createElement("a");
-    a.href = href;
-    a.className = "chip";
-    a.textContent = label;
-    a.addEventListener("click", (e) => {
-      if (!h.onNavigate || e.metaKey || e.ctrlKey) return;
-      e.preventDefault();
-      close();
-      h.onNavigate(href);
-    });
-    more.append(a);
-  };
-  if (s.kind === "road") {
-    findSpotRoad(s).then((road) => {
-      if (road && h.onOpenRoad) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "chip accent";
-        b.textContent = "Road stats";
-        b.addEventListener("click", () => {
-          close();
-          h.onOpenRoad!(road);
-        });
-        more.prepend(b);
-      } else if (!road) {
-        const n = document.createElement("p");
-        n.className = "fine";
-        n.textContent = "Drawn by hand off the scored roads, so there are no road stats.";
-        box.insertBefore(n, more);
-      }
-    });
-  }
-  const sb = getSupabase();
-  if (sb && s.owner_id && !s.id.startsWith("event-")) {
-    sb.from("profiles").select("username, display_name").eq("id", s.owner_id).maybeSingle().then(({ data }) => {
-      const p = data as { username: string; display_name: string } | null;
-      if (p) link(`By ${p.display_name}`, `/u/${p.username}`);
-    });
-    sb.from("spot_groups").select("group:groups(name, short_id)").eq("spot_id", s.id).eq("status", "accepted").then(({ data }) => {
-      for (const r of (data as unknown as { group: { name: string; short_id: string } | null }[] | null) ?? []) {
-        if (r.group) link(`In ${r.group.name}`, `/g/${r.group.short_id}`);
-      }
-    });
-  }
-  return box;
-}

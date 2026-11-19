@@ -1,6 +1,9 @@
 import { decodePolyline } from "@/lib/polyline";
 import { directionsLinks } from "@/lib/roads";
-import { CATEGORY_COLOR, lineMiles, PUBLIC_LABEL, spotLabel, type Spot } from "@/lib/spots";
+import { useEffect, useRef } from "react";
+import { SpotMark } from "@/components/RoadList";
+import { useMapShell } from "@/lib/mapShell";
+import { lineMiles, PUBLIC_LABEL, spotLabel, type Spot } from "@/lib/spots";
 
 /**
  * One spot in a list. Tapping the card shows it on the map (when onOpen is
@@ -13,11 +16,18 @@ export default function SpotCard({ spot, groupName, showStatus = false, onOpen, 
   onOpen?: () => void;
   children?: React.ReactNode;
 }) {
+  const shell = useMapShell();
+  const selected = shell?.selectedSpotId === spot.id;
+  const li = useRef<HTMLLIElement>(null);
+  // Picked on the map: bring its card into view.
+  useEffect(() => {
+    if (selected) li.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selected]);
   const miles = spot.kind === "road" && spot.line ? lineMiles(decodePolyline(spot.line)) : null;
   const go = directionsLinks([spot.lng, spot.lat]);
   const summary = (
     <>
-      <span className="spot-dot" style={{ background: spot.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[spot.category ?? "other"] }} aria-hidden="true" />
+      <SpotMark spot={spot} scoreKey="overall" />
       <span className="spot-top">
         <b>{spot.name}</b>
         <span className="fine">
@@ -28,7 +38,7 @@ export default function SpotCard({ spot, groupName, showStatus = false, onOpen, 
     </>
   );
   return (
-    <li className="spot-card" id={`spot-${spot.id}`}>
+    <li ref={li} className={`spot-card${selected ? " is-selected" : ""}`} id={`spot-${spot.id}`}>
       {onOpen ? (
         <button type="button" className="spot-open" onClick={onOpen} aria-label={`${spot.name}: show on the map`}>{summary}</button>
       ) : (

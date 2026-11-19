@@ -8,6 +8,9 @@ import {
   STATUS_LABEL, streetViewLink,
 } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
+import SpotFacts from "./spots/SpotFacts";
+import { decodePolyline } from "@/lib/polyline";
+import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
 
 interface Props {
   road: LoadedRoad;
@@ -15,6 +18,8 @@ interface Props {
   origin: [number, number];
   originName: string;
   onClose: () => void;
+  /** Opened from a saved spot on this road: shown on top. */
+  spot?: Spot | null;
 }
 
 const SCORE_ROWS: { key: keyof LoadedRoad["scores"]; label: string; help: string }[] = [
@@ -42,7 +47,7 @@ function Profile({ ft }: { ft: number[] }) {
   );
 }
 
-export default function RoadDetail({ road: r, units, origin, originName, onClose }: Props) {
+export default function RoadDetail({ road: r, units, origin, originName, onClose, spot = null }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
   ].filter(Boolean);
 
   async function share() {
-    const url = `${window.location.origin}/road/${r.id}`;
+    const url = spot ? `${window.location.origin}/?spot=${spot.id}` : `${window.location.origin}/road/${r.id}`;
     const title = `${r.name}${r.near ? ` near ${r.near}` : ""}`;
     if (navigator.share) {
       try {
@@ -97,7 +102,8 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
       </div>
 
       {/* Its own scroll, outside the header, so nothing shows above it and each road starts at the top. */}
-      <div className="detail-body" key={r.id}>
+      <div className="detail-body" key={spot ? spot.id : r.id}>
+      {spot && <SpotOnRoad spot={spot} road={r} />}
       <header className="detail-head">
         <span className="badge big" style={{ background: scoreColor(s), color: scoreInk(s) }} aria-label={`Overall ${s}`}>
           {s}
@@ -205,5 +211,24 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
       </p>
       </div>
     </article>
+  );
+}
+
+/** A saved spot on a scored road: its name, who added it, its groups, and how much of the road it covers. */
+function SpotOnRoad({ spot, road }: { spot: Spot; road: LoadedRoad }) {
+  const stretch = spot.line ? lineMiles(decodePolyline(spot.line)) : null;
+  const roadMi = lineMiles(road.coords);
+  const part = stretch !== null && stretch < roadMi * 0.9;
+  return (
+    <section className="spot-on-road" aria-label="Saved spot">
+      <p className="fine">Saved spot</p>
+      <h2 className="spot-on-road-name">{spot.name}</h2>
+      <p className="fine">
+        {[spotLabel(spot), stretch !== null ? `${stretch.toFixed(1)} mi` : null].filter(Boolean).join(" · ")}
+        {part && ` of this road's ${roadMi.toFixed(1)} mi. Scores below are for the whole road.`}
+      </p>
+      {spot.description && <p>{spot.description}</p>}
+      <SpotFacts spot={spot} />
+    </section>
   );
 }

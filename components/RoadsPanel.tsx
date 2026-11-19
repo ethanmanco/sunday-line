@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import FilterBar from "./FilterBar";
 import RoadDetail from "./RoadDetail";
 import RoadList from "./RoadList";
+import SpotDetail from "./spots/SpotDetail";
 import { useMapShell } from "@/lib/mapShell";
 import { badgeKey } from "@/lib/roads";
 import { decodePolyline } from "@/lib/polyline";
@@ -43,25 +44,43 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Attached once: Next.js re-renders during the back step, and a listener
+  // swapped out mid-event would miss it. The ref always has the latest shell.
+  const shellRef = useRef(shell);
+  shellRef.current = shell;
   useEffect(() => {
     const onPop = () => {
+      const sh = shellRef.current;
       const id = roadIdFromPath(window.location.pathname);
-      if (id) shell.selectRoad(id);
-      else shell.closeRoad();
+      const spot = new URLSearchParams(window.location.search).get("spot");
+      if (id) sh.selectRoad(id);
+      else if (spot && /^[0-9a-f-]{36}$/.test(spot)) sh.focusSpot(spot);
+      else {
+        sh.closeSpot();
+        sh.closeRoad();
+      }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [shell]);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && shell.selectedId) shell.closeRoad();
+      if (e.key === "Escape" && shell.selectedSpotId) shell.closeSpot();
+      else if (e.key === "Escape" && shell.selectedId) shell.closeRoad();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [shell]);
 
   if (!shell.region) return <p className="empty">Loading roads...</p>;
+  if (shell.selectedSpot) {
+    const sp = shell.selectedSpot;
+    return (
+      <SpotDetail spot={sp} road={shell.spotRoad(sp.id)} units={shell.region.units} origin={shell.origin}
+        originName={shell.originName} onClose={shell.closeSpot} />
+    );
+  }
   const selected = shell.selectedId ? shell.byId.get(shell.selectedId) ?? null : null;
   if (selected) {
     return <RoadDetail road={selected} units={shell.region.units} origin={shell.origin} originName={shell.originName} onClose={shell.closeRoad} />;

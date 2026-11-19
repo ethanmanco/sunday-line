@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, type View } from "@/lib/roads";
-import type { ListItem } from "@/lib/mapShell";
-import { CATEGORY_COLOR, spotLabel } from "@/lib/spots";
+import { useMapShell, type ListItem } from "@/lib/mapShell";
+import { CATEGORY_COLOR, spotLabel, type Spot } from "@/lib/spots";
 import type { LoadedRoad } from "@/lib/types";
 
 interface Props {
@@ -50,7 +50,7 @@ export default function RoadList({ items, view, scoreKey, units, originName, onS
             return (
               <li key={sp.id}>
                 <button type="button" className="road" onClick={() => onSpot(sp.id)}>
-                  <span className="spot-dot" style={{ background: sp.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[sp.category ?? "other"] }} aria-hidden="true" />
+                  <SpotMark spot={sp} scoreKey={scoreKey} />
                   <span className="road-main">
                     <span className="road-name"><span className="rank">{i + 1}.</span> {sp.name}</span>
                     <span className="road-meta">{spotLabel(sp)}{sp.group_name ? ` · ${sp.group_name}` : ""}</span>
@@ -103,4 +103,14 @@ export default function RoadList({ items, view, scoreKey, units, originName, onS
       )}
     </>
   );
+}
+
+/** A spot's marker in lists: the score of the road it sits on, or a colored dot. */
+export function SpotMark({ spot, scoreKey }: { spot: Spot; scoreKey: keyof LoadedRoad["scores"] }) {
+  const road = useMapShell()?.spotRoad(spot.id);
+  if (road) {
+    const s = road.scores[scoreKey];
+    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`${road.name}: ${s}`}>{s}</span>;
+  }
+  return <span className="spot-dot" style={{ background: spot.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[spot.category ?? "other"] }} aria-hidden="true" />;
 }

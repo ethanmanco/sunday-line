@@ -6,15 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
 import { getSupabase, rememberReturn, type Group } from "@/lib/supabase";
-import type { Spot, SpotLink, SpotsDisplay } from "@/lib/spots";
+import type { Spot, SpotLink } from "@/lib/spots";
 import { usePageOnMap } from "@/lib/usePageOnMap";
-
-const DISPLAY: [SpotsDisplay, string][] = [
-  ["all", "All my spots"],
-  ["selected", "Only ones I pick"],
-  ["groups", "From groups I pick"],
-  ["none", "None"],
-];
 
 type MySpot = Spot & { links: SpotLink[] };
 
@@ -23,10 +16,9 @@ type MySpot = Spot & { links: SpotLink[] };
  * number of groups and still shows once here.
  */
 export default function SpotsLibrary() {
-  const { ready, user, profile, refreshProfile } = useAuth();
+  const { ready, user, profile } = useAuth();
   const [spots, setSpots] = useState<MySpot[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [shownGroups, setShownGroups] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<string>("all");
   const [editing, setEditing] = useState<Spot | "new" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -34,14 +26,12 @@ export default function SpotsLibrary() {
   const load = useCallback(async () => {
     const sb = getSupabase();
     if (!sb || !user) return;
-    const [s, g, pg] = await Promise.all([
+    const [s, g] = await Promise.all([
       sb.from("spots").select("*, links:spot_groups(group_id, status)").eq("owner_id", user.id).order("created_at", { ascending: false }),
       sb.from("group_members").select("group:groups(*)").eq("user_id", user.id),
-      sb.from("profile_spot_groups").select("group_id").eq("user_id", user.id),
     ]);
     setSpots(((s.data as MySpot[] | null) ?? []).map((x) => ({ ...x, links: x.links ?? [] })));
     setGroups(((g.data as unknown as { group: Group | null }[]) ?? []).flatMap((r) => (r.group ? [r.group] : [])));
-    setShownGroups(new Set(((pg.data as { group_id: string }[] | null) ?? []).map((r) => r.group_id)));
   }, [user]);
 
   useEffect(() => {
@@ -77,20 +67,13 @@ export default function SpotsLibrary() {
     load();
   }
 
-  async function setDisplay(d: SpotsDisplay) {
-    await sb.from("profiles").update({ spots_display: d }).eq("id", user!.id);
-    refreshProfile();
-  }
-  async function toggleGroup(id: string, on: boolean) {
-    if (on) await sb.from("profile_spot_groups").insert({ group_id: id });
-    else await sb.from("profile_spot_groups").delete().eq("user_id", user!.id).eq("group_id", id);
-    load();
-  }
   async function addToGroup(s: Spot, groupId: string) {
     setMessage(null);
     const { data, error } = await sb.rpc("add_spot_to_group", { p_spot: s.id, p_group: groupId });
     const name = groupById.get(groupId)?.name ?? "the group";
-    setMessage(error ? "Couldn't add it to the group." : data === "accepted" ? `Added to ${name}.` : `Suggested to ${name}. A manager will accept it.`);
+    setMessage(error
+      ? (error.message.includes("private") ? "A spot in a private group can only go in other private groups, and a spot in a public group only in public ones." : "Couldn't add it to the group.")
+      : data === "accepted" ? `Added to ${name}.` : `Suggested to ${name}. A manager will accept it.`);
     load();
   }
   async function submit(s: Spot) {
@@ -101,7 +84,6 @@ export default function SpotsLibrary() {
     load();
   }
 
-  const display = (profile as { spots_display?: SpotsDisplay }).spots_display ?? "selected";
   const inPrivate = (s: MySpot) => s.links.some((l) => groupById.get(l.group_id)?.visibility === "private");
 
   if (editing) {
@@ -143,7 +125,10 @@ export default function SpotsLibrary() {
         ) : (
           <ul className="spot-list">
             {visible.map((s) => {
-              const free = groups.filter((g) => !s.links.some((l) => l.group_id === g.id));
+              // A spot's groups stay all private or all public.
+              const linkedVis = s.links.map((l) => groupById.get(l.group_id)?.visibility).find(Boolean);
+              const free = groups.filter((g) => !s.links.some((l) => l.group_id === g.id) && (!linkedVis || g.visibility === linkedVis));
+              const priv = inPrivate(s);
               return (
                 <SpotCard key={s.id} spot={s} showStatus onOpen={() => shell?.focusSpot(s.id)}>
                   {s.links.map((l) => (
@@ -165,9 +150,13 @@ export default function SpotsLibrary() {
                     </select>
                   )}
                   <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>
-                  {display === "selected" && !inPrivate(s) && (
-                    <button type="button" className="link" onClick={() => run(() => sb.from("spots").update({ show_on_profile: !s.show_on_profile }).eq("id", s.id))}>
-                      {s.show_on_profile ? "Hide from profile" : "Show on profile"}
+                  {priv ? (
+                    <span className="chip" title="Spots in a private group stay off your profile.">Private group: not on profile</span>
+                  ) : (
+                    <button type="button" className="chip" aria-pressed={s.show_on_profile}
+                      onClick={() => run(() => sb.from("spots").update({ show_on_profile: !s.show_on_profile }).eq("id", s.id),
+                        s.show_on_profile ? `${s.name} is off your profile.` : `${s.name} is on your profile.`)}>
+                      {s.show_on_profile ? "On profile" : "Show on profile"}
                     </button>
                   )}
                   {s.public_status === "none" || s.public_status === "rejected" ? (
@@ -191,30 +180,11 @@ export default function SpotsLibrary() {
 
       <section aria-labelledby="on-profile">
         <h2 id="on-profile">On your profile</h2>
-        <div className="seg">
-          {DISPLAY.map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={display === k} onClick={() => setDisplay(k)}>{label}</button>
-          ))}
-        </div>
         <p className="fine">
-          {display === "all" && "Everyone who can see your profile sees all your spots."}
-          {display === "selected" && "Only spots marked \"Show on profile\" appear."}
-          {display === "groups" && "Your own spots from the public groups you check below appear on your profile."}
-          {display === "none" && "Your profile shows no spots."}
-          {profile.is_private && " Your profile is private, so only approved followers see them."}
-          {display !== "none" && " Spots in a private group never show on your profile."}
+          Turn on &quot;Show on profile&quot; for each spot you want people to see.
+          {profile.is_private ? " Your profile is private, so only approved followers see them." : " Anyone who visits your profile sees them."}
+          {" "}Spots in a private group never show on your profile.
         </p>
-        {display === "groups" && (
-          <div className="form">
-            {groups.filter((g) => g.visibility === "public").length === 0 && <p className="fine">You&apos;re not in any public groups yet.</p>}
-            {groups.filter((g) => g.visibility === "public").map((g) => (
-              <label key={g.id} className="check">
-                <input type="checkbox" checked={shownGroups.has(g.id)} onChange={(e) => toggleGroup(g.id, e.target.checked)} />
-                <span>{g.name}</span>
-              </label>
-            ))}
-          </div>
-        )}
       </section>
     </div>
   );

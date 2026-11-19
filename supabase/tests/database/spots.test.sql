@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(54);
+select plan(56);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -77,15 +77,19 @@ select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
 select lives_ok($$ select public.accept_group_spot(pg_temp.id('mem_spot'), pg_temp.id('g')) $$, 'the organizer accepts a suggestion');
 create temp table made2 as select public.create_group('Open Club', null, null, 'public', 'open') as sid;
 insert into ids select 'g2', g.id from public.groups g join made2 on g.short_id = made2.sid;
+create temp table made3 as select public.create_group('Back Roads', null, null, 'private', 'request') as sid;
+insert into ids select 'g3', g.id from public.groups g join made3 on g.short_id = made3.sid;
 select set_config('role', 'postgres', true);
-insert into public.group_members (group_id, user_id) values (pg_temp.id('g2'), '5b000000-0000-0000-0000-000000000002');
+insert into public.group_members (group_id, user_id) values (pg_temp.id('g2'), '5b000000-0000-0000-0000-000000000002'), (pg_temp.id('g3'), '5b000000-0000-0000-0000-000000000002');
 
 -- ---- One spot, many groups ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-select is(public.add_spot_to_group(pg_temp.id('mem_spot'), pg_temp.id('g2'))::text, 'proposed', 'the same spot goes into a second group');
+select is(public.add_spot_to_group(pg_temp.id('mem_spot'), pg_temp.id('g3'))::text, 'proposed', 'the same spot goes into a second private group');
 select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002' and name = 'Scenic overlook'), 1, 'it stays one spot, not a copy');
 select is((select count(*)::int from public.spot_groups where spot_id = pg_temp.id('mem_spot')), 2, 'linked to both groups');
-select lives_ok($$ select public.remove_spot_from_group(pg_temp.id('mem_spot'), pg_temp.id('g2')) $$, 'the owner takes it out of a group');
+select throws_ok($$ select public.add_spot_to_group(pg_temp.id('mem_spot'), pg_temp.id('g2')) $$, '23514', null,
+  'a spot in a private group can''t go into a public one');
+select lives_ok($$ select public.remove_spot_from_group(pg_temp.id('mem_spot'), pg_temp.id('g3')) $$, 'the owner takes it out of a group');
 select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 1, 'the spot stays in the library');
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
 select throws_ok($$ select public.remove_spot_from_group(pg_temp.id('mem_spot'), pg_temp.id('g')) $$, '42501', null,
@@ -100,32 +104,34 @@ select is((select count(*)::int from public.spots where id = pg_temp.id('mine'))
 select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 0, 'unpicked spots stay private');
 
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'none' where id = '5b000000-0000-0000-0000-000000000002';
+select throws_ok($$ update public.profiles set spots_display = 'all' where id = '5b000000-0000-0000-0000-000000000002' $$, '42501', null,
+  'spots are picked one by one (no more display modes)');
+update public.spots set show_on_profile = true where id = pg_temp.id('mem_spot');
+select is((select show_on_profile from public.spots where id = pg_temp.id('mem_spot')), false, 'a spot in a private group can''t be picked');
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where id = pg_temp.id('mine')), 0, '"none" hides every spot from the profile');
+select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 0, 'spots in a private group never show on a profile');
+select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0, 'nor in the profile list');
+select is((select count(*)::int from public.spots where id = pg_temp.id('org_spot')), 0, 'other people''s spots in that group stay private');
 
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'all' where id = '5b000000-0000-0000-0000-000000000002';
+update public.profiles set is_private = true where id = '5b000000-0000-0000-0000-000000000002';
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where id = pg_temp.id('mine')), 1, '"all" shows personal spots');
-select is((select count(*)::int from public.spots where id = pg_temp.id('mem_spot')), 0, '"all" still hides spots in a private group');
-select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0, 'so does the profile list');
-
-select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'all', is_private = true where id = '5b000000-0000-0000-0000-000000000002';
+select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002'), 0, 'a private profile''s spots stay hidden from non-followers');
+select set_config('role', 'postgres', true);
+insert into public.follows (follower_id, followee_id) values ('5c000000-0000-0000-0000-000000000003', '5b000000-0000-0000-0000-000000000002');
+-- A private profile approves the request.
+update public.follows set status = 'accepted' where follower_id = '5c000000-0000-0000-0000-000000000003';
 select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002'), 0,
-  'a private profile''s spots stay hidden from non-followers');
-
+select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mine')), 1,
+  'approved followers see the spots a private profile picked');
+select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0,
+  'but still not spots in a private group');
+select set_config('role', 'postgres', true);
+delete from public.follows where follower_id = '5c000000-0000-0000-0000-000000000003';
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'groups', is_private = false where id = '5b000000-0000-0000-0000-000000000002';
+update public.profiles set is_private = false where id = '5b000000-0000-0000-0000-000000000002';
 select throws_ok($$ insert into public.profile_spot_groups (group_id) values (pg_temp.id('g')) $$, '42501', null,
   'a private group can''t be picked for a profile');
-select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.spots where owner_id = '5b000000-0000-0000-0000-000000000002'), 0,
-  'spots in a private group never show on a profile');
-select is((select count(*)::int from public.spots where id = pg_temp.id('org_spot')), 0,
-  'other people''s spots in that group stay private');
 select throws_ok(
   $$ insert into public.profile_spot_groups (user_id, group_id) values ('5b000000-0000-0000-0000-000000000002', pg_temp.id('g')) $$,
   '42501', null, 'nobody changes someone else''s profile setting');
@@ -183,7 +189,6 @@ select is((select name from public.spots where id = pg_temp.id('mine')), 'My gas
 
 -- ---- What a profile shows ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'selected' where id = '5b000000-0000-0000-0000-000000000002';
 update public.spots set show_on_profile = false where owner_id = '5b000000-0000-0000-0000-000000000002';
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.profile_spots('5b000000-0000-0000-0000-000000000002') where id = pg_temp.id('mem_spot')), 0,

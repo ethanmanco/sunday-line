@@ -75,7 +75,13 @@ export interface MapShell {
   // A page's own spots (profile, group, event) shown instead of the usual layers.
   overlay: { title: string; spots: Spot[] } | null;
   setOverlay: (o: { title: string; spots: Spot[] } | null) => void;
+  /** Select a spot: highlight it on the map and show its details (on the home map) or its card (on a page). */
   focusSpot: (id: string) => void;
+  selectedSpotId: string | null;
+  selectedSpot: Spot | null;
+  closeSpot: () => void;
+  /** The scored road a road-spot sits on (null: none or not checked yet). */
+  spotRoad: (spotId: string) => import("./roadData").RoadOnMap | null;
   fitTo: (bbox: Bounds) => void;
   // Adding a spot on this map.
   setPick: (state: PickState | null, handlers?: PickHandlers) => void;

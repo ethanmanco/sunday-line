@@ -3,7 +3,8 @@
 import { useRef } from "react";
 import { useMapShell, type ListItem } from "@/lib/mapShell";
 import { lengthText, milesText, scoreColor, scoreInk, speedShort } from "@/lib/roads";
-import { CATEGORY_COLOR, spotLabel } from "@/lib/spots";
+import { spotLabel } from "@/lib/spots";
+import { SpotMark } from "./RoadList";
 
 /**
  * Phones: what's in view as cards along the bottom of the map: roads and
@@ -51,7 +52,7 @@ export default function ItemCards({ items, scoreKey, units }: {
         const sp = it.spot;
         return (
           <button key={sp.id} type="button" className="road-card" onClick={() => shell.focusSpot(sp.id)}>
-            <span className="spot-dot" style={{ background: sp.kind === "road" ? "#7cc4ff" : CATEGORY_COLOR[sp.category ?? "other"] }} aria-hidden="true" />
+            <SpotMark spot={sp} scoreKey={scoreKey} />
             <span className="road-card-text">
               <b>{sp.name}</b>
               <span className="fine">{spotLabel(sp)}{sp.group_name ? ` · ${sp.group_name}` : ""}</span>

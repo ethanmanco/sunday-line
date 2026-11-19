@@ -610,3 +610,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.24 Editing spots works (fixed 2026-11-21)
 
 - Every spot edit failed because the editor sends the spot's kind, which wasn't in the columns people may update. Now it is (the shape check still applies). The save error says what actually went wrong instead of always blaming the name.
+
+### 11.25 Spots open like roads; privacy rules (built 2026-11-21)
+
+- Tapping a spot (map, list, or card) selects it like a road: a white outline on the map, and on the home map the panel opens its details. A road-spot on a scored road opens that road's full stats with a "Saved spot" box on top (who added it, its groups, how much of the road it covers). Pages (profiles, groups, Your spots) highlight the spot's card instead. The map popup is gone. Back and forward move between spots.
+- Road-spots on scored roads show the road's score in lists and cards instead of a dot.
+- A spot's groups are all private or all public. Spots are picked for the profile one by one ("Show on profile"); the old all/groups/none modes were folded into those picks. Spots in a private group can't be picked. Approved followers of a private profile see its picks.
+- Scores for a trimmed stretch: not yet. The scores are for the whole road; the box says so. Stretch scores need the pipeline to save per-section data (see 11.26 if built).

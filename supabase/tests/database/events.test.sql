@@ -111,16 +111,16 @@ select is((select count(*)::int from public.messages where event_id = pg_temp.id
 
 -- ---- Private-group spots stay off profiles ----
 select pg_temp.act_as('7b000000-0000-0000-0000-000000000002');
-update public.profiles set spots_display = 'all' where id = '7b000000-0000-0000-0000-000000000002';
 with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Secret lot', 'meetup', 32.4, -93.8) returning id)
 insert into ids select 'secret', id from x;
 select public.add_spot_to_group(pg_temp.id('secret'), pg_temp.id('g'));
-insert into public.spots (kind, name, category, lat, lng) values ('point', 'My public lot', 'meetup', 32.4, -93.9);
+insert into public.spots (kind, name, category, lat, lng, show_on_profile) values ('point', 'My public lot', 'meetup', 32.4, -93.9, true);
+update public.spots set show_on_profile = true where name = 'Secret lot';
 select throws_ok($$ insert into public.profile_spot_groups (group_id) values (pg_temp.id('g')) $$, '42501', null,
   'a private group can''t be picked for the profile');
 select pg_temp.act_as('7c000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.profile_spots('7b000000-0000-0000-0000-000000000002') where name = 'Secret lot'), 0,
-  'spots in a private group never show on a profile, even with "all"');
+  'spots in a private group never show on a profile, even if picked');
 select is((select count(*)::int from public.profile_spots('7b000000-0000-0000-0000-000000000002') where name = 'My public lot'), 1,
   'personal spots still show');
 

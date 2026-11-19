@@ -14,7 +14,8 @@ import {
 } from "@/lib/mapShell";
 import { applyFilters, badgeKey, DEFAULT_FILTERS, haversineMi, type Bounds, type Filters } from "@/lib/roads";
 import { spotsBbox, type Spot, type SpotKind } from "@/lib/spots";
-import { rememberReturn } from "@/lib/supabase";
+import { getSupabase, rememberReturn } from "@/lib/supabase";
+import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
 import {
   keysIn, levelFor, loadBlock, loadCell, loadIndex, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
@@ -60,6 +61,12 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusRequest | null>(null);
   const [focusSpot, setFocusSpotState] = useState<{ id: string; key: number } | null>(null);
+  const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
+  // A spot opened from a link that isn't in the current layers.
+  const [linkedSpot, setLinkedSpot] = useState<Spot | null>(null);
+  // Which scored road each road-spot sits on (null: none).
+  const [spotRoads, setSpotRoads] = useState<Record<string, RoadOnMap | null>>({});
+  const checkingRoads = useRef(new Set<string>());
   const [overlay, setOverlay] = useState<{ title: string; spots: Spot[] } | null>(null);
   const [showEverything, setShowEverything] = useState(false);
   const [pick, setPickState] = useState<PickState | null>(null);
@@ -129,7 +136,11 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   // Leaving a page clears its spots from the map.
   const home = pathname === "/";
   const onRoad = pathname.startsWith("/road/");
+  const lastPath = useRef<string | null>(null);
   useEffect(() => {
+    // A selected spot belongs to the page it was picked on.
+    if (lastPath.current !== null && lastPath.current !== pathname) setSelectedSpotId(null);
+    lastPath.current = pathname;
     setShowEverything(false);
     if (!onRoad) setSelectedId(null);
     setAdding(null);
@@ -196,6 +207,29 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     return layers.spots;
   }, [overlay, showEverything, layers.spots]);
 
+  const selectedSpot = useMemo(() => {
+    if (!selectedSpotId) return null;
+    return mapSpots.find((s) => s.id === selectedSpotId) ?? layers.spots.find((s) => s.id === selectedSpotId)
+      ?? (linkedSpot?.id === selectedSpotId ? linkedSpot : null);
+  }, [selectedSpotId, mapSpots, layers.spots, linkedSpot]);
+  // A spot link for a spot that isn't in the layers (someone's profile spot, say).
+  useEffect(() => {
+    if (!selectedSpotId || selectedSpot) return;
+    const sb = getSupabase();
+    sb?.from("spots").select("*").eq("id", selectedSpotId).maybeSingle().then(({ data }) => {
+      if (data) setLinkedSpot(data as Spot);
+    });
+  }, [selectedSpotId, selectedSpot]);
+
+  // Find the scored road under each road-spot on the map (once each).
+  useEffect(() => {
+    const list = [...mapSpots, ...(selectedSpot ? [selectedSpot] : [])].filter((s) => s.kind === "road" && !checkingRoads.current.has(s.id)).slice(0, 60);
+    for (const s of list) {
+      checkingRoads.current.add(s.id);
+      findSpotRoad(s).then((r) => setSpotRoads((m) => ({ ...m, [s.id]: r }))).catch(() => {});
+    }
+  }, [mapSpots, selectedSpot]);
+
   // When a page's spots arrive, show them all.
   const overlayKey = overlay ? `${overlay.title}:${overlay.spots.map((s) => s.id).join(",")}` : "";
   useEffect(() => {
@@ -221,6 +255,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
       setCellRoads((m) => (m[key]?.some((x) => x.id === id) ? m : { ...m, [key]: [...(m[key] ?? []), given] }));
     }
     setSelectedId(id);
+    setSelectedSpotId(null);
     setFocus({ bbox: r.bbox, key: Date.now() });
     if (window.location.pathname !== `/road/${id}`) {
       if (window.location.pathname === "/" || window.location.pathname.startsWith("/road/")) {
@@ -239,8 +274,22 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const doFocusSpot = useCallback((id: string) => {
+    setSelectedSpotId(id);
     setFocusSpotState({ id, key: Date.now() });
-    setSheet((s) => (s === "full" ? "peek" : s));
+    const path = window.location.pathname;
+    if (path === "/" || path.startsWith("/road/")) {
+      // On the home map a spot opens like a road: details in the panel.
+      setSelectedId(null);
+      if (new URLSearchParams(window.location.search).get("spot") !== id) window.history.pushState(null, "", `/?spot=${id}`);
+      setSheet("half");
+    } else {
+      // On a page, its card is highlighted; keep the map in view.
+      setSheet((s) => (s === "full" || s === "closed" ? "half" : s));
+    }
+  }, []);
+  const closeSpot = useCallback(() => {
+    setSelectedSpotId(null);
+    if (window.location.pathname === "/" && window.location.search.includes("spot=")) window.history.pushState(null, "", "/");
   }, []);
 
   const setPick = useCallback((state: PickState | null, handlers?: PickHandlers) => {
@@ -353,7 +402,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     startSettingLocation: () => { setSettingLoc(true); startSettingLocation(); },
     addRoad: (r: RoadOnMap) => selectRoad(r.id, r),
     selectedId, selectRoad, closeRoad, hoverId, setHoverId,
-    overlay, setOverlay, focusSpot: doFocusSpot, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
+    overlay, setOverlay, focusSpot: doFocusSpot, selectedSpotId, selectedSpot, closeSpot,
+    spotRoad: (id) => spotRoads[id] ?? null, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
     setPick, startAdding,
     sheet, setSheet, setPanelWide, isSheet,
   };
@@ -414,8 +464,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onPickRoad={(id) => pickHandlers.current?.onPickRoad(id)}
               onTraceRoad={(t) => pickHandlers.current?.onTraceRoad(t)}
               onSelect={selectRoad}
-              onOpenRoad={(r) => selectRoad(r.id, r)}
-              onNavigate={(href) => router.push(href)}
+              selectedSpotId={selectedSpotId}
+              onSelectSpot={doFocusSpot}
               onHover={setHoverId}
               onBounds={setBounds}
             />
