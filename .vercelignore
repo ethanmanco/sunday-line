@@ -1,0 +1,6 @@
+# The data script and its files run on a computer, not on Vercel.
+pipeline/
+regions/
+review/
+data/
+.venv/
