@@ -773,3 +773,7 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 .spot-dot.is-road { border-radius: 5px; width: 24px; height: 10px; margin: 10px 6px; }
 .quiet-star { margin-top: 40px; text-align: center; opacity: 0.7; }
 .quiet-star a { color: var(--dim); }
+/* Drawn roads scored on request (11.27) */
+.requested-score { margin: 12px 0 4px; }
+.requested-score .scores { margin-top: 10px; }
+.note .chip { margin-left: 4px; }

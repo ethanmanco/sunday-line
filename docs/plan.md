@@ -624,3 +624,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - States finished before this are re-run after the all-states run (`scripts/rerun_without_bins.py`). Hawaii's box is fixed to the main islands (its extract reaches Midway; 11.5 GB land-cover grid).
 - Spots use one cool gradient (teal, sky, lavender) instead of category colors, so they read apart from the warm Driver's road ramp. Road spots draw the gradient along their length.
 - A quiet "Star it on GitHub" line sits at the bottom of the account page (the About page has the main button).
+
+### 11.27 Scoring roads on request (built 2026-11-21)
+
+- A road-spot that isn't on a scored road shows "Score this road" to its owner. That queues it (`road_scores`, 20 requests a day per person). Anyone who can see the spot sees its score, so a spot on the public map carries its score; changing the line clears it.
+- `.github/workflows/score-roads.yml` runs hourly (free on a public repo) and on demand: `python -m pipeline.score_queue` claims up to 20 requests and scores each with `pipeline/score_line.py`, which fetches only that road's corridor: OpenStreetMap through the Overpass API (classes, posted limits, surface, lanes, signs, signals, crossings, side roads, woods and water), federal HPMS sections (owner, roughness, traffic, unpaved, FHWA limits), and USGS 3DEP elevation (bridges skipped, as in the pipeline). Then the pipeline's own drive model and formulas. Scenery is estimated from map data instead of satellite land cover. About 40 to 60 seconds a road.
+- Checked against Old Jena Road: Overall 60 vs the pipeline's 61; Pavement equal; Twisty and Speed within 5 (the saved line is simplified). That road's pipeline elevation was flat because it runs past the Shreveport region's DEM tiles; the on-request USGS profile is right, and the Louisiana state run fixes the pipeline copy.
+- Setup: one repository secret, SUPABASE_SECRET_KEY (the project's secret key). Without it the workflow does nothing.

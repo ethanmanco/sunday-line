@@ -24,7 +24,7 @@ interface Props {
   spot?: Spot | null;
 }
 
-const SCORE_ROWS: { key: keyof LoadedRoad["scores"]; label: string; help: string }[] = [
+export const SCORE_ROWS: { key: keyof LoadedRoad["scores"]; label: string; help: string }[] = [
   { key: "twisty", label: "Twisty", help: "Cornering, braking, and direction changes at the speed limit, compared with five race tracks capped at 55 mph. 70 is track average." },
   { key: "speed", label: "Speed", help: "Average legal speed through the corners. 35 mph scores 0, 65 mph scores 100." },
   { key: "pavement", label: "Pavement", help: "How likely the pavement is smooth and kept up: who maintains the road, federal road data, aerial photos, and people's checks." },

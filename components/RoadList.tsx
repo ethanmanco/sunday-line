@@ -116,5 +116,10 @@ export function SpotMark({ spot, scoreKey }: { spot: Spot; scoreKey: keyof Loade
     const s = (part?.scores ?? road.scores)[scoreKey];
     return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`${road.name}: ${s}`}>{s}</span>;
   }
+  const own = shell?.roadScore(spot.id);
+  if (own?.status === "done" && own.scores) {
+    const s = own.scores[scoreKey] ?? own.scores.overall;
+    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`Scored on request: ${s}`}>{s}</span>;
+  }
   return <span className={`spot-dot${spot.kind === "road" ? " is-road" : ""}`} style={{ background: SPOT_GRADIENT_CSS }} aria-hidden="true" />;
 }

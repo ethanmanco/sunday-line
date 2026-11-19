@@ -35,6 +35,21 @@ export interface Spot {
   group_name?: string | null;
 }
 
+/** A drawn road's on-request score (11.27). */
+export interface RoadScore {
+  spot_id: string;
+  status: "queued" | "scoring" | "done" | "failed";
+  requested_at: string;
+  scored_at: string | null;
+  scores: Record<string, number> | null;
+  details: {
+    miles?: number; state?: string | null; speed_limit?: string; speed_limit_posted_share?: number;
+    pavement_why?: string; surface?: string; climb_ft?: number; descent_ft?: number; profile_ft?: number[];
+    junctions?: number; stops?: number; signals?: number; note?: string;
+  } | null;
+  note: string | null;
+}
+
 export type SpotGroupStatus = "proposed" | "accepted";
 export interface SpotLink {
   group_id: string;

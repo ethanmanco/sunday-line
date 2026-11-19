@@ -13,7 +13,7 @@ import {
   MapShellContext, type ListItem, type LL, type MapShell as Shell, type PickHandlers, type PickState, type SheetState,
 } from "@/lib/mapShell";
 import { applyFilters, badgeKey, DEFAULT_FILTERS, haversineMi, type Bounds, type Filters } from "@/lib/roads";
-import { spotsBbox, type Spot, type SpotKind } from "@/lib/spots";
+import { spotsBbox, type RoadScore, type Spot, type SpotKind } from "@/lib/spots";
 import { getSupabase, rememberReturn } from "@/lib/supabase";
 import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
@@ -67,6 +67,9 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   // Which scored road each road-spot sits on (null: none).
   const [spotRoads, setSpotRoads] = useState<Record<string, RoadOnMap | null>>({});
   const checkingRoads = useRef(new Set<string>());
+  // On-request scores for drawn roads (11.27).
+  const [roadScores, setRoadScores] = useState<Record<string, RoadScore>>({});
+  const loadedScores = useRef(new Set<string>());
   const [overlay, setOverlay] = useState<{ title: string; spots: Spot[] } | null>(null);
   const [showEverything, setShowEverything] = useState(false);
   const [pick, setPickState] = useState<PickState | null>(null);
@@ -229,6 +232,30 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
       findSpotRoad(s).then((r) => setSpotRoads((m) => ({ ...m, [s.id]: r }))).catch(() => {});
     }
   }, [mapSpots, selectedSpot]);
+
+  // Drawn roads that aren't on a scored road: fetch any on-request scores.
+  useEffect(() => {
+    const ids = [...mapSpots, ...(selectedSpot ? [selectedSpot] : [])]
+      .filter((s) => s.kind === "road" && spotRoads[s.id] === null && !loadedScores.current.has(s.id))
+      .map((s) => s.id);
+    if (!ids.length) return;
+    ids.forEach((id) => loadedScores.current.add(id));
+    const sb = getSupabase();
+    sb?.from("road_scores").select("*").in("spot_id", ids.slice(0, 100)).then(({ data }) => {
+      const rows = (data as RoadScore[] | null) ?? [];
+      if (rows.length) setRoadScores((m) => ({ ...m, ...Object.fromEntries(rows.map((r) => [r.spot_id, r])) }));
+    });
+  }, [mapSpots, selectedSpot, spotRoads]);
+  const reloadRoadScore = useCallback(async (id: string) => {
+    const sb = getSupabase();
+    const { data } = sb ? await sb.from("road_scores").select("*").eq("spot_id", id).maybeSingle() : { data: null };
+    setRoadScores((m) => {
+      const next = { ...m };
+      if (data) next[id] = data as RoadScore;
+      else delete next[id];
+      return next;
+    });
+  }, []);
 
   // When a page's spots arrive, show them all.
   const overlayKey = overlay ? `${overlay.title}:${overlay.spots.map((s) => s.id).join(",")}` : "";
@@ -403,7 +430,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     addRoad: (r: RoadOnMap) => selectRoad(r.id, r),
     selectedId, selectRoad, closeRoad, hoverId, setHoverId,
     overlay, setOverlay, focusSpot: doFocusSpot, selectedSpotId, selectedSpot, closeSpot,
-    spotRoad: (id) => spotRoads[id] ?? null, stretchModel: index?.stretch ?? null, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
+    spotRoad: (id) => spotRoads[id] ?? null, stretchModel: index?.stretch ?? null,
+    roadScore: (id) => roadScores[id] ?? null, reloadRoadScore, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
     setPick, startAdding,
     sheet, setSheet, setPanelWide, isSheet,
   };

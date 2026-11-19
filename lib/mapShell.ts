@@ -84,6 +84,9 @@ export interface MapShell {
   spotRoad: (spotId: string) => import("./roadData").RoadOnMap | null;
   /** Constants for scoring part of a road (null until the data loads or with older data). */
   stretchModel: import("./stretch").StretchModel | null;
+  /** On-request scores for drawn roads (11.27), and a way to refresh one. */
+  roadScore: (spotId: string) => import("./spots").RoadScore | null;
+  reloadRoadScore: (spotId: string) => Promise<void>;
   fitTo: (bbox: Bounds) => void;
   // Adding a spot on this map.
   setPick: (state: PickState | null, handlers?: PickHandlers) => void;

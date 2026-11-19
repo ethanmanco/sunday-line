@@ -3,6 +3,7 @@
 import { useState } from "react";
 import RoadDetail from "@/components/RoadDetail";
 import SpotFacts from "./SpotFacts";
+import RoadScorePanel from "./RoadScorePanel";
 import { decodePolyline } from "@/lib/polyline";
 import { directionsLinks } from "@/lib/roads";
 import { lineMiles, SPOT_GRADIENT_CSS, spotLabel, type Spot } from "@/lib/spots";
@@ -64,9 +65,7 @@ export default function SpotDetail({ spot, road, units, origin, originName, onCl
         </header>
         {spot.description && <p className="spot-detail-desc">{spot.description}</p>}
         <SpotFacts spot={spot} />
-        {spot.kind === "road" && (
-          <p className="fine">This road isn&apos;t one of the scored roads (it was picked off the map or drawn by hand), so there are no road stats for it.</p>
-        )}
+        {spot.kind === "road" && <RoadScorePanel spot={spot} />}
         <section className="go" aria-label="Directions">
           <h2>Get directions</h2>
           <p className="fine">Opens your own navigation app. Plan your drive before you head out.</p>
