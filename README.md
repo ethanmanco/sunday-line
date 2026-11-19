@@ -25,7 +25,12 @@ npm run dev            # http://localhost:3210
 
 python -m venv .venv && .venv/Scripts/pip install -r pipeline/requirements.txt
 python -m pipeline all --region shreveport   # download, score, report, export
+python -m pipeline states                    # write regions/states/<abbr>.toml (50 states + DC)
+python -m pipeline state --region ar --cleanup   # one state end to end, then delete its raw inputs
+python -m pipeline tiles                     # merge every region into public/data/us
 ```
+
+Set `SUNDAY_LINE_DATA` to keep downloads, caches, and outputs on another drive (default: `data/`).
 
 ## Data and licenses
 

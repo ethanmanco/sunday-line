@@ -1,14 +1,15 @@
 """Road facts from the federal Highway Performance Monitoring System (HPMS).
 
     python -m pipeline hpms --region shreveport
+    python -m pipeline hpms --region ar
 
 Each state DOT reports its roads to the Federal Highway Administration every
 year: who maintains each road, its functional class, surface type, posted
 speed limit, traffic, lane width, shoulders, and (on sampled roads) measured
 roughness (IRI). FHWA publishes it as public domain data at geo.dot.gov.
 
-This downloads the sections inside the region's box and caches them under
-data/raw/hpms/. `score` then matches them to candidate roads.
+This downloads the sections inside the region's box, for each of the region's
+states, and caches them under data/raw/hpms/. `score` then matches them to candidate roads.
 """
 from __future__ import annotations
 
@@ -35,7 +36,6 @@ FIELDS = [
     "f_system", "ownership", "surface_type", "iri", "speed_limit", "aadt",
     "through_lanes", "lane_width", "shoulder_type", "routesigning", "routenumber",
 ]
-STATE_CODES = {"Texas": "TX", "Louisiana": "LA", "Arkansas": "AR"}
 PAGE = 2000
 
 # HPMS Field Manual code tables (only the values we use).
@@ -61,7 +61,13 @@ def cache_path(region: Region, st: str):
     return region.raw_dir / "hpms" / f"{st}_{YEAR}_{region.slug}.geojson"
 
 
-def download(region: Region, states: list[str]) -> None:
+def download(region: Region, states: list[str] | None = None) -> None:
+    """Federal road sections for `states` (postal codes; default: the region's states)."""
+    if states is None:
+        states = region.state_codes
+    if not states:
+        print("  hpms: region lists no US states; skipped")
+        return
     w, s, e, n = region.bbox
     for st in states:
         dest = cache_path(region, st)
@@ -96,7 +102,7 @@ def main():
     ap.add_argument("--region", default="shreveport")
     args = ap.parse_args()
     region = load_region(args.region)
-    download(region, ["TX", "LA", "AR"])
+    download(region)
 
 
 if __name__ == "__main__":

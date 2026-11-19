@@ -1,0 +1,34 @@
+# Texas, one state as its own region. Written by `python -m pipeline states`;
+# rerunning that command overwrites this file.
+
+slug = "tx"
+name = "Texas"
+area = "Texas"
+timezone = "America/Chicago"
+units = "imperial"
+country = "US"
+states = ["Texas"]
+
+# west, south, east, north (degrees). `state` replaces this with the extract's header box.
+bbox = [-106.7, 25.8, -93.5, 36.6]
+
+# No home point: per-state runs skip the Local list and home_mi.
+
+osm_extracts = ["https://download.geofabrik.de/north-america/us/texas-latest.osm.pbf"]
+
+dem = "usgs_3dep_1as"
+landcover = "esa_worldcover_2021"
+
+# Legal default for roads with no posted sign (copied from regions/shreveport.toml).
+[speed_defaults.Texas]
+source = "Texas Transportation Code 545.352(b): 70 mph on state- or US-numbered highways (including FM and RM roads) and 60 mph on other highways outside an urban district"
+numbered = 70
+unnumbered = 60
+numbered_ref = '^(FM|RM|SH|TX|US|IH|I|SL|SS|Loop|Spur|PR|RE|BU|BS|Bus|Business)[ -]?\d'
+
+# Last-resort estimates by road type (mph).
+[speed_estimates]
+primary = 55
+secondary = 55
+tertiary = 45
+unclassified = 35

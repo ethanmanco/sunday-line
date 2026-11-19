@@ -28,7 +28,8 @@ def main():
     feats = [f for f in fc["features"] if f["properties"]["length_m"] >= DEFAULT_MIN_LENGTH_M]
     by_score = sorted(feats, key=lambda f: -f["properties"]["score_overall"])
     drivers = [f for f in by_score if f["properties"]["drivers_road"]]
-    local = [f for f in drivers if f["properties"]["home_mi"] <= region.local_radius_mi]
+    local = [f for f in drivers if f["properties"].get("home_mi") is not None
+             and f["properties"]["home_mi"] <= region.local_radius_mi]
     gravel = [f for f in by_score if f["properties"].get("gravel_road")]
     from .export import category
 
@@ -49,7 +50,7 @@ def main():
         line = shapely.LineString(f["geometry"]["coordinates"]).simplify(0.00003)
         out.append({
             "id": p["id"], "group": group, "name": p["name"], "near": p["near"],
-            "miles": round(p["length_m"] / 1609.344, 1), "home_mi": p["home_mi"],
+            "miles": round(p["length_m"] / 1609.344, 1), "home_mi": p.get("home_mi"),
             "overall": p["score_overall"], "twisty": p["score_twisty"], "speed": p["score_speed"],
             "flow": p["score_flow"], "elevation": p["score_elevation"], "scenic": p["score_scenic"],
             "speed_text": speed_text(p), "surface_text": surface_text(p),

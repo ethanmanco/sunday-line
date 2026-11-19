@@ -1,0 +1,30 @@
+# Connecticut, one state as its own region. Written by `python -m pipeline states`;
+# rerunning that command overwrites this file.
+
+slug = "ct"
+name = "Connecticut"
+area = "Connecticut"
+timezone = "America/New_York"
+units = "imperial"
+country = "US"
+states = ["Connecticut"]
+
+# west, south, east, north (degrees). `state` replaces this with the extract's header box.
+bbox = [-73.8, 40.9, -71.7, 42.1]
+
+# No home point: per-state runs skip the Local list and home_mi.
+
+osm_extracts = ["https://download.geofabrik.de/north-america/us/connecticut-latest.osm.pbf"]
+
+dem = "usgs_3dep_1as"
+landcover = "esa_worldcover_2021"
+
+# No researched legal default for this state yet: unposted roads use the
+# estimates below and are labeled "estimated" in the app.
+
+# Last-resort estimates by road type (mph).
+[speed_estimates]
+primary = 55
+secondary = 55
+tertiary = 45
+unclassified = 35

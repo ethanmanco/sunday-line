@@ -2,6 +2,8 @@
 
 The region is read once into a coarser grid (3 x 3 pixels, about 25 to 30 m)
 holding the share of each cell that is tree cover, open water, or wetland.
+Shares are stored as pixel counts (0 to 9) in one byte each, so a whole state
+fits in memory (a float grid for Texas would need about 40 GB).
 """
 from __future__ import annotations
 
@@ -27,10 +29,10 @@ class Landcover:
         self.w, self.n = w, n
         cols = int(math.ceil((e - w) / self.cell))
         rows = int(math.ceil((n - s) / self.cell))
-        self.tree = np.zeros((rows, cols), np.float32)
-        self.water = np.zeros((rows, cols), np.float32)
-        self.wetland = np.zeros((rows, cols), np.float32)
-        self.built = np.zeros((rows, cols), np.float32)
+        self.tree = np.zeros((rows, cols), np.uint8)
+        self.water = np.zeros((rows, cols), np.uint8)
+        self.wetland = np.zeros((rows, cols), np.uint8)
+        self.built = np.zeros((rows, cols), np.uint8)
         self.covered = False
         for path in sorted(tile_dir.glob("ESA_WorldCover_10m_2021_v200_*_Map.tif")):
             self._add(path, bbox)
@@ -52,7 +54,8 @@ class Landcover:
         arr = arr[:h, :wd]
 
         def frac(mask):
-            return mask.reshape(h // BLOCK, BLOCK, wd // BLOCK, BLOCK).mean(axis=(1, 3)).astype(np.float32)
+            # Pixel count per cell (0 to BLOCK * BLOCK); window_means turns it into a share.
+            return mask.reshape(h // BLOCK, BLOCK, wd // BLOCK, BLOCK).sum(axis=(1, 3), dtype=np.uint8)
 
         r0 = int(round((self.n - tr.f) / self.cell))
         c0 = int(round((tr.c - self.w) / self.cell))
@@ -77,5 +80,5 @@ class Landcover:
             ry = max(1, int(round(radius_m / (self.cell * 111_320))))
             rx = max(1, int(round(radius_m / (self.cell * 111_320 * math.cos(math.radians(lat))))))
             win = arr[max(r - ry, 0) : r + ry + 1, max(c - rx, 0) : c + rx + 1]
-            out[i] = float(win.mean()) if win.size else 0.0
+            out[i] = float(win.mean()) / (BLOCK * BLOCK) if win.size else 0.0
         return out

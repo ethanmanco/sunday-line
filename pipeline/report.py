@@ -116,7 +116,7 @@ def report(region: Region, top: int = 20) -> str:
     long_enough = [r for r in roads if r["length_m"] >= DEFAULT_MIN_LENGTH_M]
     drivers = sorted((r for r in long_enough if r["drivers_road"]), key=lambda r: -r["score_overall"])
     scenic = sorted(long_enough, key=lambda r: (-r["score_scenic"], -r["score_overall"]))
-    local = [r for r in drivers if r["home_mi"] <= region.local_radius_mi]
+    local = [r for r in drivers if r.get("home_mi") is not None and r["home_mi"] <= region.local_radius_mi]
     gravel = sorted((r for r in long_enough if r.get("gravel_road") and r.get("checked") != "rough"),
                     key=lambda r: -(r["score_twisty"] + r["score_flow"] / 3))
     cat = cfg["categories"]
@@ -145,9 +145,9 @@ def report(region: Region, top: int = 20) -> str:
         f"{cat['min_speed_share'] * 100:.0f}% of their length, not run through a neighborhood, and not sit inside "
         f"a park, fee area, or off-road park; {left_out} long-enough candidates are left out of that list.\n\n"
         f"## Driver's roads: top {top}\n\n{drivers_table(drivers[:top], imperial)}\n\n"
-        f"## Local: driver's roads within {region.local_radius_mi:.0f} miles of Shreveport\n\n"
-        f"{drivers_table(local[:10], imperial)}\n\n"
-        f"## Most scenic (any speed)\n\n{scenic_table(scenic[:10], imperial)}\n\n"
+        + (f"## Local: driver's roads within {region.local_radius_mi:.0f} miles of {region.home_name}\n\n"
+           f"{drivers_table(local[:10], imperial)}\n\n" if region.home else "")
+        + f"## Most scenic (any speed)\n\n{scenic_table(scenic[:10], imperial)}\n\n"
         f"## Gravel / rally (off by default in the app)\n\n{gravel_table(gravel[:10], imperial)}\n\n"
         f"## Why candidates were left out of Driver's roads\n\n"
         + "\n".join(f"- {why}: {n}" for why, n in reasons.most_common())

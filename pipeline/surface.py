@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import rasterio
 
-from .config import load_region
+from .config import REVIEW_DIR, load_region
 from .fetch import USER_AGENT
 
 try:
@@ -152,7 +152,7 @@ def main():
                 print(f"  {done}/{len(jobs)} clips ({rate:.1f}/s, about {(len(jobs) - done) / rate / 60:.0f} min left)")
     cache_path.write_text(json.dumps(cache))
 
-    vpath = region.raw_dir.parent / "review" / "verdicts.json"
+    vpath = REVIEW_DIR / "verdicts.json"
     verdicts = json.loads(vpath.read_text(encoding="utf-8")) if vpath.exists() else {}
     rows, ys, ids = [], [], []
     for f in feats:

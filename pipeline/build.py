@@ -21,12 +21,13 @@ from shapely.strtree import STRtree
 
 from . import geometry as g
 from .chains import build_chains
-from .config import DATA_DIR, Region, load_scoring
+from .config import DATA_DIR, REVIEW_DIR, Region, load_scoring
 from .dem import Dem
 from .landcover import Landcover
 from . import drive
 from .fetch import osm_paths
 from . import hpms
+from . import overture
 from .osm_read import read_extracts
 
 KMH_PER_MPH = 1.609344
@@ -81,7 +82,14 @@ def is_numbered(tags: dict, sd: dict | None) -> bool:
     return bool(sd and ref and re.match(sd.get("numbered_ref", r"^\S+ ?\d"), ref))
 
 
+STATE_ROUTE_PREFIXES = ("FM", "RM", "SH", "TX", "US", "LA", "AR", "SR", "I", "IH")
 STATE_ROUTE_REF = re.compile(r"^(FM|RM|SH|TX|US|LA|AR|SR|I|IH)[ -]?\d")
+
+
+def state_route_ref(codes=()) -> re.Pattern:
+    """Route numbers that mark a state- or US-kept road; adds the region's own state codes (e.g. "MO 7")."""
+    prefixes = list(STATE_ROUTE_PREFIXES) + [c for c in codes if c not in STATE_ROUTE_PREFIXES]
+    return re.compile(r"^(" + "|".join(prefixes) + r")[ -]?\d")
 
 
 def pavement_score(pc: dict, *, state: str | None, owner: int | None, state_ref: bool, hp_unpaved: bool,
@@ -212,7 +220,7 @@ def load_osm(region: Region):
     if cache.exists() and cache.stat().st_mtime > newest:
         with cache.open("rb") as f:
             return pickle.load(f)
-    data = read_extracts(sources, region.bbox, DATA_DIR / "tmp", states=tuple(region.speed_defaults))
+    data = read_extracts(sources, region.bbox, DATA_DIR / "tmp", states=tuple(region.states))
     cache.parent.mkdir(parents=True, exist_ok=True)
     with cache.open("wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -292,14 +300,15 @@ def build(region: Region) -> list[dict]:
 
     places = list(osm.places.values())
     place_xy = proj(np.array([[p[2], p[3]] for p in places])) if places else np.zeros((0, 2))
-    home_xy = proj(np.array([region.home]))[0]
+    # Regions without a home point (per-state runs) skip home_mi.
+    home_xy = proj(np.array([region.home]))[0] if region.home else None
 
     state_geoms = {name: shapely.prepared.prep(geom) for name, geom in osm.states.items()}
     print(f"  states: {sorted(state_geoms)}")
 
     # If exactly one configured state's outline could not be built (coastal
     # outlines are often incomplete in extracts), it is "everything else".
-    missing = [name for name in region.speed_defaults if name not in state_geoms]
+    missing = [name for name in region.states if name not in state_geoms]
     fallback_state = missing[0] if len(missing) == 1 else None
     if fallback_state:
         print(f"  {fallback_state}: outline not built, used for roads outside the other states")
@@ -330,7 +339,7 @@ def build(region: Region) -> list[dict]:
     print(f"  surface predictions: {len(surface_pred)} roads")
 
     # Verdicts from the road-check page (review/index.html), saved to data/review/verdicts.json.
-    vpath = DATA_DIR / "review" / "verdicts.json"
+    vpath = REVIEW_DIR / "verdicts.json"
     verdicts = json.loads(vpath.read_text(encoding="utf-8")) if vpath.exists() else {}
     print(f"  review verdicts: {len(verdicts)}")
 
@@ -338,13 +347,14 @@ def build(region: Region) -> list[dict]:
     venue_items = [(k[0], name, to_proj(geom)) for k, (geom, name) in osm.venues.items()]
     venue_tree = STRtree([v[2] for v in venue_items]) if venue_items else None
     print(f"  venues: {Counter(v[0] for v in venue_items)}")
-    ov = region.raw_dir / "overture"
-    if (ov / "buildings.parquet").exists():
+    ov_buildings = overture.path(region, "buildings")
+    ov_places = overture.path(region, "places")
+    if ov_buildings is not None:
         # Overture buildings include Microsoft and Google footprints, far more
         # complete than OpenStreetMap's rural buildings. ODbL.
         import duckdb
         bll = duckdb.sql(
-            f"select (bbox.xmin + bbox.xmax) / 2, (bbox.ymin + bbox.ymax) / 2 from '{(ov / 'buildings.parquet').as_posix()}'"
+            f"select (bbox.xmin + bbox.xmax) / 2, (bbox.ymin + bbox.ymax) / 2 from '{ov_buildings.as_posix()}'"
         ).fetchnumpy()
         bll = np.column_stack(list(bll.values()))
         src = "Overture"
@@ -355,11 +365,11 @@ def build(region: Region) -> list[dict]:
     print(f"  buildings: {len(bll)} from {src}")
     # Off-road parks and race tracks as points (Overture places, CDLA Permissive 2.0).
     venue_points = []
-    if (ov / "places.parquet").exists():
+    if ov_places is not None:
         import duckdb
         rows = duckdb.sql(
             f"select names.primary, taxonomy.primary, (bbox.xmin + bbox.xmax) / 2, (bbox.ymin + bbox.ymax) / 2 "
-            f"from '{(ov / 'places.parquet').as_posix()}' where confidence >= 0.5 and taxonomy.primary in "
+            f"from '{ov_places.as_posix()}' where confidence >= 0.5 and taxonomy.primary in "
             f"('atv_recreation_park', 'race_track', 'motor_race_track', 'atv_rental_tour', 'go_kart_club')"
         ).fetchall()
         venue_points = [(r[0], r[1], proj(np.array([[r[2], r[3]]]))[0]) for r in rows]
@@ -368,7 +378,7 @@ def build(region: Region) -> list[dict]:
     service_nodes = np.unique(np.frombuffer(osm.service_refs, dtype=np.int64))
     # Federal road data (FHWA HPMS, public domain): owner, surface, posted limits, traffic, roughness.
     hp_geoms, hp_props = [], []
-    for st in ("TX", "LA", "AR"):
+    for st in region.state_codes:
         pth = hpms.cache_path(region, st)
         if not pth.exists():
             continue
@@ -383,6 +393,7 @@ def build(region: Region) -> list[dict]:
     print(f"  federal road sections (HPMS {hpms.YEAR}): {len(hp_geoms)}")
     pc = cfg["pavement"]
     hc = cfg["homes"]
+    route_ref = state_route_ref(region.state_codes)
 
     for ch, xy, cum, oa, ob, length, wc in pieces:
         pxy = xy[oa : ob + 1]
@@ -496,7 +507,7 @@ def build(region: Region) -> list[dict]:
         if aadt is not None:
             # Traffic counts beat road class for how quiet a road is.
             quiet = 100.0 * float(np.clip((6000 - aadt) / 5500, 0, 1))
-        state_ref = any(STATE_ROUTE_REF.match(r) for r in refs_c)
+        state_ref = any(route_ref.match(r) for r in refs_c)
         verdict = verdicts.get(rid, {}).get("verdict")
         pavement, pavement_why = pavement_score(
             pc, state=state, owner=owner, state_ref=state_ref, hp_unpaved=hp_unpaved, aadt=aadt, iri=iri,
@@ -717,7 +728,7 @@ def build(region: Region) -> list[dict]:
             t for t, v in (("forest", forest > 0.4), ("water", water_eff > 0.25),
                            ("protected", protected > 0.3), ("byway", byway)) if v
         ]
-        roads.append({
+        road = {
             "id": rid,
             "name": display,
             "osm_name": name,
@@ -783,13 +794,15 @@ def build(region: Region) -> list[dict]:
             "state": state,
             "osm_way_ids": sorted({int(x) for x in seg_way}),
             "mid": [round(mid_lon, 5), round(mid_lat, 5)],
-            "home_mi": round(float(np.hypot(*(mid - home_xy))) / 1609.344, 1),
             "elev_profile": profile,
             "geometry": [[round(x, 6), round(y, 6)] for x, y in lonlat],
             "scoring_version": cfg["version"],
             "status": "candidate",
             "source": "osm",
-        })
+        }
+        if home_xy is not None:
+            road["home_mi"] = round(float(np.hypot(*(mid - home_xy))) / 1609.344, 1)
+        roads.append(road)
     roads.sort(key=lambda r: -r["score_overall"])
     write_outputs(region, roads)
     print(f"candidates: {len(roads)} ({time.time() - t0:.0f}s)")
@@ -822,6 +835,8 @@ def write_outputs(region: Region, roads: list[dict]) -> None:
         "score_speed", "drivers_road",
         "home_mi", "mid",
     ]
+    if region.home is None:
+        cols.remove("home_mi")
     with (out / "candidates.csv").open("w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
         wr.writerow(cols)

@@ -1,0 +1,33 @@
+# Louisiana, one state as its own region. Written by `python -m pipeline states`;
+# rerunning that command overwrites this file.
+
+slug = "la"
+name = "Louisiana"
+area = "Louisiana"
+timezone = "America/Chicago"
+units = "imperial"
+country = "US"
+states = ["Louisiana"]
+
+# west, south, east, north (degrees). `state` replaces this with the extract's header box.
+bbox = [-94.1, 28.9, -88.8, 33.1]
+
+# No home point: per-state runs skip the Local list and home_mi.
+
+osm_extracts = ["https://download.geofabrik.de/north-america/us/louisiana-latest.osm.pbf"]
+
+dem = "usgs_3dep_1as"
+landcover = "esa_worldcover_2021"
+
+# Legal default for roads with no posted sign (copied from regions/shreveport.toml).
+[speed_defaults.Louisiana]
+source = "La. R.S. 32:61: 55 mph on any highway unless a lower limit is posted"
+numbered = 55
+unnumbered = 55
+
+# Last-resort estimates by road type (mph).
+[speed_estimates]
+primary = 55
+secondary = 55
+tertiary = 45
+unclassified = 35

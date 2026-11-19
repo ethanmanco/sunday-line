@@ -1,0 +1,30 @@
+# Georgia, one state as its own region. Written by `python -m pipeline states`;
+# rerunning that command overwrites this file.
+
+slug = "ga"
+name = "Georgia"
+area = "Georgia"
+timezone = "America/New_York"
+units = "imperial"
+country = "US"
+states = ["Georgia"]
+
+# west, south, east, north (degrees). `state` replaces this with the extract's header box.
+bbox = [-85.7, 30.3, -80.8, 35.1]
+
+# No home point: per-state runs skip the Local list and home_mi.
+
+osm_extracts = ["https://download.geofabrik.de/north-america/us/georgia-latest.osm.pbf"]
+
+dem = "usgs_3dep_1as"
+landcover = "esa_worldcover_2021"
+
+# No researched legal default for this state yet: unposted roads use the
+# estimates below and are labeled "estimated" in the app.
+
+# Last-resort estimates by road type (mph).
+[speed_estimates]
+primary = 55
+secondary = 55
+tertiary = 45
+unclassified = 35

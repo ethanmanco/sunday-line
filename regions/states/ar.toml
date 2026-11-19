@@ -1,0 +1,34 @@
+# Arkansas, one state as its own region. Written by `python -m pipeline states`;
+# rerunning that command overwrites this file.
+
+slug = "ar"
+name = "Arkansas"
+area = "Arkansas"
+timezone = "America/Chicago"
+units = "imperial"
+country = "US"
+states = ["Arkansas"]
+
+# west, south, east, north (degrees). `state` replaces this with the extract's header box.
+bbox = [-94.63, 33, -89.63, 36.56]
+
+# No home point: per-state runs skip the Local list and home_mi.
+
+osm_extracts = ["https://download.geofabrik.de/north-america/us/arkansas-latest.osm.pbf"]
+
+dem = "usgs_3dep_1as"
+landcover = "esa_worldcover_2021"
+
+# Legal default for roads with no posted sign (copied from regions/shreveport.toml).
+[speed_defaults.Arkansas]
+source = "Assumed 55 mph, the value ARDOT uses for unposted state highways; the statute's rural passenger-car default was not confirmed"
+numbered = 55
+unnumbered = 55
+assumed = true
+
+# Last-resort estimates by road type (mph).
+[speed_estimates]
+primary = 55
+secondary = 55
+tertiary = 45
+unclassified = 35

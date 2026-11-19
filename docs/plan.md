@@ -594,3 +594,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - **No more copies.** Adding a spot to a group used to copy it, so the same place showed twice in All. Now a spot is one row owned by its creator, and a `spot_groups` link table says which groups it's in, each with its own status (suggested or accepted). The migration folded existing copies (same owner, name, and place) back into one spot that keeps all its groups.
 - **Rules kept:** members see a group's accepted spots plus their own suggestions; managers see all suggestions. A spot in any private group never shows on a profile, even with "All my spots". Visitors see only the public-map spots a public group shared.
 - **Your spots is on the main map** like profiles and groups. Each spot's groups show as chips (tap to take it out); "Add to a group" puts the same spot in another group.
+
+### 11.22 Nationwide pipeline, Arkansas first (built 2026-11-21)
+
+- The pipeline runs one state at a time: `python -m pipeline states` writes a region file per state, and `python -m pipeline state --region ar --cleanup` downloads, scores, exports, and deletes the state's raw inputs. `SUNDAY_LINE_DATA` moves the data folder to another drive. A home town is optional.
+- Arkansas took 24.7 minutes, peaked at 2.4 GB of disk, and kept 30 MB. It added 2,855 roads (1,136 driver's roads). The site now covers Arkansas and the Shreveport area.
+- Estimate for the lower 48 plus DC: 15 to 25 hours, about 160 GB downloaded (one state at a time), Texas needs about 18 GB at its peak. Alaska needs its own plan.
+- Open decisions: speed limits outside TX/LA/AR show as "estimated"; county road pavement baselines exist only for TX/LA/AR; the aerial-photo gravel check is skipped for state runs.

@@ -15,7 +15,7 @@ from datetime import date
 import numpy as np
 import shapely
 
-from .config import REPO, Region
+from .config import Region
 from .report import DEFAULT_MIN_LENGTH_M, speed_text, surface_text
 
 FT = 3.28084
@@ -85,7 +85,6 @@ def export(region: Region) -> None:
             "excluded": p["not_drivers_road_because"],
             "checked": p.get("checked"),
             "length_m": p["length_m"],
-            "home_mi": p["home_mi"],
             "scores": {k: p[f"score_{k}"] for k in
                        ("overall", "twisty", "speed", "pavement", "flow", "elevation", "scenic", "surface", "quiet")},
             "speed": {"min": p["speed_min"], "max": p["speed_max"], "units": p["speed_units"],
@@ -107,19 +106,20 @@ def export(region: Region) -> None:
             "line": encode_polyline(coords),
             "osm_way_ids": p.get("osm_way_ids") or [],
         })
+        if "home_mi" in p:
+            roads[-1]["home_mi"] = p["home_mi"]
     roads.sort(key=lambda r: -r["scores"]["overall"])
+    info = {"slug": region.slug, "name": region.name, "units": region.units, "bbox": list(region.bbox), "area": region.area}
+    if region.home:
+        info.update(home=list(region.home), home_name=region.home_name, local_radius_mi=region.local_radius_mi)
     out = {
-        "region": {
-            "slug": region.slug, "name": region.name, "units": region.units,
-            "bbox": list(region.bbox), "home": list(region.home), "home_name": region.home_name, "area": region.area,
-            "local_radius_mi": region.local_radius_mi,
-        },
+        "region": info,
         "scoring_version": fc["features"][0]["properties"].get("scoring_version") if fc["features"] else None,
         "generated": date.today().isoformat(),
         "license": "Derived from OpenStreetMap. Database: ODbL 1.0. (c) OpenStreetMap contributors.",
         "roads": roads,
     }
-    dest = REPO / "data" / "out" / region.slug / "export.json"
+    dest = region.out_dir / "export.json"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
     kinds = {}

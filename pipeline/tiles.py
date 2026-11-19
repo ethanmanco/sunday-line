@@ -23,8 +23,10 @@ import math
 from datetime import date
 from pathlib import Path
 
+from .config import DATA_DIR
+
 REPO = Path(__file__).resolve().parents[1]
-OUT = REPO / "data" / "out"
+OUT = DATA_DIR / "out"
 DEST = REPO / "public" / "data" / "us"
 
 # Per square, the roads that show when zoomed out (region view, then whole country).
