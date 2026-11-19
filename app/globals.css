@@ -761,3 +761,9 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 .spot-on-road > .fine:first-child { margin: 0; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
 .spot-on-road-name { margin: 2px 0 2px; font-size: 20px; }
 .spot-on-road p { margin: 4px 0; }
+
+/* Locate and add buttons: same size, one centered stack (11.25). */
+.map-actions .locate-button { width: 52px; height: 52px; }
+@media (max-width: 899px) and (orientation: landscape) {
+  .map-actions .locate-button { width: 46px; height: 46px; }
+}
