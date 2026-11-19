@@ -478,3 +478,23 @@ Your check of the top 20 found 6 gravel roads and 9 rough ones, all county or pa
 - **Quiet** now uses traffic counts where the state has them.
 - The road-check page has a new "Rough pavement" verdict.
 
+
+### 11.12 Usernames (added 2026-11-19, your request)
+- **Every profile has a unique username**: 3 to 20 lowercase letters, numbers, or underscores. "Mango" and "mango" count as the same name. A short list of names is reserved (admin, support, sundayline, and similar).
+- It is the handle for profile links (`/u/<username>`), follows, and messages later. The display name stays free-form and optional; it falls back to the username.
+- People can change their username; the old one is then free for someone else.
+- The database enforces all of this, so no app can skip the rules. The profile page checks availability as you type.
+- Existing profiles got a username from their display name.
+
+### 11.13 Keeping a phone app possible
+If Sunday Line takes off, a phone app (likely React Native with Expo, one codebase for iPhone and Android) should reuse everything except the screens. What keeps that open:
+- **Rules live in the database.** Who can read or change what, unique usernames, and limits are enforced by Supabase, not by website code. A phone app talks to the same database and gets the same rules.
+- **No website-only server code for data.** The site reads and writes Supabase directly with the public key. Anything that must run on a server goes in a Supabase Edge Function, which a phone app can call too, not in a Next.js API route.
+- **Road data is one static file** (`roads.json`) that a phone app can download as is.
+- **Shared logic stays plain TypeScript** (`lib/roads.ts`, `lib/polyline.ts`, scoring labels) with no browser-only code, so it can move into a shared package.
+- **Links use stable paths** (`/road/<id>`, later `/u/<username>`, groups, meets) so they can open the app directly later.
+
+Things a phone app will need first:
+- **Sign-in by code.** Email links open a browser, not the app, so the 6-digit code matters on phones. That needs a custom email sender (see `docs/setup.md` step 5).
+- **In-app account deletion.** Apple and Google both require it. The website should get "Delete my account" before then (an Edge Function, since removing the sign-in record needs a server key).
+- **A decision on reporting.** Apple's and Google's store rules for apps with user posts require a way to report objectionable content and block abusive users. That conflicts with the "no report button" rule for the website. A block feature is already planned. Reporting would need your call before an app store submission; the website is not affected.

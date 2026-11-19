@@ -21,21 +21,21 @@ $$;
 -- ---- Profiles ----
 select pg_temp.act_as('11111111-1111-1111-1111-111111111111');
 select lives_ok(
-  $$ insert into public.profiles (id, display_name) values ('11111111-1111-1111-1111-111111111111', 'Alice') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('11111111-1111-1111-1111-111111111111', 'alice', 'Alice') $$,
   'a person can create their own profile');
 select throws_ok(
-  $$ insert into public.profiles (id, display_name) values ('22222222-2222-2222-2222-222222222222', 'Not Bob') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'notbob', 'Not Bob') $$,
   '42501', null, 'nobody can create a profile for someone else');
 
 select pg_temp.act_as('22222222-2222-2222-2222-222222222222');
 select lives_ok(
-  $$ insert into public.profiles (id, display_name) values ('22222222-2222-2222-2222-222222222222', 'Bob') $$,
+  $$ insert into public.profiles (id, username, display_name) values ('22222222-2222-2222-2222-222222222222', 'bob', 'Bob') $$,
   'second person creates their profile');
 update public.profiles set display_name = 'Hacked' where id = '11111111-1111-1111-1111-111111111111';
 select is((select display_name from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
   'Alice', 'nobody can rename someone else');
 select pg_temp.act_anon();
-select is((select count(*)::int from public.profiles), 2, 'anyone can see display names');
+select is((select count(*)::int from public.profiles where id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')), 2, 'anyone can see display names');
 select throws_ok($$ select terms_accepted_at from public.profiles $$, '42501', null,
   'signed-out visitors cannot read private profile columns');
 

@@ -38,12 +38,27 @@ export function getSupabase(): SupabaseClient | null {
   return client;
 }
 
+/** Usernames: 3 to 20 lowercase letters, numbers, or underscores (the database enforces this too). */
+export const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
+/** Kept in step with the username_not_reserved check in the database. */
+export const RESERVED_USERNAMES = new Set([
+  "admin", "administrator", "support", "help", "sundayline", "sunday_line", "official", "staff",
+  "mod", "moderator", "root", "system", "api", "about", "me", "signin", "settings", "null", "undefined",
+]);
+
+/** Turns what someone typed into username form: lowercase, spaces to underscores, other symbols dropped. */
+export function cleanUsername(raw: string): string {
+  return raw.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 20);
+}
+
 export type PavementCondition = "smooth" | "patchy" | "rough" | "loose_gravel";
 export type TrafficLevel = "empty" | "light" | "busy";
 export type VehicleKind = "car" | "motorcycle";
 
 export interface Profile {
   id: string;
+  username: string;
   display_name: string;
   vehicle_note: string | null;
 }

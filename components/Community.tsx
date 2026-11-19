@@ -14,7 +14,7 @@ interface Note {
   vehicle: VehicleKind | null;
   note: string;
   updated_at: string;
-  profiles: { display_name: string } | null;
+  profiles: { display_name: string; username: string } | null;
 }
 
 const LIMITS = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75];
@@ -69,7 +69,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
     const [s, n] = await Promise.all([
       sb.from("road_community").select("*").eq("road_id", roadId).maybeSingle(),
       sb.from("road_ratings")
-        .select("fun, pavement, vehicle, note, updated_at, profiles(display_name)")
+        .select("fun, pavement, vehicle, note, updated_at, profiles(display_name, username)")
         .eq("road_id", roadId).not("note", "is", null).neq("note", "")
         .order("updated_at", { ascending: false }).limit(10),
     ]);
@@ -158,7 +158,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
             <li key={i}>
               <p>{n.note}</p>
               <p className="fine">
-                {n.profiles?.display_name ?? "A member"}
+                {n.profiles ? `${n.profiles.display_name} (@${n.profiles.username})` : "A member"}
                 {n.vehicle ? `, ${n.vehicle === "car" ? "car" : "motorcycle"}` : ""}
                 {n.fun ? `, ${n.fun} of 5 fun` : ""}
                 {n.pavement ? `, ${PAVEMENT_LABEL[n.pavement].toLowerCase()}` : ""}

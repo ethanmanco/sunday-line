@@ -35,7 +35,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setProfile(null);
       return;
     }
-    const { data } = await sb.from("profiles").select("id, display_name, vehicle_note").eq("id", u.id).maybeSingle();
+    const { data } = await sb.from("profiles").select("id, username, display_name, vehicle_note").eq("id", u.id).maybeSingle();
     setProfile((data as Profile | null) ?? null);
   }, []);
 

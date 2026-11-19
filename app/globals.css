@@ -166,6 +166,8 @@ button.link:disabled { color: var(--faint); }
 .bar { height: 8px; background: var(--raised); border-radius: 4px; overflow: hidden; }
 .bar span { display: block; height: 100%; border-radius: 4px; }
 .fine { font-size: 13px; color: var(--faint); margin: 8px 0 0; }
+.fine.warn { color: var(--warn); }
+.form label .fine { margin: 0; }
 .facts { margin-top: 18px; display: grid; gap: 14px; }
 .facts h2, .go h2 { margin: 0 0 4px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
 .facts p { margin: 0; }
