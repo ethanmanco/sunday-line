@@ -142,6 +142,12 @@ export default function Avatar({ person, size = 40, className = "" }: AvatarProp
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={url} alt="" className={`avatar ${className}`} style={style} width={size} height={size} />;
   }
+  // A photo from the car and bike library (11.28).
+  const lib = person.avatar_preset?.match(/^lib:([a-z0-9-]{2,60})$/)?.[1];
+  if (lib) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={`/avatars/library/${lib}.webp`} alt="" className={`avatar ${className}`} style={style} width={size} height={size} />;
+  }
   if (parsePreset(person.avatar_preset)) {
     return (
       <span className={`avatar ${className}`} style={style} aria-hidden="true">

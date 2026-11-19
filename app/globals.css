@@ -777,3 +777,14 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 .requested-score { margin: 12px 0 4px; }
 .requested-score .scores { margin-top: 10px; }
 .note .chip { margin-left: 4px; }
+
+/* Car and bike photo library picker (11.28) */
+.library-picker { margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
+.library-search input { width: 100%; min-height: 44px; }
+.library-picker .chips { margin: 10px 0; }
+.library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; max-height: 340px; overflow-y: auto; padding: 2px; }
+.library-tile { padding: 0; border: 2px solid transparent; border-radius: 50%; background: none; cursor: pointer; aspect-ratio: 1; overflow: hidden; }
+.library-tile img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+.library-tile[aria-selected="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.library-tile:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+.library-credit { margin: 8px 0; }

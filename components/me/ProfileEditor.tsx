@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Avatar, { COLORS, parsePreset, PresetDrawing, SHAPES } from "@/components/Avatar";
+import Avatar from "@/components/Avatar";
+import AvatarLibraryPicker from "./AvatarLibraryPicker";
 import { useAuth } from "@/components/AuthProvider";
 import Cropper from "./Cropper";
 import UsernameField, { BLOCKING, profileSaveError, type Availability } from "./UsernameField";
@@ -115,9 +116,8 @@ function Pictures({ profile }: { profile: OwnProfile }) {
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [cropping, setCropping] = useState<Cropping | null>(null);
-  const current = parsePreset(profile.avatar_preset);
-  const [shape, setShape] = useState(profile.avatar_preset?.split("-")[0] ?? "roadster");
-  const [color, setColor] = useState(profile.avatar_preset?.split("-")[1] ?? "orange");
+  const current = !!profile.avatar_preset;
+  const libraryId = profile.avatar_preset?.startsWith("lib:") ? profile.avatar_preset.slice(4) : null;
 
   async function removeImage(path: string | null) {
     if (path) await getSupabase()?.storage.from("profile-images").remove([path]);
@@ -221,12 +221,12 @@ function Pictures({ profile }: { profile: OwnProfile }) {
     setBusy(null);
   }
 
-  async function usePreset() {
+  async function usePreset(id: string) {
     const sb = getSupabase();
     if (!sb) return;
     setBusy("avatar");
     await sb.from("profiles")
-      .update({ avatar_preset: `${shape}-${color}`, avatar_path: null, avatar_source_path: null, avatar_crop: null })
+      .update({ avatar_preset: `lib:${id}`, avatar_path: null, avatar_source_path: null, avatar_crop: null })
       .eq("id", profile.id);
     await removeImage(profile.avatar_path);
     await removeSource(profile.avatar_source_path);
@@ -258,7 +258,7 @@ function Pictures({ profile }: { profile: OwnProfile }) {
             <button type="button" className="button ghost" disabled={!!busy} onClick={() => adjust("avatar")}>Adjust crop</button>
           )}
           <button type="button" className="button ghost" disabled={!!busy} onClick={() => setPicking(!picking)} aria-expanded={picking}>
-            Pick a drawing
+            Pick a car or bike
           </button>
           {(profile.avatar_path || current) && (
             <button type="button" className="link" disabled={!!busy} onClick={() => clear("avatar")}>Remove</button>
@@ -266,30 +266,7 @@ function Pictures({ profile }: { profile: OwnProfile }) {
         </div>
       </div>
       {picking && (
-        <div className="preset-picker">
-          <fieldset>
-            <legend>Body style</legend>
-            <div className="preset-grid">
-              {Object.entries(SHAPES).map(([k, s]) => (
-                <button key={k} type="button" aria-pressed={shape === k} onClick={() => setShape(k)} aria-label={s.label} title={s.label}>
-                  <PresetDrawing preset={`${k}-${color}`} />
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Color</legend>
-            <div className="swatches">
-              {Object.entries(COLORS).map(([k, c]) => (
-                <button key={k} type="button" aria-pressed={color === k} onClick={() => setColor(k)} aria-label={k} title={k} style={{ background: c }} />
-              ))}
-            </div>
-          </fieldset>
-          <div className="row">
-            <button type="button" className="button" disabled={!!busy} onClick={usePreset}>Use this one</button>
-            <button type="button" className="button ghost" onClick={() => setPicking(false)}>Cancel</button>
-          </div>
-        </div>
+        <AvatarLibraryPicker current={libraryId} busy={busy === "avatar"} onPick={usePreset} onCancel={() => setPicking(false)} />
       )}
       <p className="fine">Photos are resized and their hidden details (like where they were taken) are removed before upload.</p>
       {error && <p className="hint warn" role="alert">{error}</p>}
