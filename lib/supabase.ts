@@ -2,8 +2,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Both values are public. Row level security in the database decides what
 // anyone can read or change.
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const URL = projectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || undefined;
+
+/** Accepts the full project URL or just the project ID. Anything else turns
+ * accounts off instead of breaking the page. */
+function projectUrl(raw: string | undefined): string | undefined {
+  const v = raw?.trim().replace(/\/+$/, "");
+  if (!v) return undefined;
+  if (/^[a-z0-9]{20}$/.test(v)) return `https://${v}.supabase.co`;
+  return /^https?:\/\/[^\s/]+/.test(v) ? v : undefined;
+}
 
 let client: SupabaseClient | null = null;
 
@@ -19,7 +28,13 @@ export function getSupabase(): SupabaseClient | null {
   if (!accountsEnabled || typeof window === "undefined") return null;
   // Implicit flow: the emailed sign-in link works on any device, not only the
   // browser that asked for it. Sessions live in this browser's storage.
-  client ??= createClient(URL!, KEY!, { auth: { flowType: "implicit", persistSession: true, autoRefreshToken: true } });
+  if (!client) {
+    try {
+      client = createClient(URL!, KEY!, { auth: { flowType: "implicit", persistSession: true, autoRefreshToken: true } });
+    } catch {
+      return null; // A bad setting should hide accounts, not break the road pages.
+    }
+  }
   return client;
 }
 
