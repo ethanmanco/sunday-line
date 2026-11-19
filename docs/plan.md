@@ -601,3 +601,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Arkansas took 24.7 minutes, peaked at 2.4 GB of disk, and kept 30 MB. It added 2,855 roads (1,136 driver's roads). The site now covers Arkansas and the Shreveport area.
 - Estimate for the lower 48 plus DC: 15 to 25 hours, about 160 GB downloaded (one state at a time), Texas needs about 18 GB at its peak. Alaska needs its own plan.
 - Open decisions: speed limits outside TX/LA/AR show as "estimated"; county road pavement baselines exist only for TX/LA/AR; the aerial-photo gravel check is skipped for state runs.
+
+### 11.23 Spot taps and the road panel (built 2026-11-21)
+
+- Tapping a road spot finds the scored road it sits on (its saved road, or for a hand-drawn line, a scored road it follows at least 60% of the way within 45 m) and offers "Road stats". The card also links to the person who added it and the groups it's in (only groups the viewer can see).
+- The road panel's All roads and Share bar sits outside the scrolling part, so nothing shows above it on iPhones, and every road opens scrolled to the top.

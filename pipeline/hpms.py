@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -37,6 +38,8 @@ FIELDS = [
     "through_lanes", "lane_width", "shoulder_type", "routesigning", "routenumber",
 ]
 PAGE = 2000
+# Pages fetched at once. The server is public; keep this modest.
+WORKERS = 6
 
 # HPMS Field Manual code tables (only the values we use).
 OWNER_STATE = {1}                 # State Highway Agency
@@ -75,22 +78,31 @@ def download(region: Region, states: list[str] | None = None) -> None:
             print(f"  {st}: cached")
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        feats, offset = [], 0
-        while True:
+        base = dict(
+            where="1=1", geometry=f"{w},{s},{e},{n}", geometryType="esriGeometryEnvelope",
+            inSR=4326, spatialRel="esriSpatialRelIntersects",
+        )
+        url = SERVICE.format(st=st, year=YEAR)
+        count = _get(url + "?" + urllib.parse.urlencode({**base, "returnCountOnly": "true", "f": "json"})).get("count")
+        if not isinstance(count, int):
+            raise RuntimeError(f"HPMS {st}: no section count")
+
+        def page(offset: int) -> list:
             q = dict(
-                where="1=1", geometry=f"{w},{s},{e},{n}", geometryType="esriGeometryEnvelope",
-                inSR=4326, outSR=4326, spatialRel="esriSpatialRelIntersects",
-                outFields=",".join(FIELDS), returnGeometry="true", geometryPrecision=6,
+                base, outSR=4326, outFields=",".join(FIELDS), returnGeometry="true", geometryPrecision=6,
                 orderByFields="objectid", resultOffset=offset, resultRecordCount=PAGE, f="geojson",
             )
-            d = _get(SERVICE.format(st=st, year=YEAR) + "?" + urllib.parse.urlencode(q))
-            batch = [f for f in d.get("features", []) if f.get("geometry")]
-            feats += batch
-            offset += PAGE
-            if offset % 20000 == 0:
-                print(f"  {st}: {len(feats)} sections")
-            if len(d.get("features", [])) < PAGE and not d.get("properties", {}).get("exceededTransferLimit"):
-                break
+            d = _get(url + "?" + urllib.parse.urlencode(q))
+            return [f for f in d.get("features", []) if f.get("geometry")]
+
+        offsets = list(range(0, count, PAGE))
+        print(f"  {st}: {count} sections in {len(offsets)} pages")
+        feats: list = []
+        with ThreadPoolExecutor(WORKERS) as pool:
+            for i, batch in enumerate(pool.map(page, offsets), 1):
+                feats += batch
+                if i % 20 == 0:
+                    print(f"  {st}: {len(feats)} sections")
         part = dest.with_suffix(".part")
         part.write_text(json.dumps({"type": "FeatureCollection", "features": feats}), encoding="utf-8")
         part.replace(dest)

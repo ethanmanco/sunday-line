@@ -96,6 +96,8 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         </button>
       </div>
 
+      {/* Its own scroll, outside the header, so nothing shows above it and each road starts at the top. */}
+      <div className="detail-body" key={r.id}>
       <header className="detail-head">
         <span className="badge big" style={{ background: scoreColor(s), color: scoreInk(s) }} aria-label={`Overall ${s}`}>
           {s}
@@ -201,6 +203,7 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         Road data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.
         Scores are estimates from map data. Follow posted limits and traffic laws.
       </p>
+      </div>
     </article>
   );
 }

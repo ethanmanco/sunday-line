@@ -414,6 +414,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onPickRoad={(id) => pickHandlers.current?.onPickRoad(id)}
               onTraceRoad={(t) => pickHandlers.current?.onTraceRoad(t)}
               onSelect={selectRoad}
+              onOpenRoad={(r) => selectRoad(r.id, r)}
+              onNavigate={(href) => router.push(href)}
               onHover={setHoverId}
               onBounds={setBounds}
             />

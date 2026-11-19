@@ -10,6 +10,9 @@ import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-g
 import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
+import { findSpotRoad } from "@/lib/spotRoad";
+import type { RoadOnMap } from "@/lib/roadData";
+import { getSupabase } from "@/lib/supabase";
 
 export interface FocusRequest {
   bbox: [number, number, number, number];
@@ -40,6 +43,10 @@ interface Props {
   /** Pixels hidden at the bottom (the phone sheet), kept clear when fitting views. */
   bottomInset?: number;
   onSelect: (id: string) => void;
+  /** A spot's "Road stats" button: open the scored road it sits on. */
+  onOpenRoad?: (road: RoadOnMap) => void;
+  /** A link in a spot's card (a profile or a group). */
+  onNavigate?: (href: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
 }
@@ -154,7 +161,7 @@ export default function MapView(props: Props) {
           popupRef.current?.remove();
           popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
             .setLngLat(e.lngLat)
-            .setDOMContent(spotPopup(spot))
+            .setDOMContent(spotPopup(spot, cb.current, () => popupRef.current?.remove()))
             .addTo(map);
           return;
         }
@@ -246,7 +253,7 @@ export default function MapView(props: Props) {
     popupRef.current?.remove();
     popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
       .setLngLat([spot.lng, spot.lat])
-      .setDOMContent(spotPopup(spot))
+      .setDOMContent(spotPopup(spot, cb.current, () => popupRef.current?.remove()))
       .addTo(map);
     // The key decides when to fly; spots can update without moving the map.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -319,8 +326,12 @@ export default function MapView(props: Props) {
   );
 }
 
-/** The little card shown when a spot on the map is tapped. Built from DOM nodes, so names can't inject markup. */
-function spotPopup(s: Spot): HTMLElement {
+/**
+ * The little card shown when a spot on the map is tapped. Built from DOM
+ * nodes, so names can't inject markup. Who added it, its groups, and its road
+ * stats fill in after it opens.
+ */
+function spotPopup(s: Spot, h: Pick<Props, "onOpenRoad" | "onNavigate">, close: () => void): HTMLElement {
   const box = document.createElement("div");
   const title = document.createElement("b");
   title.textContent = s.name;
@@ -328,7 +339,7 @@ function spotPopup(s: Spot): HTMLElement {
   kind.className = "fine";
   kind.textContent = s.group_name
     ? `${spotLabel(s)} · ${s.group_name}`
-    : spotLabel(s) + (s.kind === "road" ? " (community pick)" : "");
+    : spotLabel(s) + (s.kind === "road" && s.public_status === "approved" ? " (community pick)" : "");
   box.append(title, kind);
   if (s.description) {
     const d = document.createElement("p");
@@ -348,5 +359,54 @@ function spotPopup(s: Spot): HTMLElement {
     go.append(a);
   });
   box.append(go);
+
+  const more = document.createElement("div");
+  more.className = "popup-actions";
+  box.append(more);
+  const link = (label: string, href: string) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.className = "chip";
+    a.textContent = label;
+    a.addEventListener("click", (e) => {
+      if (!h.onNavigate || e.metaKey || e.ctrlKey) return;
+      e.preventDefault();
+      close();
+      h.onNavigate(href);
+    });
+    more.append(a);
+  };
+  if (s.kind === "road") {
+    findSpotRoad(s).then((road) => {
+      if (road && h.onOpenRoad) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip accent";
+        b.textContent = "Road stats";
+        b.addEventListener("click", () => {
+          close();
+          h.onOpenRoad!(road);
+        });
+        more.prepend(b);
+      } else if (!road) {
+        const n = document.createElement("p");
+        n.className = "fine";
+        n.textContent = "Drawn by hand off the scored roads, so there are no road stats.";
+        box.insertBefore(n, more);
+      }
+    });
+  }
+  const sb = getSupabase();
+  if (sb && s.owner_id && !s.id.startsWith("event-")) {
+    sb.from("profiles").select("username, display_name").eq("id", s.owner_id).maybeSingle().then(({ data }) => {
+      const p = data as { username: string; display_name: string } | null;
+      if (p) link(`By ${p.display_name}`, `/u/${p.username}`);
+    });
+    sb.from("spot_groups").select("group:groups(name, short_id)").eq("spot_id", s.id).eq("status", "accepted").then(({ data }) => {
+      for (const r of (data as unknown as { group: { name: string; short_id: string } | null }[] | null) ?? []) {
+        if (r.group) link(`In ${r.group.name}`, `/g/${r.group.short_id}`);
+      }
+    });
+  }
   return box;
 }

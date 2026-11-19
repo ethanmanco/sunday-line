@@ -739,3 +739,14 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
    scrolled content never peeks through (11.21). */
 .detail-bar { margin: 0 -16px; padding: 8px 16px; box-shadow: 0 -2px 0 var(--panel); }
 .filters { box-shadow: 0 -2px 0 var(--panel); }
+
+/* Road detail: the bar sits outside the scrolling part (iPhones let pinned
+   headers lag a few pixels while scrolling), and each road scrolls on its own
+   from the top (11.23). */
+.shell-scroll:has(> .detail) { overflow: hidden; display: flex; flex-direction: column; }
+.shell-scroll > .detail { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; }
+.shell-scroll > .detail > .detail-bar { position: static; flex: none; margin: 0; padding: 8px 16px; box-shadow: none; border-bottom: 1px solid var(--line); }
+.shell-scroll > .detail > .detail-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 28px; }
+.popup-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.popup-actions:empty { display: none; }
+.chip.accent { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
