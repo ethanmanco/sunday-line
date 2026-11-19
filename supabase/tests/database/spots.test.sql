@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(51);
+select plan(54);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -170,6 +170,16 @@ select pg_temp.act_anon();
 select is((select count(*)::int from public.spot_groups sg join public.spots s on s.id = sg.spot_id where sg.group_id = pg_temp.id('g2')), 1,
   'visitors see the public-map spots a public group shared');
 select is((select count(*)::int from public.spot_groups where group_id = pg_temp.id('g')), 0, 'but never a private group''s');
+
+-- ---- Editing ----
+select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
+select lives_ok($$ update public.spots set kind = 'point', category = 'meetup', name = 'My gas stop and coffee at the corner', line = null, road_id = null
+  where id = pg_temp.id('mine') $$, 'owners edit their spots, kind included');
+select is((select name from public.spots where id = pg_temp.id('mine')), 'My gas stop and coffee at the corner', 'the edit is saved');
+select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
+update public.spots set name = 'Hijacked' where id = pg_temp.id('mine');
+select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
+select is((select name from public.spots where id = pg_temp.id('mine')), 'My gas stop and coffee at the corner', 'nobody edits someone else''s spot');
 
 -- ---- What a profile shows ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');

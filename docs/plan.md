@@ -606,3 +606,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Tapping a road spot finds the scored road it sits on (its saved road, or for a hand-drawn line, a scored road it follows at least 60% of the way within 45 m) and offers "Road stats". The card also links to the person who added it and the groups it's in (only groups the viewer can see).
 - The road panel's All roads and Share bar sits outside the scrolling part, so nothing shows above it on iPhones, and every road opens scrolled to the top.
+
+### 11.24 Editing spots works (fixed 2026-11-21)
+
+- Every spot edit failed because the editor sends the spot's kind, which wasn't in the columns people may update. Now it is (the shape check still applies). The save error says what actually went wrong instead of always blaming the name.

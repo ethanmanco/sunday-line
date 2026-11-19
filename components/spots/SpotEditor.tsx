@@ -148,6 +148,11 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
     const sb = getSupabase();
     if (!sb) return;
     setError(null);
+    const trimmed = name.trim();
+    if (trimmed.length < 2 || trimmed.length > 60) {
+      setError("Names are 2 to 60 characters.");
+      return;
+    }
     let row: Record<string, unknown>;
     if (kind === "point") {
       if (!pin) return setError("Tap the map to place the spot.");
@@ -189,7 +194,9 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
       setError(
         res.error.message.includes("Limit") ? "That's the limit of 500 spots."
           : res.error.message.includes("line") ? "That road is too long to save. Trim it or draw a shorter stretch."
-            : "Couldn't save. Names are 2 to 60 characters.",
+            : res.error.code === "42501" ? "Couldn't save: you can only edit your own spots."
+              : res.error.message.includes("description") ? "Notes are up to 500 characters."
+                : "Couldn't save. Check your connection and try again.",
       );
       return;
     }
