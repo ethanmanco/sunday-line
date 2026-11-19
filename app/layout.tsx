@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Barlow, Barlow_Condensed } from "next/font/google";
+import AccountLink from "@/components/AccountLink";
+import AuthProvider from "@/components/AuthProvider";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -26,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <body>
+        <AuthProvider>
         <a href="#main" className="skip">Skip to content</a>
         <header className="topbar">
           <Link href="/" className="brand" aria-label={`${SITE_NAME} home`}>
@@ -35,9 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav aria-label="Main">
             <Link href="/">Roads</Link>
             <Link href="/about">About</Link>
+            <AccountLink />
           </nav>
         </header>
         <main id="main">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

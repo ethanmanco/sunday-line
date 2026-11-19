@@ -45,3 +45,14 @@ Note: the built-in email sender only sends a few sign-in emails per hour. Fine f
 
 ## Meanwhile
 I can build accounts and ratings against a local copy of Supabase in Docker, including the security tests, so none of this blocks the work.
+
+## 5. Sign-in email (Supabase dashboard, works on a phone)
+Authentication, then Emails (Templates). For both **Magic link** and **Confirm signup**:
+- Subject: `Your Sunday Line sign-in code`
+- Body: paste the contents of `supabase/templates/sign_in.html` from the repo.
+
+The email then has a 6-digit code (typed into the sign-in page) and a button that works on any device.
+
+## 6. Turning on accounts in the live site (at your computer)
+1. Run the two commands in step 2.7 (`npx supabase login`, `npx supabase link ...`).
+2. Tell me, and I run `npx supabase db push` to create the tables, then merge the `accounts` branch so the live site gets sign-in and ratings.
