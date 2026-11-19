@@ -25,15 +25,19 @@ type RoadSource =
  * roads, any other road on the map (traced from the base map), or drawn by
  * tapping points. Suggested and traced roads can be trimmed with a start and end.
  */
-export default function SpotEditor({ groupId = null, spot = null, groupName, onSaved, onCancel }: {
+export default function SpotEditor({ groupId = null, spot = null, groupName, initialKind, initialBbox, onSaved, onCancel }: {
   groupId?: string | null;
   spot?: Spot | null;
   groupName?: string;
-  onSaved: () => void;
+  /** Start as a place or a road (from the map's add button). */
+  initialKind?: SpotKind;
+  /** Start the map here (the view the person was looking at). */
+  initialBbox?: [number, number, number, number] | null;
+  onSaved: (id: string) => void;
   onCancel: () => void;
 }) {
   const custom = spot?.kind === "road" && !spot.road_id && spot.line ? decodePolyline(spot.line) : null;
-  const [kind, setKind] = useState<SpotKind>(spot?.kind ?? "point");
+  const [kind, setKind] = useState<SpotKind>(spot?.kind ?? initialKind ?? "point");
   const [drawing, setDrawing] = useState(!!custom);
   const [category, setCategory] = useState<SpotCategory>(spot?.category ?? "meetup");
   const [name, setName] = useState(spot?.name ?? "");
@@ -127,8 +131,8 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
     row = { ...row, name: name.trim(), description: description.trim() || null, show_on_profile: onProfile };
     setBusy(true);
     const res = spot
-      ? await sb.from("spots").update(row).eq("id", spot.id)
-      : await sb.from("spots").insert({ ...row, group_id: groupId });
+      ? await sb.from("spots").update(row).eq("id", spot.id).select("id").single()
+      : await sb.from("spots").insert({ ...row, group_id: groupId }).select("id").single();
     setBusy(false);
     if (res.error) {
       setError(
@@ -138,7 +142,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
       );
       return;
     }
-    onSaved();
+    onSaved((res.data as { id: string }).id);
   }
 
   const mapMode = kind === "point" ? "point" : drawing ? "draw" : "road";
@@ -178,7 +182,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, onS
       {data ? (
         <SpotMap
           spots={[]}
-          fallbackBbox={data.bbox}
+          fallbackBbox={initialBbox ?? data.bbox}
           mode={mapMode}
           roads={data.roads}
           selectedRoadId={source?.from === "suggested" ? source.id : null}

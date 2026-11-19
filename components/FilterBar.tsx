@@ -21,17 +21,15 @@ const LENGTHS = [0, 3, 5, 10];
 
 export default function FilterBar(p: Props) {
   const f = p.filters;
-  const hint = VIEWS.find((v) => v.key === f.view)?.hint;
   return (
     <div className="filters">
       <div className="views" role="group" aria-label="Which roads">
         {VIEWS.map((v) => (
-          <button key={v.key} type="button" aria-pressed={f.view === v.key} onClick={() => p.onView(v.key)}>
+          <button key={v.key} type="button" aria-pressed={f.view === v.key} title={v.hint} onClick={() => p.onView(v.key)}>
             {v.label}
           </button>
         ))}
       </div>
-      <p className="hint">{hint}</p>
       <div className="controls">
         <label>
           <span>Sort</span>

@@ -1,23 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
 import { can, type Membership } from "./GroupView";
 import { getSupabase, PROFILE_COLUMNS, type Group, type Profile } from "@/lib/supabase";
-import { loadRoads, type Spot } from "@/lib/spots";
-
-const SpotMap = dynamic(() => import("@/components/spots/SpotMap"), { ssr: false, loading: () => <div className="spot-map map-loading" /> });
+import type { Spot } from "@/lib/spots";
 
 /** The group's places and roads. Members propose; spot managers accept and publish. */
-export default function GroupSpots({ group, me, myId }: { group: Group; me: Membership | null; myId: string | null }) {
+export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
+  group: Group;
+  me: Membership | null;
+  myId: string | null;
+  /** Show a spot on the page's map. */
+  onFocus: (id: string) => void;
+  /** Spots changed: the page's map reloads. */
+  onChanged: () => void;
+}) {
   const [spots, setSpots] = useState<Spot[] | null>(null);
   const [owners, setOwners] = useState<Record<string, Profile>>({});
-  const [bbox, setBbox] = useState<[number, number, number, number] | null>(null);
   const [editing, setEditing] = useState<Spot | "new" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [fitKey, setFitKey] = useState("first");
   const manager = can(me, "spots");
 
   const load = useCallback(async () => {
@@ -35,7 +38,6 @@ export default function GroupSpots({ group, me, myId }: { group: Group; me: Memb
 
   useEffect(() => {
     load();
-    loadRoads().then((d) => setBbox(d.bbox)).catch(() => setBbox([-95, 31, -92, 34]));
   }, [load]);
 
   const accepted = useMemo(() => (spots ?? []).filter((s) => s.group_status === "accepted"), [spots]);
@@ -46,18 +48,24 @@ export default function GroupSpots({ group, me, myId }: { group: Group; me: Memb
     const { data, error } = await fn();
     setMessage(error ? "That didn't work. You may not have permission." : typeof ok === "function" ? ok(data) : ok);
     load();
+    onChanged();
   }
   const sb = getSupabase()!;
 
   if (!me) {
     // Visitors to a public group see only the spots it put on the public map.
     const shared = (spots ?? []).filter((s) => s.public_status === "approved" && s.group_status === "accepted");
-    if (shared.length === 0 || !bbox) return null;
+    if (shared.length === 0) return null;
     return (
       <section aria-labelledby="public-spots">
         <h2 id="public-spots">Spots this group shared</h2>
-        <SpotMap spots={shared} fallbackBbox={bbox} fitKey="v" />
-        <ul className="spot-list">{shared.map((s) => <SpotCard key={s.id} spot={s} />)}</ul>
+        <ul className="spot-list">
+          {shared.map((s) => (
+            <SpotCard key={s.id} spot={s}>
+              <button type="button" className="link" onClick={() => onFocus(s.id)}>Show on map</button>
+            </SpotCard>
+          ))}
+        </ul>
       </section>
     );
   }
@@ -73,7 +81,7 @@ export default function GroupSpots({ group, me, myId }: { group: Group; me: Memb
             setEditing(null);
             setMessage(editing === "new" && !manager ? "Sent to the group's managers to accept." : null);
             load();
-            setFitKey(`s${Date.now()}`);
+            onChanged();
           }}
           onCancel={() => setEditing(null)}
         />
@@ -82,8 +90,6 @@ export default function GroupSpots({ group, me, myId }: { group: Group; me: Memb
           <p>
             <button type="button" className="button" onClick={() => setEditing("new")}>{manager ? "Add a spot" : "Suggest a spot"}</button>
           </p>
-          {bbox && accepted.length > 0 && <SpotMap spots={accepted} fallbackBbox={bbox} fitKey={fitKey}
-            onSpotClick={(id) => document.getElementById(`spot-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} />}
         </>
       )}
       {message && <p className="hint" role="status">{message}</p>}
@@ -116,6 +122,7 @@ export default function GroupSpots({ group, me, myId }: { group: Group; me: Memb
             {accepted.map((s) => (
               <SpotCard key={s.id} spot={s} showStatus={manager || s.owner_id === myId}>
                 <span className="fine">Added by {owners[s.owner_id]?.display_name ?? "a member"}</span>
+                <button type="button" className="link" onClick={() => onFocus(s.id)}>Show on map</button>
                 {s.owner_id === myId && <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>}
                 {manager && (s.public_status === "none" || s.public_status === "rejected") && (
                   <button type="button" className="link" onClick={() => run(() => sb.rpc("submit_spot_public", { p_spot: s.id }),

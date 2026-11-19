@@ -567,3 +567,11 @@ If the review queue gets busy later, options include: trusted members whose subm
 - **Database tests:** 214 in total.
 
 Not built yet: email or push notifications for events (in-app chat posts only), and events visible outside the group.
+
+### 11.19 People, a livelier map, and pages with their map (built 2026-11-20)
+- **Find people** (`/people`, the person-plus icon in the top bar): search by name or @username, and "People you may know": people in your groups and followers you don't follow back. Search runs in the database and never returns someone who blocked you or whom you blocked.
+- **Map layers:** "My spots" joins public spots and each of your groups, with shortcuts for only mine, only groups, only public, or all.
+- **Adding from the map:** a + button (bottom right of the map) opens "Add a road" and "Add a place". The spot editor opens over the map at the view you were looking at. After saving, the map shows your spots and flies to the new one.
+- **Phones:** the map takes more of the screen, with the top roads in view as swipeable cards along the bottom. Swiping lights up each road; tapping opens it. "Roads" in the top bar gives way to the logo (which goes to the same place) to make room for People and Messages.
+- **Profiles and groups with their map:** on wide screens (1100 px and up), the page sits on the left and a map of its spots on the right; "Show on map" on a spot zooms there. On phones a "Map" button flips to a full-screen map with a back button to the page. Group pages show accepted spots to members and only public-map spots to everyone else; profiles show what the owner chose.
+- **Filters:** the one-line description under the road views is gone (it's a tooltip on each button now).

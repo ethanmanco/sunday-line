@@ -9,6 +9,12 @@ import type { FocusRequest } from "./MapView";
 import { DATA_URL } from "@/lib/config";
 import { decodePolyline } from "@/lib/polyline";
 import { SpotLayersControl, useSpotLayers } from "./SpotLayers";
+import RoadCards from "./RoadCards";
+import SpotEditor from "./spots/SpotEditor";
+import { useAuth } from "./AuthProvider";
+import { useRouter } from "next/navigation";
+import { rememberReturn } from "@/lib/supabase";
+import type { SpotKind } from "@/lib/spots";
 import { applyFilters, badgeKey, DEFAULT_FILTERS, defaultSort, type Bounds, type Filters, type View } from "@/lib/roads";
 import type { LoadedRoad, RegionInfo, RoadData } from "@/lib/types";
 
@@ -35,6 +41,36 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
   // Phones: hide the list so the map fills the screen.
   const [fullMap, setFullMap] = useState(false);
   const layers = useSpotLayers();
+  const { user, profile } = useAuth();
+  const router = useRouter();
+  // The + button: closed, open (showing road and place), or adding one.
+  const [addOpen, setAddOpen] = useState(false);
+  const [adding, setAdding] = useState<SpotKind | null>(null);
+  const [focusSpot, setFocusSpot] = useState<{ id: string; key: number } | null>(null);
+
+  // A link like /?spot=<id> opens the map on that spot (with your spots shown).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("spot");
+    if (id && /^[0-9a-f-]{36}$/.test(id)) setFocusSpot({ id, key: Date.now() });
+  }, []);
+
+  function startAdding(kind: SpotKind) {
+    setAddOpen(false);
+    if (!user || !profile) {
+      rememberReturn("/");
+      router.push(user ? "/me" : "/signin");
+      return;
+    }
+    setAdding(kind);
+  }
+
+  async function added(id: string) {
+    setAdding(null);
+    layers.save({ ...layers.saved, mine: true });
+    await layers.reload();
+    setFullMap(true);
+    setFocusSpot({ id, key: Date.now() });
+  }
   const panel = useRef<HTMLElement>(null);
   const listScroll = useRef(0);
   const listBounds = useRef<Bounds | null>(null);
@@ -202,6 +238,7 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
             myLocation={myLocation}
             layoutKey={fullMap ? "full" : "split"}
             spots={layers.spots}
+            focusSpot={focusSpot}
             onSelect={select}
             onHover={setHoverId}
             onBounds={setBounds}
@@ -210,7 +247,39 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
         <button type="button" className="sat-toggle" aria-pressed={satellite} onClick={() => setSatellite(!satellite)}>
           {satellite ? "Map" : "Satellite"}
         </button>
-        <SpotLayersControl groups={layers.groups} saved={layers.saved} save={layers.save} />
+        <SpotLayersControl groups={layers.groups} saved={layers.saved} save={layers.save} signedIn={layers.signedIn} />
+        {region && !selected && (
+          <RoadCards roads={list.slice(0, 15)} scoreKey={scoreKey} units={region.units} onSelect={select} onHover={setHoverId} />
+        )}
+        <div className={`map-actions${addOpen ? " open" : ""}`}>
+          {addOpen && (
+            <div className="add-choices" role="group" aria-label="Add a spot">
+              <button type="button" className="add-choice" onClick={() => startAdding("road")}>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <path d="M8 21l2-18M16 21l-2-18M12 5v2M12 11v2M12 17v2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Add a road
+              </button>
+              <button type="button" className="add-choice" onClick={() => startAdding("point")}>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <path d="M12 21s-6-5.5-6-11a6 6 0 1 1 12 0c0 5.5-6 11-6 11z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                  <circle cx="12" cy="10" r="2.2" fill="currentColor" />
+                </svg>
+                Add a place
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            className="add-toggle"
+            aria-expanded={addOpen}
+            aria-label={addOpen ? "Close" : "Add a road or a place"}
+            onClick={() => setAddOpen(!addOpen)}
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
         <button
           type="button"
           className="full-toggle"
@@ -224,12 +293,18 @@ export default function Explorer({ initialRoadId }: { initialRoadId?: string }) 
             <path d={fullMap ? "M6 9l6 6 6-6" : "M6 15l6-6 6 6"} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        </div>
         <div className="legend" aria-hidden="true">
           <span>{scoreKey === "overall" ? "Overall" : scoreKey === "scenic" ? "Scenic" : "Twisty"}</span>
           <span className="ramp" />
           <span className="ends"><span>35</span><span>80+</span></span>
         </div>
       </div>
+      {adding && (
+        <div className="add-sheet" role="dialog" aria-modal="true" aria-label={adding === "road" ? "Add a road" : "Add a place"}>
+          <SpotEditor initialKind={adding} initialBbox={bounds} onSaved={added} onCancel={() => setAdding(null)} />
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
 import MessagesLink from "@/components/MessagesLink";
+import PeopleLink from "@/components/PeopleLink";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -37,8 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             SUNDAY LINE
           </Link>
           <nav aria-label="Main">
-            <Link href="/">Roads</Link>
+            <Link href="/" className="nav-roads">Roads</Link>
             <Link href="/groups">Groups</Link>
+            <PeopleLink />
             <Link href="/about" className="nav-about">About</Link>
             <MessagesLink />
             <AccountLink />

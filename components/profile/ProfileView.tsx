@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VehicleCard from "./VehicleCard";
 import ProfileSpots from "./ProfileSpots";
+import MapSplit from "@/components/MapSplit";
+import type { Spot } from "@/lib/spots";
 import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
@@ -19,6 +21,8 @@ export default function ProfileView({ username }: { username: string }) {
   const { ready, user, profile: me } = useAuth();
   const router = useRouter();
   const [vehiclePhotos, setVehiclePhotos] = useState<VehiclePhoto[]>([]);
+  const [spots, setSpots] = useState<Spot[] | null>(null);
+  const [focus, setFocus] = useState<{ id: string; key: number } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Counts | null>(null);
@@ -63,6 +67,9 @@ export default function ProfileView({ username }: { username: string }) {
     setFollow(((f.data as { status: FollowStatus } | null)?.status) ?? null);
     setBlocked(Boolean(b.data));
     setUrls(await signedMediaUrls([...vps.map((x) => x.path), ...ms.map((x) => x.path)]));
+    // Public spots plus the ones the owner chose to show (the database decides).
+    const { data: sp } = await sb.rpc("profile_spots", { p_user: person.id });
+    setSpots((sp as Spot[] | null) ?? []);
   }, [username, user]);
 
   useEffect(() => {
@@ -165,6 +172,7 @@ export default function ProfileView({ username }: { username: string }) {
   }
 
   return (
+    <MapSplit spots={spots ?? []} title={`${profile.display_name}'s spots`} focus={focus} onFocus={setFocus}>
     <div className="page profile">
       <ProfileHeader profile={profile} counts={counts}>{action}</ProfileHeader>
       {error && <p className="hint warn" role="alert">{error}</p>}
@@ -190,7 +198,7 @@ export default function ProfileView({ username }: { username: string }) {
             {([
               ["garage", `Garage (${vehicles.length})`],
               ["photos", `Photos (${media.length})`],
-              ["spots", "Spots"],
+              ["spots", `Spots (${spots?.length ?? 0})`],
               ["followers", "Followers"],
               ["following", "Following"],
             ] as [Tab, string][]).map(([k, label]) => (
@@ -200,7 +208,7 @@ export default function ProfileView({ username }: { username: string }) {
           <div role="tabpanel">
             {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
-            {tab === "spots" && <ProfileSpots personId={profile.id} isMe={isMe} />}
+            {tab === "spots" && <ProfileSpots spots={spots} isMe={isMe} onFocus={(id) => setFocus({ id, key: Date.now() })} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
           </div>
@@ -213,6 +221,7 @@ export default function ProfileView({ username }: { username: string }) {
         </p>
       )}
     </div>
+    </MapSplit>
   );
 }
 

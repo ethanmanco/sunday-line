@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { directionsLinks } from "@/lib/roads";
-import { spotFeatures, spotLabel, type Spot } from "@/lib/spots";
+import { spotFeatures, spotLabel, spotsBbox, type Spot } from "@/lib/spots";
 import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
@@ -28,6 +28,8 @@ interface Props {
   layoutKey?: string;
   /** Spots approved for the public map. */
   spots?: Spot[];
+  /** Fly to and highlight one spot (change key to repeat). */
+  focusSpot?: { id: string; key: number } | null;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
@@ -76,6 +78,17 @@ export default function MapView(props: Props) {
           id: "ps-line", type: "line", source: "public-spots", filter: ["==", ["geometry-type"], "LineString"],
           layout: { "line-cap": "round", "line-join": "round" },
           paint: { "line-color": "#7cc4ff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 14, 5], "line-dasharray": [2, 1.5] },
+        });
+        map.addLayer({
+          id: "ps-focus-line", type: "line", source: "public-spots",
+          filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#f5a524", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 6, 14, 12], "line-opacity": 0.85 },
+        });
+        map.addLayer({
+          id: "ps-focus-point", type: "circle", source: "public-spots",
+          filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], ""]],
+          paint: { "circle-color": "rgba(245,165,36,0.25)", "circle-radius": 22, "circle-stroke-color": "#f5a524", "circle-stroke-width": 3 },
         });
         map.addLayer({
           id: "ps-point", type: "circle", source: "public-spots", filter: ["==", ["geometry-type"], "Point"],
@@ -149,6 +162,30 @@ export default function MapView(props: Props) {
     if (!ready || !map) return;
     (map.getSource("public-spots") as GeoJSONSource | undefined)?.setData(spotFeatures(props.spots ?? []));
   }, [ready, props.spots]);
+
+  // Fly to a spot (for example one just added) and ring it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const ml = mlRef.current;
+    const f = props.focusSpot;
+    if (!ready || !map || !ml || !f) return;
+    const spot = props.spots?.find((s) => s.id === f.id);
+    if (!spot) return;
+    map.setFilter("ps-focus-line", ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], f.id]]);
+    map.setFilter("ps-focus-point", ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], f.id]]);
+    const b = spotsBbox([spot]);
+    if (b) {
+      const pad = b[0] === b[2] ? 0.01 : 0;
+      map.fitBounds([b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad], { padding: 60, maxZoom: 14, duration: 700 });
+    }
+    popupRef.current?.remove();
+    popupRef.current = new ml.Popup({ closeButton: true, maxWidth: "260px", className: "spot-popup" })
+      .setLngLat([spot.lng, spot.lat])
+      .setDOMContent(spotPopup(spot))
+      .addTo(map);
+    // The key decides when to fly; spots can update without moving the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, props.focusSpot, props.spots?.length]);
 
   // Road lines.
   useEffect(() => {

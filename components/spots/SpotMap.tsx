@@ -24,6 +24,8 @@ interface Props {
   vertices?: [number, number][];
   /** Change it to fit the view again. */
   fitKey?: string;
+  /** Zoom to and ring this spot (fits when fitKey changes). */
+  focusId?: string | null;
   className?: string;
   onPickPoint?: (lngLat: [number, number]) => void;
   onPickRoad?: (id: string) => void;
@@ -93,6 +95,17 @@ export default function SpotMap(props: Props) {
           id: "spots-line", type: "line", source: "spots", filter: ["==", ["geometry-type"], "LineString"],
           layout: { "line-cap": "round", "line-join": "round" },
           paint: { "line-color": ["get", "color"], "line-width": ["interpolate", ["linear"], ["zoom"], 8, 3, 14, 7], "line-opacity": 0.9 },
+        });
+        map.addLayer({
+          id: "spots-focus", type: "circle", source: "spots",
+          filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], ""]],
+          paint: { "circle-color": "rgba(245,165,36,0.25)", "circle-radius": 20, "circle-stroke-color": "#f5a524", "circle-stroke-width": 3 },
+        });
+        map.addLayer({
+          id: "spots-focus-line", type: "line", source: "spots",
+          filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#f5a524", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 7, 14, 13], "line-opacity": 0.6 },
         });
         map.addLayer({
           id: "spots-point", type: "circle", source: "spots", filter: ["==", ["geometry-type"], "Point"],
@@ -206,6 +219,14 @@ export default function SpotMap(props: Props) {
     pinRef.current = props.pin ? new ml.Marker({ color: "#f5a524" }).setLngLat(props.pin).addTo(map) : null;
   }, [ready, props.pin]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const id = props.focusId ?? "";
+    map.setFilter("spots-focus", ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], id]]);
+    map.setFilter("spots-focus-line", ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], id]]);
+  }, [ready, props.focusId]);
+
   // Fit again when asked.
   useEffect(() => {
     const map = mapRef.current;
@@ -220,6 +241,11 @@ export default function SpotMap(props: Props) {
 }
 
 function fitBox(p: Props): Box | null {
+  const focused = p.focusId ? p.spots.find((s) => s.id === p.focusId) : null;
+  if (focused) {
+    const b = spotsBbox([focused])!;
+    return b[0] === b[2] ? [b[0] - 0.01, b[1] - 0.01, b[2] + 0.01, b[3] + 0.01] : b;
+  }
   if (p.segment && p.segment.length > 1) {
     const xs = p.segment.map((c) => c[0]);
     const ys = p.segment.map((c) => c[1]);
