@@ -248,12 +248,12 @@
   "source": "Ethan's Street View check, 2026-11-18"
  },
  "8ec5437ecdec": {
-  "verdict": "good",
+  "verdict": "gravel",
   "name": "Old Mooringsport Road",
   "near": "Shreveport",
-  "note": "in a checked list and not flagged",
-  "at": "2026-11-18T23:59:00",
-  "source": "Ethan's Street View check, 2026-11-18"
+  "note": "drove it: gravel (replaces the 2026-11-18 \"not flagged\" mark)",
+  "at": "2026-11-19T15:30:00",
+  "source": "Ethan drove it, 2026-11-19"
  },
  "fda96354dd66": {
   "verdict": "good",

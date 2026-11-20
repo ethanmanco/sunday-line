@@ -33,6 +33,9 @@ def speed_text(r: dict) -> str:
 
 
 def surface_text(r: dict) -> str:
+    # A person's check beats tags and photos.
+    if r.get("checked") == "gravel":
+        return "gravel or dirt (checked by a person)"
     if r.get("surface_check"):
         return r["surface_check"]
     if r["surface"] == "paved":
