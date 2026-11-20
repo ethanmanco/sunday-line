@@ -10,11 +10,11 @@ country = "US"
 states = ["Ohio"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-84.9, 38.4, -80.5, 42.4]
+bbox = [-84.83, 38.09, -79.89, 43.49]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/ohio-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/ohio/ohio-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

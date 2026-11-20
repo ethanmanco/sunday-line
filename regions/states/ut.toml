@@ -14,7 +14,7 @@ bbox = [-114.1, 36.9, -109, 42.1]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/utah-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/utah/utah-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

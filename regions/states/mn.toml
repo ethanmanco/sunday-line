@@ -10,11 +10,11 @@ country = "US"
 states = ["Minnesota"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-97.3, 43.4, -89.4, 49.4]
+bbox = [-97.28, 43.49, -89.36, 50]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/minnesota-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/minnesota/minnesota-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

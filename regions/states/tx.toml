@@ -14,7 +14,7 @@ bbox = [-106.7, 25.8, -93.5, 36.6]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/texas-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/texas/texas-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

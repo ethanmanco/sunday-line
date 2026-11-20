@@ -10,11 +10,11 @@ country = "US"
 states = ["Kentucky"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-89.6, 36.4, -81.9, 39.2]
+bbox = [-89.62, 36.49, -81.95, 39.21]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/kentucky-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/kentucky/kentucky-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

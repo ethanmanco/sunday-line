@@ -30,7 +30,8 @@ from .config import (
     DATA_DIR, REGIONS_DIR, STATE_CODES, STATE_REGIONS_DIR, Region, hand_written_regions, load_region,
 )
 
-GEOFABRIK = "https://download.geofabrik.de/north-america/us/{slug}-latest.osm.pbf"
+# Geofabrik moved each state into its own folder on 2026-11-20 (the old path now redirects to a 404).
+GEOFABRIK = "https://download.geofabrik.de/north-america/us/{slug}/{slug}-latest.osm.pbf"
 RESEARCHED_DEFAULTS = ("Texas", "Louisiana", "Arkansas")
 
 # name: (main time zone, approximate box: west, south, east, north)

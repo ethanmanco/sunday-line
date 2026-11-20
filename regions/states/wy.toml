@@ -14,7 +14,7 @@ bbox = [-111.1, 40.9, -104, 45.1]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/wyoming-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/wyoming/wyoming-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

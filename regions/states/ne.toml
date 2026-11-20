@@ -14,7 +14,7 @@ bbox = [-104.1, 39.9, -95.3, 43.1]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/nebraska-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/nebraska/nebraska-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

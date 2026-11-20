@@ -10,11 +10,11 @@ country = "US"
 states = ["Connecticut"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-73.8, 40.9, -71.7, 42.1]
+bbox = [-73.73, 40.96, -71.78, 42.06]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/connecticut-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/connecticut/connecticut-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

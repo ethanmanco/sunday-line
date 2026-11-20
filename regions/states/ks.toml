@@ -14,7 +14,7 @@ bbox = [-102.1, 36.9, -94.5, 40.1]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/kansas-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/kansas/kansas-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

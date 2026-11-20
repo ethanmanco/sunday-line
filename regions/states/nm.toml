@@ -14,7 +14,7 @@ bbox = [-109.1, 31.3, -103, 37.1]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/new-mexico-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/new-mexico/new-mexico-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

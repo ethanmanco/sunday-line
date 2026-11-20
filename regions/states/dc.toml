@@ -10,11 +10,11 @@ country = "US"
 states = ["District of Columbia"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-77.2, 38.8, -76.9, 39]
+bbox = [-77.13, 38.79, -76.9, 39]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/district-of-columbia-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/district-of-columbia/district-of-columbia-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

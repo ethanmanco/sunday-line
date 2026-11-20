@@ -14,7 +14,7 @@ bbox = [-124.7, 41.9, -116.4, 46.3]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/oregon-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/oregon/oregon-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

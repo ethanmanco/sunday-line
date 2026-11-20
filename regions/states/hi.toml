@@ -14,7 +14,7 @@ bbox = [-160.6, 18.8, -154.7, 22.4]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/hawaii-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/hawaii/hawaii-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

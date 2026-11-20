@@ -14,7 +14,7 @@ bbox = [-95.8, 35.9, -89, 40.7]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/missouri-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/missouri/missouri-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

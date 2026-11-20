@@ -14,7 +14,7 @@ bbox = [-179.2, 51.2, -129.9, 71.5]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
-osm_extracts = ["https://download.geofabrik.de/north-america/us/alaska-latest.osm.pbf"]
+osm_extracts = ["https://download.geofabrik.de/north-america/us/alaska/alaska-latest.osm.pbf"]
 
 dem = "usgs_3dep_1as"
 landcover = "esa_worldcover_2021"

@@ -18,9 +18,9 @@ local_radius_mi = 50
 
 # OpenStreetMap extracts covering the box. Clipped to the box while reading.
 osm_extracts = [
-  "https://download.geofabrik.de/north-america/us/louisiana-latest.osm.pbf",
-  "https://download.geofabrik.de/north-america/us/arkansas-latest.osm.pbf",
-  "https://download.geofabrik.de/north-america/us/texas-latest.osm.pbf",
+  "https://download.geofabrik.de/north-america/us/louisiana/louisiana-latest.osm.pbf",
+  "https://download.geofabrik.de/north-america/us/arkansas/arkansas-latest.osm.pbf",
+  "https://download.geofabrik.de/north-america/us/texas/texas-latest.osm.pbf",
 ]
 
 # Elevation: USGS 3DEP 1 arc-second, bare earth, public domain.
