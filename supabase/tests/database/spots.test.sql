@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(56);
+select plan(58);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -186,6 +186,19 @@ select pg_temp.act_as('5c000000-0000-0000-0000-000000000003');
 update public.spots set name = 'Hijacked' where id = pg_temp.id('mine');
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
 select is((select name from public.spots where id = pg_temp.id('mine')), 'My gas stop and coffee at the corner', 'nobody edits someone else''s spot');
+
+-- ---- Public groups on a profile ----
+select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');
+with x as (insert into public.spots (kind, name, category, lat, lng, show_on_profile) values ('point', 'Club lot', 'meetup', 32.45, -93.7, true) returning id)
+insert into ids select 'club', id from x;
+select public.add_spot_to_group(pg_temp.id('club'), pg_temp.id('g2'));
+select set_config('role', 'postgres', true);
+update public.spot_groups set status = 'accepted' where spot_id = pg_temp.id('club');
+select pg_temp.act_anon();
+select is((select string_agg(group_name, ',') from public.profile_spot_public_groups('5b000000-0000-0000-0000-000000000002') where spot_id = pg_temp.id('club')),
+  'Open Club', 'a profile shows the public groups its spots are in');
+select is((select count(*)::int from public.profile_spot_public_groups('5b000000-0000-0000-0000-000000000002') where spot_id = pg_temp.id('mem_spot')), 0,
+  'never a private group''s');
 
 -- ---- What a profile shows ----
 select pg_temp.act_as('5b000000-0000-0000-0000-000000000002');

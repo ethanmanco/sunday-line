@@ -637,3 +637,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - "Pick a drawing" is replaced by "Pick a car or bike": 200 CC0 and public-domain photos (147 cars, 25 trucks, 28 motorcycles) found through Openverse, cropped to 256 px WebP (2.7 MB total), in public/avatars/library with index.json and CREDITS.md. Search by make, model, or decade, or tap a kind (Classics, Muscle, 80s, 90s, 2000s, JDM, Euro, Sports cars, Supercars, Hypercars, Trucks and SUVs, Rally and race, Bikes). The picked photo's credit shows under the grid.
 - Saved as avatar_preset "lib:<id>" (the database allows only letters, numbers, and dashes). Old drawings still render for anyone who had one. No brand logos (trademarks). 38 photos had readable licence plates, which were blurred. Scripts in scripts/avatars.
 - Thin spots: motorcycles (28), and no usable C8 Corvette, NASCAR, monster truck, or adventure bike under these licenses.
+
+### 11.29 Public groups on profile spots (built 2026-11-21)
+
+- Spot cards on a profile show "In <group>" links for the public groups each spot is in (accepted links only). `profile_spot_public_groups(p_user)` only covers spots the viewer can see on that profile; private groups never appear.

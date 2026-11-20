@@ -23,6 +23,8 @@ export default function ProfileView({ username }: { username: string }) {
   const router = useRouter();
   const [vehiclePhotos, setVehiclePhotos] = useState<VehiclePhoto[]>([]);
   const [spots, setSpots] = useState<Spot[] | null>(null);
+  // Public groups each profile spot is in (11.29).
+  const [spotGroups, setSpotGroups] = useState<Record<string, { name: string; short_id: string }[]>>({});
   const [title, setTitle] = useState<string | null>(null);
   const shell = usePageOnMap(title, spots);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -71,8 +73,16 @@ export default function ProfileView({ username }: { username: string }) {
     setBlocked(Boolean(b.data));
     setUrls(await signedMediaUrls([...vps.map((x) => x.path), ...ms.map((x) => x.path)]));
     // Public spots plus the ones the owner chose to show (the database decides).
-    const { data: sp } = await sb.rpc("profile_spots", { p_user: person.id });
+    const [{ data: sp }, { data: pg }] = await Promise.all([
+      sb.rpc("profile_spots", { p_user: person.id }),
+      sb.rpc("profile_spot_public_groups", { p_user: person.id }),
+    ]);
     setSpots((sp as Spot[] | null) ?? []);
+    const byId: Record<string, { name: string; short_id: string }[]> = {};
+    for (const r of (pg as { spot_id: string; group_name: string; short_id: string }[] | null) ?? []) {
+      (byId[r.spot_id] ??= []).push({ name: r.group_name, short_id: r.short_id });
+    }
+    setSpotGroups(byId);
   }, [username, user]);
 
   useEffect(() => {
@@ -210,7 +220,7 @@ export default function ProfileView({ username }: { username: string }) {
           <div role="tabpanel">
             {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
-            {tab === "spots" && <ProfileSpots spots={spots} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
+            {tab === "spots" && <ProfileSpots spots={spots} groups={spotGroups} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
           </div>
