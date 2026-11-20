@@ -10,6 +10,7 @@ import math
 import os
 import shutil
 import urllib.error
+import time
 import urllib.request
 from pathlib import Path
 
@@ -30,7 +31,23 @@ USGS_1AS = (
 )
 
 
-def _download(url: str, dest: Path) -> str:
+def _download(url: str, dest: Path, tries: int = 5) -> str:
+    """Download with retries: big state runs hit dropped connections now and then."""
+    for attempt in range(tries):
+        try:
+            return _download_once(url, dest)
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
+            if isinstance(e, urllib.error.HTTPError) and e.code < 500:
+                raise
+            if attempt == tries - 1:
+                raise
+            wait = 15 * (attempt + 1)
+            print(f"    retry {attempt + 1} in {wait}s: {e}")
+            time.sleep(wait)
+    raise RuntimeError("unreachable")
+
+
+def _download_once(url: str, dest: Path) -> str:
     dest.parent.mkdir(parents=True, exist_ok=True)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     if dest.exists():

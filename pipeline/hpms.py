@@ -38,8 +38,9 @@ FIELDS = [
     "through_lanes", "lane_width", "shoulder_type", "routesigning", "routenumber",
 ]
 PAGE = 2000
-# Pages fetched at once. The server is public; keep this modest.
-WORKERS = 6
+# Pages fetched at once. The server is public and returns errors when busy
+# (Virginia and Pennsylvania failed at 6), so keep this low.
+WORKERS = 3
 
 # HPMS Field Manual code tables (only the values we use).
 OWNER_STATE = {1}                 # State Highway Agency
@@ -49,14 +50,15 @@ SURFACE_UNPAVED = {1}             # 1 = unpaved
 
 
 def _get(url: str) -> dict:
-    for attempt in range(5):
+    for attempt in range(9):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=180) as resp:
                 return json.load(resp)
-        except (urllib.error.URLError, TimeoutError) as e:
-            print(f"    retry {attempt + 1}: {e}")
-            time.sleep(5 * (attempt + 1))
+        except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError) as e:
+            wait = min(120, 10 * 2 ** attempt)  # 10 s, 20 s, 40 s, ... up to 2 minutes
+            print(f"    retry {attempt + 1} in {wait}s: {e}")
+            time.sleep(wait)
     raise RuntimeError(f"HPMS request failed: {url[:120]}")
 
 
