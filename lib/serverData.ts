@@ -15,7 +15,9 @@ export const loadIndex = cache(() => read<DataIndex>("index.json"));
 const loadRoadCells = cache(() => read<Record<string, string>>("road-cells.json"));
 
 const loadCell = cache(async (key: string): Promise<{ roads: Road[] }> => {
-  const res = await fetch(`${SITE_URL}/data/us/cells/${key}.json`, { next: { revalidate: 3600 } });
+  // Tagged with this deploy, so a new deploy (new road data) never serves a cached old square.
+  const v = process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
+  const res = await fetch(`${SITE_URL}/data/us/cells/${key}.json?v=${encodeURIComponent(v)}`, { next: { revalidate: 3600 } });
   if (!res.ok) throw new Error(`cell ${key}: ${res.status}`);
   return res.json() as Promise<{ roads: Road[] }>;
 });
