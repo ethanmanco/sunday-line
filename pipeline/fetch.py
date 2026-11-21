@@ -35,7 +35,14 @@ def _download(url: str, dest: Path, tries: int = 5) -> str:
     """Download with retries: big state runs hit dropped connections now and then."""
     for attempt in range(tries):
         try:
-            return _download_once(url, dest)
+            got = _download_once(url, dest)
+            # Geofabrik briefly answers 404 while it publishes each day's files.
+            if got == "missing" and not dest.exists() and attempt < tries - 1:
+                wait = 120 * (attempt + 1)
+                print(f"    not found, retry {attempt + 1} in {wait}s", flush=True)
+                time.sleep(wait)
+                continue
+            return got
         except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
             if isinstance(e, urllib.error.HTTPError) and e.code < 500:
                 raise
