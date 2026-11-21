@@ -355,7 +355,7 @@ def run_state(slug: str, do_cleanup: bool = False) -> dict:
     with DiskWatch(DATA_DIR) as disk:
         t = time.time()
         for url, path in zip(region.osm_extracts, osm_paths(region)):
-            print(f"osm  {path.name}: {_download(url, path)} ({path.stat().st_size / 1e6:.0f} MB)")
+            print(f"osm  {path.name}: {_download(url, path, wait_if_missing=True)} ({path.stat().st_size / 1e6:.0f} MB)")
         region = bbox_from_extract(region)
         fetch(region)
         timings["fetch"] = time.time() - t

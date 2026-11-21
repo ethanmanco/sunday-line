@@ -31,13 +31,13 @@ USGS_1AS = (
 )
 
 
-def _download(url: str, dest: Path, tries: int = 5) -> str:
+def _download(url: str, dest: Path, tries: int = 5, wait_if_missing: bool = False) -> str:
     """Download with retries: big state runs hit dropped connections now and then."""
     for attempt in range(tries):
         try:
             got = _download_once(url, dest)
             # Geofabrik briefly answers 404 while it publishes each day's files.
-            if got == "missing" and not dest.exists() and attempt < tries - 1:
+            if wait_if_missing and got == "missing" and not dest.exists() and attempt < tries - 1:
                 wait = 120 * (attempt + 1)
                 print(f"    not found, retry {attempt + 1} in {wait}s", flush=True)
                 time.sleep(wait)
@@ -103,7 +103,7 @@ def dem_paths(region: Region) -> list[Path]:
 
 def fetch(region: Region) -> None:
     for url, path in zip(region.osm_extracts, osm_paths(region)):
-        status = _download(url, path)
+        status = _download(url, path, wait_if_missing=True)
         print(f"osm  {path.name}: {status} ({path.stat().st_size / 1e6:.0f} MB)")
     if region.dem == "usgs_3dep_1as":
         for name in dem_tile_names(region.bbox):
