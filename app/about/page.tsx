@@ -59,7 +59,8 @@ export default async function About() {
         <li>
           Road data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>,
           available under the Open Database License. Our scored road list is a derived database, also under the ODbL:{" "}
-          <a href="/data/us/index.json">see the index</a> (updated {data.generated}; one file per map square under /data/us/cells).
+          <a href="/data/us/index.json">see the index</a> (updated {data.generated}; one file per map square in{" "}
+          <a href="https://github.com/ethanmanco/sunday-line-data" target="_blank" rel="noopener noreferrer">the road data repository</a>).
         </li>
         <li>Base map: <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, &copy; OpenMapTiles. Satellite view: USGS The National Map.</li>
         <li>Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0).</li>

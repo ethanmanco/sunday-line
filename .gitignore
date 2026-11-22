@@ -17,3 +17,6 @@ review/road-check.html
 public/maplibre/
 next-env.d.ts
 *.tsbuildinfo
+
+# Road squares are published to the sunday-line-data repo (scripts/publish_cells.py), not here.
+public/data/us/cells/

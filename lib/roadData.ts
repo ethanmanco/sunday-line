@@ -14,6 +14,13 @@ import type { LoadedRoad, Road } from "./types";
 
 export const DATA_BASE = "/data/us";
 
+/**
+ * The road squares (cells/) are too big for the site's own static files, so
+ * they're served from GitHub Pages (11.31). Set NEXT_PUBLIC_CELLS_BASE to
+ * "/data/us" to read local files while developing.
+ */
+export const CELLS_BASE = process.env.NEXT_PUBLIC_CELLS_BASE || "https://ethanmanco.github.io/sunday-line-data";
+
 export interface DataIndex {
   version: number;
   generated: string;
@@ -59,7 +66,7 @@ const cache = new Map<string, Promise<RoadOnMap[]>>();
 function load(path: string): Promise<RoadOnMap[]> {
   let p = cache.get(path);
   if (!p) {
-    p = json<{ roads: Road[] }>(`${DATA_BASE}/${path}`).then((d) => decode(d.roads)).catch((e) => {
+    p = json<{ roads: Road[] }>(`${path.startsWith("cells/") ? CELLS_BASE : DATA_BASE}/${path}`).then((d) => decode(d.roads)).catch((e) => {
       cache.delete(path);
       throw e;
     });
