@@ -58,6 +58,10 @@ export interface MapShell {
   locationError: string | null;
   locateMe: () => void;
   clearMyLocation: () => void;
+  /** The town picked in the place search, if distances run from it. */
+  placeName: string | null;
+  /** Move the map to a town or state; a town (with a point) becomes the distance origin. */
+  goToPlace: (p: { name: string; point: LL | null; bbox: Bounds }) => void;
   bounds: Bounds | null;
   satellite: boolean;
   setSatellite: (on: boolean) => void;

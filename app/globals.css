@@ -788,3 +788,36 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 .library-tile[aria-selected="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .library-tile:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
 .library-credit { margin: 8px 0; }
+
+/* Place search on the map (11.32). */
+.place-search { position: relative; flex: 1 1 200px; max-width: 320px; min-width: 0; }
+.place-field {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 20px;
+  background: rgba(16, 19, 24, 0.94); border: 1px solid var(--line); color: var(--dim);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.place-field:focus-within { border-color: var(--accent); color: var(--text); }
+.place-field input {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text);
+  font-size: 16px; padding: 8px 0; font-weight: 600;
+}
+.place-field input::placeholder { color: var(--dim); font-weight: 600; }
+.place-field input::-webkit-search-cancel-button { display: none; }
+.place-search:has(.place-clear) .place-field { padding-right: 40px; }
+.place-search:has(.place-clear) .place-field input::placeholder { color: var(--text); }
+.place-clear {
+  position: absolute; right: 4px; top: 4px; width: 32px; height: 32px; border-radius: 16px; border: 0;
+  background: var(--raised); color: var(--dim); display: grid; place-items: center; cursor: pointer;
+}
+.place-clear:hover, .place-clear:focus-visible { color: var(--text); }
+.place-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 4px; list-style: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  min-width: 240px; z-index: 5;
+}
+.place-list li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 12px; border-radius: 8px; cursor: pointer; color: var(--text);
+}
+.place-list li[aria-selected="true"] { background: var(--raised); }
+.place-list li.place-none { cursor: default; color: var(--dim); font-size: 14px; }

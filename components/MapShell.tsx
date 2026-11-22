@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
+import PlaceSearch from "./PlaceSearch";
 import type { FocusRequest } from "./MapView";
 import { useAuth } from "./AuthProvider";
 import ItemCards from "./ItemCards";
@@ -56,7 +57,9 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [satellite, setSatellite] = useState(false);
   const [myLocation, setMyLocation] = useState<LL | null>(null);
   // Where myLocation came from: the phone's location, or a point picked on the map.
-  const [locSource, setLocSource] = useState<"gps" | "set" | null>(null);
+  const [locSource, setLocSource] = useState<"gps" | "set" | "place" | null>(null);
+  // A town picked in the search box (11.32). In memory only, like a location.
+  const [placeName, setPlaceName] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusRequest | null>(null);
@@ -165,7 +168,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   } : null, [index]);
   const center: LL | null = bounds ? [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2] : null;
   const origin: LL = myLocation ?? center ?? region?.home ?? [-98.5, 39.8];
-  const originName = locSource === "gps" ? "you" : locSource === "set" ? "your set location" : "the map center";
+  const originName = locSource === "gps" ? "you" : locSource === "set" ? "your set location" : locSource === "place" && placeName ? placeName : "the map center";
   const scoreKey = badgeKey(filters.view);
 
   // The list and the cards: roads and spots together, filtered the same way.
@@ -423,7 +426,20 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     layers: layers.saved, saveLayers: layers.save, spotGroups: layers.groups, signedIn: layers.signedIn, reloadSpots: layers.reload,
     items, roadCount: roadList.length, spotCount: spotList.length,
     origin, originName, usingMyLocation: !!myLocation, locating, locationError, locateMe,
-    clearMyLocation: () => { setMyLocation(null); setLocSource(null); }, bounds,
+    clearMyLocation: () => { setMyLocation(null); setLocSource(null); setPlaceName(null); }, bounds,
+    placeName: locSource === "place" ? placeName : null,
+    goToPlace: ({ name, point, bbox }) => {
+      if (point) {
+        setMyLocation(point);
+        setLocSource("place");
+        setPlaceName(name);
+      } else if (locSource === "place") {
+        setMyLocation(null);
+        setLocSource(null);
+        setPlaceName(null);
+      }
+      setFocus({ bbox, key: Date.now() });
+    },
     satellite, setSatellite,
     settingLocation: settingLoc,
     startSettingLocation: () => { setSettingLoc(true); startSettingLocation(); },
@@ -499,10 +515,11 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
             />
           )}
           <div className="map-top-left">
+            {home && !adding && !pick && <PlaceSearch />}
             {isSheet && home && !adding && (
               <button type="button" className="map-chip" onClick={() => setSheet(sheet === "closed" || sheet === "peek" ? "full" : "closed")}>
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
-                List and filters
+                List
               </button>
             )}
             {overlay && (

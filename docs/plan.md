@@ -654,3 +654,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Vercel's free plan takes at most 100 MB of static files per deploy, and the national road squares are about 200 MB. The squares (`cells/`) now live in the public repo ethanmanco/sunday-line-data and load from https://ethanmanco.github.io/sunday-line-data (open CORS, free, 1 GB site limit). The small files (index.json, road-cells.json, top.json, blocks/, about 6.5 MB) stay on Vercel.
 - Updating data: `python -m pipeline tiles`, then `python scripts/publish_cells.py` (pushes as ethanmanco; replaces the data repo's history with one commit), then commit the small files here.
 - Developing: `.env.development.local` sets `NEXT_PUBLIC_CELLS_BASE=/data/us` to read local squares.
+
+### 11.32 Find a town (built 2026-11-22)
+
+- A search box on the map (top left; next to "List" on phones) finds any of 31,686 US cities, towns and Census places, or a state. Picking a town moves the map there (about 40 by 35 miles) and measures distances from it; the x clears it back to the map center. A state fits the map to the state.
+- The list is a static file, `public/data/places.json` (1.3 MB, about 0.5 MB compressed, loaded when the box is first used), built by `scripts/build_places.py` from the Census 2024 Gazetteer and ACS 2019-2023 populations (public domain). Search runs in the browser, so nothing typed is sent anywhere, and the chosen town is kept in memory only, like a location.
+- Accepts "Jena", "jena la", "Jena, LA", "Springfield, Missouri"; ranks bigger places first. Alaska and Puerto Rico are left out (no road data).
