@@ -641,3 +641,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.29 Public groups on profile spots (built 2026-11-21)
 
 - Spot cards on a profile show "In <group>" links for the public groups each spot is in (accepted links only). `profile_spot_public_groups(p_user)` only covers spots the viewer can see on that profile; private groups never appear.
+
+### 11.30 Roads for the whole country (published 2026-11-22)
+
+- Every state but Alaska, plus DC and the Shreveport area: 115,854 roads in 934 squares, about 205 MB in `public/data/us`, every road with drive sections for stretch scores.
+- Lessons from the run: Geofabrik moved its state files into per-state folders and briefly answers "not found" while it posts each day's files, so state map downloads wait and retry (elevation tiles do not, since ocean tiles never exist). Rare native crashes are one-offs: re-run the step that failed. Run the pipeline with the project's `.venv` Python.
+- Speed limits outside Texas, Louisiana and Arkansas are mostly estimated, and county pavement baselines exist only for those three states.
+- Not done: Alaska needs its own plan.
