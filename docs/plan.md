@@ -648,3 +648,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Lessons from the run: Geofabrik moved its state files into per-state folders and briefly answers "not found" while it posts each day's files, so state map downloads wait and retry (elevation tiles do not, since ocean tiles never exist). Rare native crashes are one-offs: re-run the step that failed. Run the pipeline with the project's `.venv` Python.
 - Speed limits outside Texas, Louisiana and Arkansas are mostly estimated, and county pavement baselines exist only for those three states.
 - Not done: Alaska needs its own plan.
+
+### 11.31 Road squares on GitHub Pages (2026-11-22)
+
+- Vercel's free plan takes at most 100 MB of static files per deploy, and the national road squares are about 200 MB. The squares (`cells/`) now live in the public repo ethanmanco/sunday-line-data and load from https://ethanmanco.github.io/sunday-line-data (open CORS, free, 1 GB site limit). The small files (index.json, road-cells.json, top.json, blocks/, about 6.5 MB) stay on Vercel.
+- Updating data: `python -m pipeline tiles`, then `python scripts/publish_cells.py` (pushes as ethanmanco; replaces the data repo's history with one commit), then commit the small files here.
+- Developing: `.env.development.local` sets `NEXT_PUBLIC_CELLS_BASE=/data/us` to read local squares.
