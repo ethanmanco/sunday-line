@@ -10,7 +10,7 @@ country = "US"
 states = ["Missouri"]
 
 # west, south, east, north (degrees). `state` replaces this with the extract's header box.
-bbox = [-95.8, 35.9, -89, 40.7]
+bbox = [-95.78, 35.99, -88.87, 40.62]
 
 # No home point: per-state runs skip the Local list and home_mi.
 
