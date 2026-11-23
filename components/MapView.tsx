@@ -6,7 +6,7 @@ import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
 import type { PickState } from "@/lib/mapShell";
 import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
 import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
-import { baseStyle, roadLayers, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
+import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
 
@@ -78,12 +78,17 @@ export default function MapView(props: Props) {
         touchPitch: false,
         maxZoom: 17,
       });
+      // Landmark icons (parks, peaks, volcanoes) are drawn here when the map first needs them.
+      map.setMissingStyleImageResolver((id) => {
+        const img = landmarkIcon(id);
+        if (img && !map.hasImage(id)) map.addImage(id, img, { pixelRatio: 2 });
+      });
       map.touchZoomRotate.disableRotation();
       map.keyboard.disableRotation();
       map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", () => {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-        for (const layer of roadLayers()) map.addLayer(layer, "places");
+        for (const layer of roadLayers()) map.addLayer(layer, ROADS_BEFORE);
         // lineMetrics: road spots are drawn with a gradient along their length.
         map.addSource("public-spots", { type: "geojson", lineMetrics: true, data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-segment", { type: "geojson", data: { type: "FeatureCollection", features: [] } });

@@ -660,3 +660,20 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - A search box on the map (top left; next to "List" on phones) finds any of 31,686 US cities, towns and Census places, or a state. Picking a town moves the map there (about 40 by 35 miles) and measures distances from it; the x clears it back to the map center. A state fits the map to the state.
 - The list is a static file, `public/data/places.json` (1.3 MB, about 0.5 MB compressed, loaded when the box is first used), built by `scripts/build_places.py` from the Census 2024 Gazetteer and ACS 2019-2023 populations (public domain). Search runs in the browser, so nothing typed is sent anywhere, and the chosen town is kept in memory only, like a location.
 - Accepts "Jena", "jena la", "Jena, LA", "Springfield, Missouri"; ranks bigger places first. Alaska and Puerto Rico are left out (no road data).
+
+### 11.33 Every public road counts (2026-11-22)
+
+- Your call: city roads can be fun too, so nothing is left out for being in a city. Candidates now include residential streets, living streets, named service roads, and divided highways (interstates and expressways), not only primary to unclassified roads. Ramps, dirt tracks, private roads, one-way city street pairs, and unnamed driveways and parking aisles stay out.
+- Driver's roads: speed limit at least 35 mph on 80% of the stretch (was 40). "Runs through a neighborhood" no longer keeps a road off the list; homes per km and built-up share are still recorded. Parks, fee areas, off-road venues, pavement and surface rules are unchanged.
+- The curvature rule is unchanged (at least 2 km with 300 m of weighted curve, split at mile-long straights), so a straight city grid still finds nothing. That rule is what the app is for.
+- Speed score: 25 mph average scores 0 (was 35), so 35 mph roads can rank. Scoring version 4-draft.
+- Unposted city streets get 25 mph (living streets and service roads 15), never a state's rural default. Many rural roads are mapped as "residential", so that applies only where at least 12% of the land within 100 m is built up (ESA WorldCover) or the road passes 10 or more homes per km; elsewhere they get the rural default. In Louisiana most "residential" roads are rural parish roads (median 2.7 homes per km), which now count like any other parish road. The first Louisiana test lost 14 good rural roads before this fix. Unposted interstates use the state's typical posted limit, else 65 mph. A built-up city street with no known owner counts as city-kept for Pavement.
+- Divided highways are two one-way halves on the map; both chain, and the curvier half is kept when the two run within 150 m of each other with the same route number or name.
+
+### 11.34 Landmarks on the map (2026-11-22)
+
+- Your ask: show what's around the roads. The map now labels national parks and monuments, state parks and forests, national forests, wilderness areas and wildlife refuges (each with a tree icon, sorted by name because the tiles' park types are inconsistent), mountain peaks and passes with elevation in feet, volcanoes (own icon and color), viewpoints (zoom 12 and closer), and lake and reservoir names. Park outlines are drawn from zoom 7.
+- Everything comes from the OpenFreeMap tiles the map already uses (OpenStreetMap data, already credited), so there is no new service, key, or cost. Icons are drawn in the browser.
+- Zooms: national parks from 5; peaks and volcanoes from 7 (the tiles have no peaks before that), only the most prominent peaks until 11; national forests from 7, state parks from 8, wilderness and refuges from 9, passes from 11.
+- When labels collide, volcanoes win, then national parks, then other peaks; a park's name always shows with its icon or not at all, never a lone icon. Labels stay visible over the satellite view.
+- Not in the tiles: waterfalls. Doing those would mean adding them to our own data.
