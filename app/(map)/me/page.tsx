@@ -51,7 +51,6 @@ export default function Me() {
       <p className="row">
         <Link href={`/u/${profile.username}`}>See your profile as others do</Link>
         <Link href="/spots">Your spots</Link>
-        <ReviewLink />
       </p>
       <ProfileEditor profile={profile} />
       <GarageEditor userId={user.id} />
@@ -64,33 +63,6 @@ export default function Me() {
         Enjoying Sunday Line? <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"><span aria-hidden="true">&#9733;</span> Star it on GitHub</a>
       </p>
     </div>
-  );
-}
-
-/** Only shows for the site admin. */
-function ReviewLink() {
-  const [waiting, setWaiting] = useState<number | null>(null);
-  const [checks, setChecks] = useState(0);
-  useEffect(() => {
-    const sb = getSupabase();
-    if (!sb) return;
-    sb.rpc("am_site_admin").then(async ({ data }) => {
-      if (!data) return;
-      const [spots, checks] = await Promise.all([
-        sb.from("spots").select("id", { count: "exact", head: true }).eq("public_status", "pending"),
-        sb.from("road_checks").select("road_id", { count: "exact", head: true }).eq("status", "pending"),
-      ]);
-      setWaiting(spots.count ?? 0);
-      setChecks(checks.count ?? 0);
-    });
-  }, []);
-  if (waiting === null) return null;
-  return (
-    <>
-      <Link href="/admin/spots">Spot review ({waiting} waiting)</Link>
-      {" · "}
-      <Link href="/admin/roads">Road checks ({checks} waiting)</Link>
-    </>
   );
 }
 
