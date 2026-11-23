@@ -80,7 +80,9 @@ export default function MapView(props: Props) {
         style: baseStyle(),
         bounds: cb.current.regionBbox,
         fitBoundsOptions: { padding: 16 },
-        attributionControl: { compact: false },
+        // Phones: the credit folds into a small (i) after the first move; OSM's
+        // license needs it on the map itself (full credits are on About too).
+        attributionControl: { compact: window.matchMedia("(max-width: 899px)").matches },
         dragRotate: false,
         pitchWithRotate: false,
         touchPitch: false,

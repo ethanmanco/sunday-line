@@ -22,13 +22,13 @@ export const metadata: Metadata = {
   description:
     "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
   // Installable (11.43): Home Screen icon and full-screen on iPhone.
-  // No apple-mobile-web-app-* tags on purpose (11.45): since iOS 26.1 the
-  // "black-translucent" status bar style makes iOS blur the top of an installed
-  // web app, and Apple's advice (WebKit bug 317153) is to leave the status bar
-  // key out so the bar is solid, in the color of the top of the page (our dark
-  // top bar). Next writes that key whenever appleWebApp is set, so it isn't:
-  // the web app manifest already makes the app full screen with its name and
-  // icon. iOS reads this only when the app is added to the Home Screen.
+  // Installed iPhone app (11.45): full screen, top to bottom (black-translucent +
+  // viewport-fit=cover). Leaving the status bar key out made iOS reserve the
+  // status bar strip, so the app stopped short at the bottom. The iOS 26 blur
+  // under the status bar is handled in CSS: the top bar is pinned (sticky) with
+  // a solid background, which iOS fills the status bar with instead of blurring.
+  // iOS reads this only when the app is added to the Home Screen.
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
