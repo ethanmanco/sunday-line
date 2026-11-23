@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import {
-  accountsEnabled, getSupabase, PAVEMENT_LABEL, rememberReturn, TRAFFIC_LABEL,
-  type PavementCondition, type RoadCommunity, type RoadRating, type TrafficLevel, type VehicleKind,
+  accountsEnabled, FLAG_LABEL, getSupabase, PAVEMENT_LABEL, rememberReturn, TRAFFIC_LABEL, WORTH_HINT, WORTH_LABEL,
+  type PavementCondition, type RoadCommunity, type RoadFlag, type RoadRating, type TrafficLevel, type VehicleKind, type Worth,
 } from "@/lib/supabase";
 
 interface Note {
-  fun: number | null;
+  worth: Worth | null;
+  local_best: boolean;
+  flags: RoadFlag[];
   pavement: PavementCondition | null;
   vehicle: VehicleKind | null;
   note: string;
@@ -19,13 +21,20 @@ interface Note {
 
 const LIMITS = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75];
 
-function Stars({ n }: { n: number }) {
-  return (
-    <span className="stars" aria-hidden="true">
-      {"★★★★★".slice(0, Math.round(n))}
-      <span className="off">{"★★★★★".slice(Math.round(n))}</span>
-    </span>
-  );
+const WORTHS: Worth[] = [2, 3, 4, 1];
+const FLAGS = Object.keys(FLAG_LABEL) as RoadFlag[];
+
+/** The most common answer to "how far would you drive for it", with how many gave it. */
+function worthLine(c: RoadCommunity): string | null {
+  if (!c.worth_count) return null;
+  const counts: [Worth, number][] = [[1, c.worth_skip], [2, c.worth_nearby], [3, c.worth_detour], [4, c.worth_trip]];
+  const top = counts.reduce((a, b) => (b[1] > a[1] || (b[1] === a[1] && b[0] > a[0]) ? b : a));
+  return `${WORTH_LABEL[top[0]]}, say ${top[1]} of ${c.worth_count}`;
+}
+
+function flagLines(c: RoadCommunity): string[] {
+  const n: [RoadFlag, number][] = [["gravel", c.flag_gravel], ["private", c.flag_private], ["closed", c.flag_closed], ["police", c.flag_police]];
+  return n.filter(([, k]) => k > 0).map(([f, k]) => `${FLAG_LABEL[f]}: ${k} ${k === 1 ? "member says" : "members say"} so`);
 }
 
 function summaryLines(c: RoadCommunity): string[] {
@@ -69,7 +78,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
     const [s, n] = await Promise.all([
       sb.from("road_community").select("*").eq("road_id", roadId).maybeSingle(),
       sb.from("road_ratings")
-        .select("fun, pavement, vehicle, note, updated_at, profiles(display_name, username)")
+        .select("worth, local_best, flags, pavement, vehicle, note, updated_at, profiles(display_name, username)")
         .eq("road_id", roadId).not("note", "is", null).neq("note", "")
         .order("updated_at", { ascending: false }).limit(10),
     ]);
@@ -104,6 +113,8 @@ export default function Community({ roadId, units }: { roadId: string; units: st
   if (failed) return null; // Database not set up yet, or offline: the rest of the page still works.
 
   const lines = summary ? summaryLines(summary) : [];
+  const worth = summary ? worthLine(summary) : null;
+  const flags = summary ? flagLines(summary) : [];
   return (
     <section className="community" aria-label="Member ratings">
       <h2>From members</h2>
@@ -111,12 +122,13 @@ export default function Community({ roadId, units }: { roadId: string; units: st
         <p className="fine">Loading ratings...</p>
       ) : summary && summary.ratings > 0 ? (
         <div className="community-summary">
-          {summary.fun_avg !== null && (
-            <p className="fun-line">
-              <Stars n={summary.fun_avg} /> <b>{summary.fun_avg.toFixed(1)}</b> fun from {summary.fun_count}{" "}
-              {summary.fun_count === 1 ? "rating" : "ratings"}
+          {worth && <p className="fun-line"><b>{worth}</b></p>}
+          {summary.local_best > 0 && (
+            <p className="chip">
+              One of the best around here, say {summary.local_best} {summary.local_best === 1 ? "member" : "members"}
             </p>
           )}
+          {flags.map((f) => <p key={f} className="chip warn">{f}</p>)}
           {summary.pavement_loose_gravel > 0 && (
             <p className="chip warn">
               {summary.pavement_loose_gravel} {summary.pavement_loose_gravel === 1 ? "member reports" : "members report"} loose gravel on the surface
@@ -125,7 +137,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
           {lines.map((l) => <p key={l}>{l}</p>)}
         </div>
       ) : (
-        <p className="fine">No ratings yet. Driven it? Be the first.</p>
+        <p className="fine">No reviews yet. Driven it? Be the first.</p>
       )}
       {summary?.reported_limit && (
         <p>Members report a posted limit of <b>{summary.reported_limit} {units}</b> ({summary.reported_limit_count} reports).</p>
@@ -133,10 +145,10 @@ export default function Community({ roadId, units }: { roadId: string; units: st
 
       {!user ? (
         <p>
-          <Link href="/signin" onClick={() => rememberReturn(window.location.pathname)}>Sign in</Link> to rate this road.
+          <Link href="/signin" onClick={() => rememberReturn(window.location.pathname)}>Sign in</Link> to review this road.
         </p>
       ) : !profile ? (
-        <p><Link href="/me">Set up your profile</Link> to rate this road.</p>
+        <p><Link href="/me">Set up your profile</Link> to review this road.</p>
       ) : editing ? (
         <RateForm
           roadId={roadId}
@@ -148,7 +160,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
         />
       ) : (
         <button type="button" className="button" onClick={() => setEditing(true)}>
-          {mine || myLimit ? "Edit your rating" : "Rate this road"}
+          {mine || myLimit ? "Edit your review" : "Review this road"}
         </button>
       )}
 
@@ -160,7 +172,9 @@ export default function Community({ roadId, units }: { roadId: string; units: st
               <p className="fine">
                 {n.profiles ? <Link href={`/u/${n.profiles.username}`}>{n.profiles.display_name}</Link> : "A member"}
                 {n.vehicle ? `, ${n.vehicle === "car" ? "car" : "motorcycle"}` : ""}
-                {n.fun ? `, ${n.fun} of 5 fun` : ""}
+                {n.worth ? `, ${WORTH_LABEL[n.worth].toLowerCase()}` : ""}
+                {n.local_best ? ", one of the best around here" : ""}
+                {n.flags?.length ? `, flagged: ${n.flags.map((f) => FLAG_LABEL[f].toLowerCase()).join(", ")}` : ""}
                 {n.pavement ? `, ${PAVEMENT_LABEL[n.pavement].toLowerCase()}` : ""}
                 {` · ${new Date(n.updated_at).toLocaleDateString()}`}
               </p>
@@ -180,7 +194,9 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [fun, setFun] = useState<number | null>(mine?.fun ?? null);
+  const [worth, setWorth] = useState<Worth | null>(mine?.worth ?? null);
+  const [localBest, setLocalBest] = useState(mine?.local_best ?? false);
+  const [flags, setFlags] = useState<RoadFlag[]>(mine?.flags ?? []);
   const [pavement, setPavement] = useState<PavementCondition | null>(mine?.pavement ?? null);
   const [traffic, setTraffic] = useState<TrafficLevel | null>(mine?.traffic ?? null);
   const [vehicle, setVehicle] = useState<VehicleKind | null>(mine?.vehicle ?? null);
@@ -190,7 +206,7 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const says = fun !== null || pavement !== null || traffic !== null || drove || note.trim() !== "";
+  const says = worth !== null || localBest || flags.length > 0 || pavement !== null || traffic !== null || drove || note.trim() !== "";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -198,7 +214,7 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
     if (!sb) return;
     setBusy(true);
     setError(null);
-    const row = { fun, pavement, traffic, vehicle, drove_it: drove, note: note.trim() || null };
+    const row = { worth, local_best: localBest, flags, pavement, traffic, vehicle, drove_it: drove, note: note.trim() || null };
     let err = null;
     if (says) {
       const res = mine
@@ -227,16 +243,22 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
 
   return (
     <form onSubmit={save} className="form rate">
+      <p className="fine">Every part is optional. A review can be just a flag, or just a note.</p>
       <fieldset>
-        <legend>Fun</legend>
-        <div className="seg">
-          {[1, 2, 3, 4, 5].map((v) => (
-            <button key={v} type="button" aria-pressed={fun === v} aria-label={`${v} of 5`} onClick={() => setFun(fun === v ? null : v)}>
-              {"★".repeat(v)}
+        <legend>How far would you drive for it?</legend>
+        <div className="seg worth">
+          {WORTHS.map((v) => (
+            <button key={v} type="button" aria-pressed={worth === v} onClick={() => setWorth(worth === v ? null : v)}>
+              {WORTH_LABEL[v]}
             </button>
           ))}
         </div>
+        {worth && <span className="fine">{WORTH_HINT[worth]}.</span>}
       </fieldset>
+      <label className="check">
+        <input type="checkbox" checked={localBest} onChange={(e) => setLocalBest(e.target.checked)} />
+        <span>One of the best roads around here</span>
+      </label>
       <fieldset>
         <legend>Pavement</legend>
         <div className="seg">
@@ -267,6 +289,20 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
           ))}
         </div>
       </fieldset>
+      <fieldset>
+        <legend>Anything to flag?</legend>
+        {FLAGS.map((f) => (
+          <label key={f} className="check">
+            <input type="checkbox" checked={flags.includes(f)}
+              onChange={(e) => setFlags(e.target.checked ? [...flags, f] : flags.filter((x) => x !== f))} />
+            <span>{FLAG_LABEL[f]}</span>
+          </label>
+        ))}
+        <span className="fine">
+          When three members flag the same thing (or say the pavement is poor), the road gets a check and can move off
+          the Driver&apos;s roads list.
+        </span>
+      </fieldset>
       <label className="check">
         <input type="checkbox" checked={drove} onChange={(e) => setDrove(e.target.checked)} />
         <span>I&apos;ve driven it</span>
@@ -283,7 +319,7 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
         <textarea maxLength={500} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
       <div className="row">
-        <button type="submit" className="button" disabled={busy}>{busy ? "Saving..." : says || limit !== null ? "Save" : "Remove my rating"}</button>
+        <button type="submit" className="button" disabled={busy}>{busy ? "Saving..." : says || limit !== null ? "Save" : "Remove my review"}</button>
         <button type="button" className="button ghost" onClick={onCancel}>Cancel</button>
       </div>
       {error && <p className="hint warn" role="alert">{error}</p>}

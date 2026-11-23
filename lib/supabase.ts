@@ -249,10 +249,16 @@ export async function signedMediaUrls(paths: string[]): Promise<Record<string, s
   return out;
 }
 
+/** How far you'd drive for a road (11.37): 1 skip it ... 4 worth a road trip. */
+export type Worth = 1 | 2 | 3 | 4;
+export type RoadFlag = "gravel" | "private" | "closed" | "police";
+
 export interface RoadRating {
   road_id: string;
   user_id: string;
-  fun: number | null;
+  worth: Worth | null;
+  local_best: boolean;
+  flags: RoadFlag[];
   pavement: PavementCondition | null;
   traffic: TrafficLevel | null;
   vehicle: VehicleKind | null;
@@ -264,8 +270,12 @@ export interface RoadRating {
 export interface RoadCommunity {
   road_id: string;
   ratings: number;
-  fun_avg: number | null;
-  fun_count: number;
+  worth_count: number;
+  worth_skip: number;
+  worth_nearby: number;
+  worth_detour: number;
+  worth_trip: number;
+  local_best: number;
   drove_count: number;
   pavement_smooth: number;
   pavement_patchy: number;
@@ -276,6 +286,10 @@ export interface RoadCommunity {
   traffic_busy: number;
   by_car: number;
   by_motorcycle: number;
+  flag_gravel: number;
+  flag_private: number;
+  flag_closed: number;
+  flag_police: number;
   reported_limit: number | null;
   reported_limit_count: number;
 }
@@ -283,8 +297,29 @@ export interface RoadCommunity {
 export const PAVEMENT_LABEL: Record<PavementCondition, string> = {
   smooth: "Smooth",
   patchy: "Some patches",
-  rough: "Rough",
+  rough: "Poor, broken up",
   loose_gravel: "Loose gravel on the surface",
+};
+
+/** The answers to "How far would you drive for it?", best last. */
+export const WORTH_LABEL: Record<Worth, string> = {
+  1: "Skip it",
+  2: "Fun if you're nearby",
+  3: "Worth a detour",
+  4: "Worth a road trip",
+};
+export const WORTH_HINT: Record<Worth, string> = {
+  1: "Not worth driving for fun",
+  2: "A good loop when you're already close",
+  3: "Worth an hour's drive",
+  4: "Worth planning a weekend around",
+};
+
+export const FLAG_LABEL: Record<RoadFlag, string> = {
+  gravel: "Gravel or dirt road",
+  private: "Private, gated, or no entry",
+  closed: "Closed or doesn't go through",
+  police: "Police often here",
 };
 
 export const TRAFFIC_LABEL: Record<TrafficLevel, string> = {
