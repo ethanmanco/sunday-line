@@ -785,3 +785,4 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Tapping your avatar opens a menu: Your profile, Edit profile, Notifications (with the count), Your spots, Groups, People, About and map credits. Signed out, it shows Groups, People, About and Sign in.
 - Only in the installed app held upright, and only on map pages (sign in and site admin keep the top bar). Turned sideways, desktop and the mobile website are unchanged. To try it in a phone browser, add ?app=1 to the address (?app=0 turns it off).
 - The search is still the town and city search for now; searching roads, groups and people from it (prototype H) is a later step.
+- Your note: the iPhone's blur under the status bar reached the middle of the search text. The installed iPhone app moves the search, pills and avatar menu 14px lower, so the text starts where the old top bar's did (the spot you called perfect, 11.45). Other phones are unchanged.
