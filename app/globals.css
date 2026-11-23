@@ -821,3 +821,27 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 }
 .place-list li[aria-selected="true"] { background: var(--raised); }
 .place-list li.place-none { cursor: default; color: var(--dim); font-size: 14px; }
+
+/* Road checks (admin, 11.38) */
+.check-list { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 12px; }
+.check-row { border: 1px solid var(--line, #2a2f37); border-radius: 12px; padding: 12px 14px; }
+.check-row p { margin: 0 0 6px; }
+
+/* Review: "how far would you drive for it" buttons wrap on phones */
+.seg.worth { flex-wrap: wrap; }
+.seg.worth button { min-height: 44px; }
+
+/* Heads-ups (11.39) */
+.hu-card {
+  position: absolute; left: 12px; right: 12px; bottom: 116px; z-index: 6; max-width: 420px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius, 14px);
+  padding: 12px 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45); display: grid; gap: 8px;
+}
+.hu-card p { margin: 0; }
+.hu-card .seg button { min-height: 40px; }
+.hu-card input { width: 100%; min-height: 44px; font-size: 16px; }
+.hu-title { padding-right: 32px; }
+.hu-close {
+  position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; background: transparent; border: 0; color: var(--dim); cursor: pointer;
+}

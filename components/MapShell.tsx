@@ -17,6 +17,8 @@ import { applyFilters, badgeKey, DEFAULT_FILTERS, haversineMi, type Bounds, type
 import { spotsBbox, type RoadScore, type Spot, type SpotKind } from "@/lib/spots";
 import { getSupabase, rememberReturn } from "@/lib/supabase";
 import type { RoadExtender } from "@/lib/traceRoad";
+import HeadsUpCard, { HeadsUpForm } from "./HeadsUpCard";
+import { loadHeadsUps, type HeadsUp } from "@/lib/headsUps";
 import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
 import {
@@ -51,6 +53,11 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showRoads, setShowRoads] = useState(true);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  // Heads-ups (11.39): live ones in view, the one tapped, and posting a new one.
+  const [headsUps, setHeadsUps] = useState<HeadsUp[]>([]);
+  const [huSelected, setHuSelected] = useState<string | null>(null);
+  const [huPlace, setHuPlace] = useState<"tap" | [number, number] | null>(null);
+  const [huTick, setHuTick] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
@@ -353,6 +360,47 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     setFocusSpotState({ id, key: Date.now() });
   }
 
+  useEffect(() => {
+    const t = setInterval(() => setHuTick((n) => n + 1), 120000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (!bounds || bounds[2] - bounds[0] > 6) {
+      setHeadsUps([]);
+      return;
+    }
+    let live = true;
+    const pad = 0.2;
+    const timer = setTimeout(() => {
+      loadHeadsUps([bounds[0] - pad, bounds[1] - pad, bounds[2] + pad, bounds[3] + pad]).then((h) => live && setHeadsUps(h));
+    }, 600);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [bounds, huTick]);
+
+  function startHeadsUp() {
+    setAddOpen(false);
+    if (!user || !profile) {
+      rememberReturn("/");
+      router.push(user ? "/me" : "/signin");
+      return;
+    }
+    setHuSelected(null);
+    setHuPlace("tap");
+    // A pin marks the spot; tapping again moves it until it's posted.
+    const handlers = {
+      onPickPoint: (ll: [number, number]) => {
+        setHuPlace(ll);
+        setPick({ mode: "point", pin: ll, segment: null, vertices: [], selectedRoadId: null }, handlers);
+      },
+      onPickRoad: () => {},
+      onTraceRoad: () => {},
+    };
+    setPick({ mode: "point", pin: null, segment: null, vertices: [], selectedRoadId: null }, handlers);
+  }
+
   const centerAfterLocate = useRef(false);
   const [settingLoc, setSettingLoc] = useState(false);
   /** The round button on the map: find me, center there, north up. */
@@ -515,6 +563,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onSelect={selectRoad}
               selectedSpotId={selectedSpotId}
               onSelectSpot={doFocusSpot}
+              headsUps={headsUps}
+              onSelectHeadsUp={(id) => { setHuSelected(id); setHuPlace(null); }}
               onHover={setHoverId}
               onBounds={setBounds}
             />
@@ -535,12 +585,33 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
           </div>
           {pick && (
             <p className="pick-hint" aria-hidden="true">
-              {!adding && pick.mode === "point" ? "Tap the map to set your location" : pick.mode === "point" ? "Tap to place it" : pick.mode === "draw" ? "Tap along the road" : "Tap a road"}
+              {huPlace === "tap" ? "Tap where it is on the map" : Array.isArray(huPlace) ? "Tap again to move it" : !adding && pick.mode === "point" ? "Tap the map to set your location" : pick.mode === "point" ? "Tap to place it" : pick.mode === "draw" ? "Tap along the road" : "Tap a road"}
             </p>
           )}
           {pick && !adding && (
-            <button type="button" className="map-chip cancel-pick" onClick={() => { setSettingLoc(false); setPick(null); }}>Cancel</button>
+            <button type="button" className="map-chip cancel-pick" onClick={() => { setSettingLoc(false); setHuPlace(null); setPick(null); }}>Cancel</button>
           )}
+          {Array.isArray(huPlace) && (
+            <HeadsUpForm
+              at={huPlace}
+              onDone={(posted) => {
+                setHuPlace(null);
+                setPick(null);
+                if (posted) setHuTick((n) => n + 1);
+              }}
+            />
+          )}
+          {huSelected && !huPlace && (() => {
+            const h = headsUps.find((x) => x.id === huSelected);
+            return h ? (
+              <HeadsUpCard
+                headsUp={h}
+                signedIn={!!user && !!profile}
+                onClose={() => setHuSelected(null)}
+                onChanged={() => { setHuSelected(null); setHuTick((n) => n + 1); }}
+              />
+            ) : null;
+          })()}
           {showCards && <ItemCards items={items.slice(0, 15)} scoreKey={scoreKey} units={region?.units ?? "imperial"} />}
           {!adding && !pick && (
             <div className={`map-actions${addOpen ? " open" : ""}${showCards ? " above-cards" : ""}`}>
@@ -559,6 +630,13 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
                     </svg>
                     Add a place
                   </button>
+                  <button type="button" className="add-choice" onClick={startHeadsUp}>
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                      <path d="M12 3 2.5 20h19z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                      <path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    Heads-up
+                  </button>
                 </div>
               )}
               <button type="button" className="locate-button" aria-label="Center the map on me" title="Center on me" onClick={locateAndCenter} disabled={locating}>
@@ -568,7 +646,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
                   <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
-              <button type="button" className="add-toggle" aria-expanded={addOpen} aria-label={addOpen ? "Close" : "Add a road or a place"} onClick={() => setAddOpen(!addOpen)}>
+              <button type="button" className="add-toggle" aria-expanded={addOpen} aria-label={addOpen ? "Close" : "Add a road, a place, or a heads-up"} onClick={() => setAddOpen(!addOpen)}>
                 <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                   <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>

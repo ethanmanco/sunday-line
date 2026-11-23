@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
+import { headsUpIcon, headsUpIconId, type HeadsUp } from "@/lib/headsUps";
 import type { PickState } from "@/lib/mapShell";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
@@ -44,6 +45,9 @@ interface Props {
   /** The selected spot, drawn like a selected road. */
   selectedSpotId?: string | null;
   onSelectSpot?: (id: string) => void;
+  /** Live heads-ups (11.39) and what happens when one is tapped. */
+  headsUps?: HeadsUp[];
+  onSelectHeadsUp?: (id: string) => void;
   onHover: (id: string | null) => void;
   onBounds: (b: Bounds) => void;
 }
@@ -82,7 +86,7 @@ export default function MapView(props: Props) {
       });
       // Landmark icons (parks, peaks, volcanoes) are drawn here when the map first needs them.
       map.setMissingStyleImageResolver((id) => {
-        const img = landmarkIcon(id);
+        const img = landmarkIcon(id) ?? headsUpIcon(id);
         if (img && !map.hasImage(id)) map.addImage(id, img, { pixelRatio: 2 });
       });
       map.touchZoomRotate.disableRotation();
@@ -135,6 +139,15 @@ export default function MapView(props: Props) {
             "circle-stroke-width": 1.5,
           },
         });
+        // Heads-ups sit on top of everything, so they're easy to see and tap.
+        map.addSource("heads-ups", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "hu-icons", type: "symbol", source: "heads-ups", minzoom: 6,
+          layout: {
+            "icon-image": ["get", "icon"], "icon-allow-overlap": true, "icon-ignore-placement": true,
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 12, 1],
+          },
+        });
         setReady(true);
         const b = map.getBounds();
         cb.current.onBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
@@ -162,7 +175,13 @@ export default function MapView(props: Props) {
           cb.current.onPickPoint?.([e.lngLat.lng, e.lngLat.lat]);
           return;
         }
-        // Spots first: they sit on top of the roads.
+        // Heads-ups first: they sit on top of everything.
+        const huHits = map.queryRenderedFeatures([[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]], { layers: ["hu-icons"] });
+        if (huHits.length && cb.current.onSelectHeadsUp) {
+          cb.current.onSelectHeadsUp(huHits[0].properties.id as string);
+          return;
+        }
+        // Spots next: they sit on top of the roads.
         const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line"] });
         const spot = spotHits.length ? cb.current.spots?.find((s) => s.id === spotHits[0].properties.id) : undefined;
         if (spot) {
@@ -244,6 +263,19 @@ export default function MapView(props: Props) {
     if (!ready || !map) return;
     (map.getSource("public-spots") as GeoJSONSource | undefined)?.setData(spotFeatures(props.spots ?? []));
   }, [ready, props.spots]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    (map.getSource("heads-ups") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: (props.headsUps ?? []).map((h) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [h.lng, h.lat] },
+        properties: { id: h.id, icon: headsUpIconId(h.kind) },
+      })),
+    });
+  }, [ready, props.headsUps]);
 
   // Fly to a spot (for example one just added) and ring it.
   useEffect(() => {
