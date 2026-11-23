@@ -720,4 +720,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 ### 11.41 Phone card highlight (2026-11-22)
 
-- Your note: on phones the road a card shows can hide behind the cards or the town search. In phone layout only, the road now gets a soft bright glow underneath (it keeps its own color), and the other roads dim while a card shows one. The map doesn't move on its own: the cards list what's in view, so panning would reshuffle them mid-swipe. Desktop is unchanged.
+- Your note: on phones the road a card shows can hide behind the cards or the town search. In phone layout only, the road gets a soft glow underneath (it keeps its own color). Revised the same day on your second note: narrower and fainter, since a wide blurred line folds over itself on tight curves, and the other roads no longer dim. Cards light a road only after a swipe. The map doesn't move on its own: the cards list what's in view, so panning would reshuffle them mid-swipe. Desktop is unchanged.
+- Phones: dragging the sheet down while a road is open goes back to all roads with nothing highlighted, keeping the same map view.
+
+### 11.42 Account pages in the map panel (2026-11-22)
+
+- Your ask: Groups, People, About, Notifications, Messages, and your profile now open in the map's left panel on desktop, in place of the list, with the map beside them (they moved into `app/(map)`; addresses are unchanged). A chat fills the panel with the message box at the bottom. On phones they open as a full-height sheet over the map.
+

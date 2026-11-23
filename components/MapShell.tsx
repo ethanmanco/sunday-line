@@ -151,6 +151,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   // Leaving a page clears its spots from the map.
   const home = pathname === "/";
   const onRoad = pathname.startsWith("/road/");
+  // Account pages sit in the map panel (11.42); on phones they open as a full sheet.
+  const accountPage = /^\/(groups|people|about|notifications|messages|me)(\/|$)/.test(pathname);
   const lastPath = useRef<string | null>(null);
   useEffect(() => {
     // A selected spot belongs to the page it was picked on.
@@ -161,6 +163,10 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     setAdding(null);
     setAddOpen(false);
   }, [pathname, onRoad]);
+
+  useEffect(() => {
+    if (isSheet && accountPage) setSheet("full");
+  }, [pathname, isSheet, accountPage]);
 
   const byId = useMemo(() => {
     const m = new Map<string, RoadOnMap>();
@@ -525,6 +531,14 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onDrag={setDragPx}
               onSnap={(st) => {
                 if (adding && st === "closed") return;
+                if (selectedId && (st === "peek" || st === "closed")) {
+                  // Back to all roads, keeping the same map view.
+                  setSelectedId(null);
+                  setHoverId(null);
+                  if (window.location.pathname !== "/") window.history.pushState(null, "", "/");
+                  setSheet("closed");
+                  return;
+                }
                 setSheet(st);
               }}
             />

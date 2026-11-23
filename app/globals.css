@@ -858,3 +858,9 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 label.grow { flex: 1 1 180px; }
 label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 
+
+/* Account pages in the map panel (11.42): Groups, People, About, Notifications, Messages, profile */
+.shell-panel .page { max-width: none; margin: 0; padding-left: 18px; padding-right: 18px; }
+.shell-panel .page h1 { font-size: 32px; }
+.shell-scroll:has(> .thread.page) { overflow: hidden; display: flex; flex-direction: column; }
+.shell-panel .thread.page { height: auto; flex: 1; min-height: 0; padding-bottom: 12px; }
