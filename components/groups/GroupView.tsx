@@ -41,15 +41,15 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [mapSpots, setMapSpots] = useState<Spot[] | null>(null);
   const shell = usePageOnMap(group?.name ?? null, mapSpots);
   const tabsRef = useRef<HTMLDivElement>(null);
-  // Phones: the chat takes the whole sheet, tabs at the top and the message box
-  // at the bottom edge (11.46).
+  // The chat fills the panel (phones: the whole sheet): tabs at the top, the
+  // message box at the bottom edge, no space under it (11.46, 11.47).
   const chatOpen = tab === "chat";
   const isSheet = shell?.isSheet ?? false;
   const setSheet = shell?.setSheet;
   useEffect(() => {
-    if (!chatOpen || !isSheet || !setSheet) return;
-    setSheet("full");
-    const t = setTimeout(() => tabsRef.current?.scrollIntoView({ block: "start" }), 250);
+    if (!chatOpen) return;
+    if (isSheet && setSheet) setSheet("full");
+    const t = setTimeout(() => tabsRef.current?.scrollIntoView({ block: "start" }), isSheet ? 250 : 0);
     return () => clearTimeout(t);
   }, [chatOpen, isSheet, setSheet]);
 
