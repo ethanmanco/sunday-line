@@ -116,7 +116,17 @@ def _stretch_model() -> dict:
     }
 
 
+def low_overall(r: dict, min_overall: float) -> bool:
+    """A driver's road scoring under the minimum Overall moves to All (11.35).
+    Applied here too, so exports built before the rule follow it. A road a
+    person checked as good stays."""
+    return r["category"] == "drivers" and r["scores"]["overall"] < min_overall and r.get("checked") != "good"
+
+
 def tiles() -> None:
+    from .config import load_scoring
+
+    min_overall = load_scoring()["categories"]["min_overall"]
     exports = sorted(OUT.glob("*/export.json"))
     if not exports:
         raise SystemExit("No data/out/<region>/export.json files yet. Run export for a region first.")
@@ -130,6 +140,9 @@ def tiles() -> None:
         for r in data["roads"]:
             for k in DROP:
                 r.pop(k, None)
+            if low_overall(r, min_overall):
+                r["category"] = "other"
+                r["excluded"] = [*r["excluded"], f"overall score under {min_overall}"]
             old = best.get(r["id"])
             if old is None or r["scores"]["overall"] > old["scores"]["overall"]:
                 best[r["id"]] = r

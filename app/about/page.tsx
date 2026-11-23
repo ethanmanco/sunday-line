@@ -32,7 +32,7 @@ export default async function About() {
       </ul>
       <p>
         <b>Driver&apos;s roads</b> must be paved with a good Pavement score, have a speed limit of at least 35 mph on
-        most of their length, and not sit inside a park, fee area, or off-road park. Every kind of public road can
+        most of their length, score at least 30 Overall, and not sit inside a park, fee area, or off-road park. Every kind of public road can
         make the list: back roads, city streets, and interstates. Private roads and unnamed driveways are left out.
         Most rural roads here have no surface on the map, so we also read it from USDA aerial photos. County roads
         whose pavement we can&apos;t confirm, and roads where the photos are unclear, wait in &quot;Needs a

@@ -746,6 +746,8 @@ def build(region: Region) -> list[dict]:
                 excluded_because.append(f"inside {venue_name[kind] or 'a park'} (may charge entry)")
         # Roads through neighborhoods and cities count too (11.33); homes_per_km
         # and built_share are still recorded for each road.
+        if overall < cat["min_overall"]:
+            excluded_because.append(f"overall score under {cat['min_overall']}")
         if verdict == "good":
             excluded_because = []  # a person checked it
         elif verdict in VERDICT_REASONS:

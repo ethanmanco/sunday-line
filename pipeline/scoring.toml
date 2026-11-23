@@ -104,6 +104,7 @@ scenic = 0.02
 min_speed = 35          # driver's roads: speed limit at least this (40 before 11.33)...
 min_speed_share = 0.8   # ...on at least 80% of the stretch, and paved
 min_pavement = 55       # and a Pavement score at least this (below: "needs a check")
+min_overall = 30        # and an Overall score at least this (11.35; lower ones stay in All)
 
 # ---- Pavement quality (0 to 100) ------------------------------------------
 # Public data rarely measures pavement on county roads, so the starting point
