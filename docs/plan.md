@@ -774,3 +774,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.49 Map credit centered under the cards (2026-11-23)
 
 - Your note: the (i) and its credit text sit centered in the gap between the cards and the bottom of the screen (on an iPhone, 22px above and below). MapLibre's own 10px margin under it is dropped on phones.
+
+### 11.50 The map starts on the mainland (2026-11-23)
+
+- Your note: the starting view and the logo's reset no longer include Hawaii. They frame the lower 48, centered over the middle of the country. Hawaii's roads are still on the map; pan or search to get there.

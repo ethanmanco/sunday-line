@@ -183,9 +183,11 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     return m;
   }, [topRoads, blockRoads, cellRoads]);
   // The whole country: no home town. Distances run from you, a spot you set, or the map center.
+  // The starting view (and the logo's reset) is the mainland: the data's own box
+  // reaches out to Hawaii, which shrank the lower 48 off to one side.
   const region: RegionInfo | null = useMemo(() => index ? {
-    slug: "us", name: "United States", units: "imperial", bbox: index.bbox ?? US_BBOX,
-    home: [(index.bbox[0] + index.bbox[2]) / 2, (index.bbox[1] + index.bbox[3]) / 2],
+    slug: "us", name: "United States", units: "imperial", bbox: US_BBOX,
+    home: [(US_BBOX[0] + US_BBOX[2]) / 2, (US_BBOX[1] + US_BBOX[3]) / 2],
     home_name: "the map center", area: "the United States", local_radius_mi: 50,
   } : null, [index]);
   const center: LL | null = bounds ? [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2] : null;
