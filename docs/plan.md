@@ -709,3 +709,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Post from + then Heads-up, tap where it is (tap again to move it), pick the kind, optional note (120 characters). Others can say "Still there" (restarts its time) or "Gone" (two of those end it); the poster can take it down. Expired ones are deleted after a day (hourly job).
 - Privacy: heads-ups show without the poster's name, and the table can't be read directly; the app reads them through a function that leaves out who posted. A limit of 20 a day per member. Copy never suggests posting while driving, and nothing checks or blocks it.
 
+### 11.40 Notifications (2026-11-22)
+
+- Your ask: a bell in the top bar with a list at /notifications. It covers follow requests (Accept or Decline right there), new followers, accepted requests; group invites (Join or Decline), join requests (to organizers and moderators who approve), approvals; new events (the whole group), time changes, cancellations, reminders, and the location going out (people going or maybe); new messages (one line per chat, counting up, cleared when you read the chat); Score this road finished; a public spot approved or not; group spot suggestions and acceptances; and "Your flag helped mark X as gravel" when a road check you contributed to is accepted. As site admin you also hear when a road check or a public spot is waiting.
+- Direct group invites are new: group settings have "Invite a member" by username (needs the invites permission). Until now groups only had invite links.
+- Rows are written only by the database (triggers and functions), so they always match what happened, and nobody is told about anything done by someone they blocked or who blocked them. Opening the page marks everything read; requests and invites keep their buttons until answered. The bell updates live. Read ones are deleted after 60 days, all after 120 (daily job).
+- Not yet: email or phone push for notifications (needs the email sender set up for this, and a push service).
+

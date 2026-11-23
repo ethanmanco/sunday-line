@@ -104,6 +104,7 @@ export default async function About() {
           picture, bio, and road reviews stay public. Heads-ups never show who posted them.
         </li>
         <li>Blocking someone is private: they aren&apos;t told. You stop following each other, and they can&apos;t follow you or see your garage and photos.</li>
+        <li>Notifications are yours alone. Read ones are deleted after 60 days, all of them after 120.</li>
         <li>You can change or delete anything you post at any time.</li>
       </ul>
 
