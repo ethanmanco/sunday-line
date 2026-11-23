@@ -679,3 +679,14 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Zooms: peaks and volcanoes from 7 (the tiles have no peaks before that), only the most prominent peaks until 11; passes from 11. Park names were raised the same day on your note that they covered the roads: national parks from 9 (was 5), national forests and state parks from 10 (were 7 and 8), wilderness and refuges from 11 (was 9).
 - When labels collide, volcanoes win, then national parks, then other peaks; a park's name always shows with its icon or not at all, never a lone icon. Labels stay visible over the satellite view.
 - Not in the tiles: waterfalls. Doing those would mean adding them to our own data.
+
+### 11.35 Driver's roads need 30 Overall (2026-11-22)
+
+- Your call: a driver's road scoring under 30 Overall moves to All, with the reason "overall score under 30". `min_overall = 30` in `pipeline/scoring.toml`; applied when building and again when merging squares (`pipeline/tiles.py`), so states built before the rule follow it. A road a person checked as good stays. At the time: 56 of 22,450 driver's roads nationally, 29 in Louisiana (another 126 there score in the 30s).
+
+### 11.36 Making a picked road longer (2026-11-22)
+
+- Your ask: when adding a road, "Longer at the north end" / "south end" (or east and west; named by compass so you know which end is which) continue the road past that end. The map moves to that end at zoom 14 (the base map only carries every road name there), finds the base map road running out of the end by where it runs, not by name, and follows it as far as the loaded map goes; press again to go farther. It works from what's shown, trimmed or not.
+- The divided-road rules from tracing apply: no U-turns, and anything running beside the road you already have is the other side, not more road.
+- A suggested road that's made longer becomes your own road line; its scores stay with the original, and Score this road can score the longer one.
+- Checked on the real map: Clyde Fant traced to 3.9 mi grew to 6.8 mi (one side end to end) in four presses, never doubling back. Tests use real map pieces for Clyde Fant and Arthur Ray Teague.
