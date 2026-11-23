@@ -22,9 +22,12 @@ export const metadata: Metadata = {
   description:
     "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
   // Installable (11.43): Home Screen icon and full-screen on iPhone.
-  // black-translucent + viewport-fit=cover: the app fills the screen and the CSS
-  // keeps content clear of the status bar and home bar (11.45).
-  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black-translucent" },
+  // No status bar style on purpose (11.45): since iOS 26.1, "black-translucent"
+  // makes iOS blur the top of an installed web app, and the page can't stop it.
+  // Without the key (Apple's advice, WebKit bug 317153) the status bar is solid,
+  // in the color of the top of the page: our dark top bar. iOS reads this only
+  // when the app is added to the Home Screen.
+  appleWebApp: { capable: true, title: SITE_NAME },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
