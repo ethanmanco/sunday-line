@@ -149,6 +149,8 @@ export interface Group {
   banner_path: string | null;
   banner_source_path: string | null;
   banner_crop: CropBox | null;
+  /** Palette index 0-6 (lib/spots GROUP_COLORS), 11.48. */
+  color: number;
 }
 
 /** Group pictures are private files: short-lived signed links for people who can see the group. */
