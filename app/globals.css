@@ -814,6 +814,10 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 /* Drawn roads scored on request (11.27) */
 .requested-score { margin: 12px 0 4px; }
 .requested-score .scores { margin-top: 10px; }
+/* The note sits beside the button and wraps in its own column, not under the button. */
+.requested-score .score-ask { display: flex; align-items: center; gap: 12px; }
+.requested-score .score-ask .button { flex: none; }
+.requested-score .score-ask .fine { flex: 1; min-width: 0; margin: 0; }
 .note .chip { margin-left: 4px; }
 
 /* Car and bike photo library picker (11.28) */

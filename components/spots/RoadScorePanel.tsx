@@ -105,11 +105,11 @@ export default function RoadScorePanel({ spot }: { spot: Spot }) {
           : "This road isn't one of the scored roads (it was picked off the map or drawn by hand)."}
       </p>
       {mine && (
-        <p>
+        <p className="score-ask">
           <button type="button" className="button" onClick={ask} disabled={busy}>
             {busy ? "Asking..." : rs?.status === "failed" ? "Try again" : "Score this road"}
           </button>
-          <span className="fine"> Uses public map data. Usually ready within the hour.</span>
+          <span className="fine">Uses public map data. Usually ready within the hour.</span>
         </p>
       )}
       {error && <p className="hint warn" role="alert">{error}</p>}
