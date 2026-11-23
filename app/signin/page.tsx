@@ -28,6 +28,10 @@ export default function SignIn() {
     );
   }
 
+  // The installed (Home Screen) app keeps its own sign-in, separate from the browser.
+  const installed = typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true);
+
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     const sb = getSupabase();
@@ -86,6 +90,9 @@ export default function SignIn() {
       ) : (
         <form onSubmit={checkCode} className="form">
           <p>We sent a code to <b>{email}</b>. Type it here, or tap the link in the email.</p>
+          {installed && (
+            <p className="fine">You&apos;re in the installed app: type the code here. Tapping the link signs you in to your browser instead.</p>
+          )}
           <label>
             <span>Code</span>
             <input

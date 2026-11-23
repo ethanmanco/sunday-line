@@ -24,7 +24,11 @@ export const accountsEnabled = Boolean(URL && KEY);
 
 /** True when the sign-in email has the 6-digit code (our own template, which
  * Supabase only allows with a custom email sender). Otherwise it has a link only. */
-export const emailHasCode = process.env.NEXT_PUBLIC_EMAIL_HAS_CODE === "1";
+// The sign-in email carries a 6-digit code (supabase/templates/sign_in.html in
+// the Supabase dashboard), so the sign-in page asks for it. That's what lets the
+// installed app sign in: on iPhone a tapped link opens the browser, not the app.
+// NEXT_PUBLIC_EMAIL_HAS_CODE=0 switches back to link-only.
+export const emailHasCode = process.env.NEXT_PUBLIC_EMAIL_HAS_CODE !== "0";
 
 /** The browser Supabase client, or null when accounts are not set up. */
 export function getSupabase(): SupabaseClient | null {

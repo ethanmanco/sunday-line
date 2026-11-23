@@ -53,7 +53,7 @@ Supabase only lets you edit the email templates once a custom email sender (SMTP
 
 Once a sender (for example Resend) is set up under Authentication, then Emails, then SMTP Settings:
 1. For both **Magic link** and **Confirm signup**, set the subject to `Your Sunday Line sign-in code` and paste `supabase/templates/sign_in.html` as the body.
-2. In Vercel, add the environment variable `NEXT_PUBLIC_EMAIL_HAS_CODE` = `1` and redeploy, so the sign-in page asks for the 6-digit code.
+2. Tell me: the site then asks for the 6-digit code by default (it is needed for the installed app on iPhone, where a tapped link opens the browser). `NEXT_PUBLIC_EMAIL_HAS_CODE=0` in Vercel switches back to link-only.
 
 ## 6. Turning on accounts in the live site (at your computer)
 Done 2026-11-18.
