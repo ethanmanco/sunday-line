@@ -922,7 +922,8 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 /* Installed iPhone app: iOS blurs the top edge no matter what, so the top bar's
    contents start lower and the blur only covers plain dark top bar (11.45). */
 @supports (-webkit-touch-callout: none) {
-  @media (display-mode: standalone) { :root { --ios-edge: 28px; } }
+  /* Portrait only: on its side the iPhone hides the status bar. */
+  @media (display-mode: standalone) and (orientation: portrait) { :root { --ios-edge: 14px; } }
 }
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone), (display-mode: fullscreen) {
