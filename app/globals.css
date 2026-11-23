@@ -119,7 +119,11 @@ h1, h2, h3 { font-family: var(--font-display), var(--font-body), sans-serif; let
 .maplibregl-ctrl-attrib { background: transparent !important; color: var(--dim); font-size: 10px; line-height: 1.3; text-shadow: 0 0 3px #000, 0 0 2px #000; }
 .maplibregl-ctrl-attrib.maplibregl-compact { background: transparent !important; }
 .maplibregl-ctrl-bottom-right { left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
-.maplibregl-ctrl-bottom-right .maplibregl-ctrl { pointer-events: auto; margin: 0 0 2px; float: none; }
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl { pointer-events: auto; margin: 0; float: none; }
+/* Folded into the (i): it sits at the right, not the middle. */
+.maplibregl-ctrl-bottom-right:has(.maplibregl-compact:not(.maplibregl-compact-show)) { justify-content: flex-end; padding-right: 6px; }
+/* No focus ring on the (i) when it's tapped. */
+.maplibregl-ctrl-attrib-button:focus, .maplibregl-ctrl-attrib-button:focus-visible { outline: none !important; box-shadow: none !important; }
 .maplibregl-ctrl-attrib a { color: var(--dim) !important; }
 .maplibregl-ctrl-attrib-button { filter: invert(1); }
 
@@ -885,7 +889,7 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 
 /* iPhone home bar (11.45): bottom items clear it. Zero on other devices. */
 /* Cards sit just above the map credit. */
-@media (max-width: 899px) { .road-cards { bottom: calc(30px + var(--safe-bottom)); } }
+@media (max-width: 899px) { .road-cards { bottom: calc(34px + var(--safe-bottom)); } }
 .shell .map-actions { bottom: calc(34px + var(--safe-bottom)); }
 .shell .map-actions.above-cards { bottom: calc(130px + var(--safe-bottom)); }
 .shell.is-sheet .shell-scroll { padding-bottom: var(--safe-bottom); }
@@ -934,5 +938,35 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
       pointer-events: none; z-index: 2147483647;
     }
   }
+}
+
+/* Phones: a group's chat fills the sheet below its tabs, message box at the bottom (11.46). */
+.shell.is-sheet .thread.embedded { height: calc(100dvh - var(--topbar) - 96px - var(--safe-bottom)); }
+
+/* Install button on the mobile website (11.46) */
+.install-button {
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px;
+  background: none; border: none; color: var(--accent); cursor: pointer; flex: none;
+}
+.install-button:active { background: var(--raised); }
+.install-steps-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(5, 6, 8, 0.6); display: flex; align-items: flex-end; justify-content: center; }
+.install-steps {
+  width: 100%; max-width: 480px; background: var(--panel); color: var(--text); border-radius: 16px 16px 0 0;
+  padding: 20px 20px calc(20px + var(--safe-bottom)); display: grid; gap: 10px; box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.5);
+}
+.install-steps h2 { margin: 0; font-size: 24px; }
+.install-steps ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.install-steps svg { vertical-align: -3px; }
+
+/* Top bar on phones (11.46): Groups is an icon like People and Messages, and the
+   icons sit a little closer, so the install button fits. Desktop keeps the word. */
+.groups-link svg { display: none; }
+@media (max-width: 640px) {
+  .groups-link svg { display: block; }
+  .groups-link .nav-label { display: none; }
+}
+@media (max-width: 420px) {
+  .topbar nav a, .install-button { padding-left: 6px; padding-right: 6px; }
+  .install-button { width: 34px; }
 }
 

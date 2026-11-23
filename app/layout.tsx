@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
+import BrandLink from "@/components/BrandLink";
+import InstallButton from "@/components/InstallButton";
 import NotificationsLink from "@/components/NotificationsLink";
 import MessagesLink from "@/components/MessagesLink";
 import PeopleLink from "@/components/PeopleLink";
@@ -50,17 +52,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
         <a href="#main" className="skip">Skip to content</a>
         <header className="topbar">
-          <Link href="/" className="brand" aria-label={`${SITE_NAME} home`}>
-            <span className="brand-mark" aria-hidden="true" />
-            SUNDAY LINE
-          </Link>
+          <BrandLink />
           <nav aria-label="Main">
             <Link href="/" className="nav-roads">Roads</Link>
-            <Link href="/groups">Groups</Link>
+            <Link href="/groups" className="groups-link" aria-label="Groups">
+              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="17" cy="8.5" r="2.6" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M17 13.6c2.4.3 4 2.1 4 4.9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span className="nav-label">Groups</span>
+            </Link>
             <PeopleLink />
             <Link href="/about" className="nav-about">About</Link>
             <NotificationsLink />
             <MessagesLink />
+            <InstallButton />
             <AccountLink />
           </nav>
         </header>
