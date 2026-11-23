@@ -801,3 +801,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your note: iPhone kept offering to fill in your contact card in the search. Safari ignores autocomplete=off and guesses from the field's words, so "Find a town or city" looked like an address form. The search now reads "Find a place", has its own name, and turns off autocorrect and spell check (place names were getting "fixed").
 - The installed app sometimes showing solid bars at the top and bottom between pages matches a known iOS 26 bug in Home Screen apps (WebKit bug 301994, reopened, no working fix yet). Closing and reopening the app clears it. Nothing changed in the app for this.
+
+### 11.55 The map starts on you (2026-11-23)
+
+- Your note: grab the location the first time the app opens and center on it, with no tap if possible. Opening the home map now asks the phone for your location right away (the system prompt is the one tap the browser requires). Allow, and the map centers on you about 50 miles across, with distances measured from you. After that it centers on you every time you open the app, without asking, while location is allowed. If you say no it never asks again on its own; the locate button still works.
+- Links to a road, spot or page keep their own view, and a search or tap made while the location loads wins. Only "already asked" is saved on the device; the location itself stays in the page's memory, as before. About updated to say so.

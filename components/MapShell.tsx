@@ -67,6 +67,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [myLocation, setMyLocation] = useState<LL | null>(null);
   // Where myLocation came from: the phone's location, or a point picked on the map.
   const [locSource, setLocSource] = useState<"gps" | "set" | "place" | null>(null);
+  const locSourceRef = useRef(locSource);
+  locSourceRef.current = locSource;
   // A town picked in the search box (11.32). In memory only, like a location.
   const [placeName, setPlaceName] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -487,6 +489,52 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
     );
   }
+
+  // Opening the app on the home map (11.55): center on you. The first time the
+  // phone asks for permission right away; after that it happens without asking
+  // when it's allowed, and never again if you said no. Links to a road, spot or
+  // page keep their own view. The location stays in this page's memory only; the
+  // only thing saved is that we already asked.
+  const openedHome = useRef(home);
+  useEffect(() => {
+    // The router's path, not window.location: arriving from another page, the
+    // address bar updates just after this runs.
+    if (!openedHome.current || window.location.search.includes("spot=") || !navigator.geolocation) return;
+    const ASKED = "sl-asked-location";
+    let live = true;
+    const go = () => navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // Something else took over the map meanwhile (a link, a search): leave it.
+        if (!live || window.location.pathname !== "/" || window.location.search.includes("spot=") || locSourceRef.current) return;
+        const ll: LL = [pos.coords.longitude, pos.coords.latitude];
+        setMyLocation(ll);
+        setLocSource("gps");
+        // About 50 miles across: the drives near you, not just your street.
+        setFocus({ bbox: [ll[0] - 0.45, ll[1] - 0.33, ll[0] + 0.45, ll[1] + 0.33], key: Date.now() });
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
+    );
+    const ask = () => {
+      try {
+        if (localStorage.getItem(ASKED) === "1") return;
+        localStorage.setItem(ASKED, "1");
+      } catch {
+        // Storage blocked: ask (the phone remembers a yes or no itself).
+      }
+      go();
+    };
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: "geolocation" })
+        .then((p) => live && (p.state === "granted" ? go() : p.state === "prompt" ? ask() : undefined))
+        .catch(ask);
+    } else {
+      ask();
+    }
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // Room the sheet takes at the bottom, so fitted views stay visible.
   const [vh, setVh] = useState(800);

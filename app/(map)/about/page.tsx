@@ -90,8 +90,8 @@ export default async function About() {
 
       <h2>Your privacy</h2>
       <p>
-        &quot;Measure from my location&quot; uses your location inside this page only. It is never sent to a server or
-        saved.
+        If you allow it, the map starts centered on you and distances are measured from where you are. Your location
+        is used inside this page only. It is never sent to a server or saved.
       </p>
       <ul>
         <li>Your email is used only to sign you in. It is never shown to other members.</li>
