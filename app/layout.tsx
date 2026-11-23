@@ -22,14 +22,17 @@ export const metadata: Metadata = {
   description:
     "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
   // Installable (11.43): Home Screen icon and full-screen on iPhone.
-  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black" },
+  // black-translucent + viewport-fit=cover: the app fills the screen and the CSS
+  // keeps content clear of the status bar and home bar (11.45).
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#101318",
+  viewportFit: "cover",
+  themeColor: "#0b0d11",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
