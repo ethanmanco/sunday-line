@@ -955,11 +955,15 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
   }
 }
 
-/* A group's chat fills the panel below its tabs, message box at the bottom, no space under it (11.47). */
-.shell-panel .thread.embedded { height: calc(100dvh - var(--topbar) - 66px); }
-.shell-panel .page.group:has(.thread.embedded) { padding-bottom: 6px; }
-/* Phones: the same in the sheet, which also has its grip and the home bar (11.46). */
-.shell.is-sheet .thread.embedded { height: calc(100dvh - var(--topbar) - 96px - var(--safe-bottom)); }
+/* A group's chat takes whatever height is left in the panel under the group's
+   header and tabs, message box at the bottom edge: nothing to scroll to reach
+   it, on desktop and in the phone sheet (11.46, 11.47). If the panel is very
+   short the chat keeps a usable height and the page scrolls instead. */
+.shell-scroll:has(.thread.embedded) { display: flex; flex-direction: column; }
+.shell-panel .page.group:has(.thread.embedded) { flex: 1 0 auto; display: flex; flex-direction: column; padding-bottom: 6px; }
+.page.group:has(.thread.embedded) > [role="tabpanel"] { flex: 1 0 auto; display: flex; flex-direction: column; }
+.shell-panel .thread.embedded { flex: 1 1 0; height: auto; min-height: 200px; }
+.shell-panel .thread.embedded .messages { min-height: 0; }
 
 /* Install button on the mobile website (11.46) */
 .install-button {

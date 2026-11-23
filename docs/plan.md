@@ -758,6 +758,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.47 Desktop group chat fills the panel (2026-11-23)
 
 - Your note: a group's chat on desktop had empty space under it. The chat now fills the map panel down to its bottom edge.
+- Your follow-up: it still meant scrolling down to reach it. Now the chat takes whatever height is left under the group's header and tabs, so the message box sits at the panel's bottom edge with nothing to scroll, on desktop and in the phone sheet. Long chats scroll inside the chat. On a very short window the chat keeps a usable height and the page scrolls instead.
 
 ### 11.48 Spot colors say whose a spot is (2026-11-23)
 
