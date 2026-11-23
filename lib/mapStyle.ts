@@ -251,7 +251,8 @@ export function roadLayers(): LayerSpecification[] {
       // road keeps its own color on top.
       id: "sl-hover-glow", type: "line", source: "roads", filter: ["==", ["get", "id"], ""],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#fff4d6", "line-width": width(18, 24, 32), "line-blur": width(9, 12, 16), "line-opacity": 0.8 },
+      // Narrow and soft: a wide blurred line folds over itself on tight curves.
+      paint: { "line-color": "#fff1cc", "line-width": width(9, 12, 17), "line-blur": width(6, 8, 11), "line-opacity": 0.45 },
     },
     {
       id: "sl-casing", type: "line", source: "roads",

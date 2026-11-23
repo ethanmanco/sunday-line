@@ -18,6 +18,8 @@ export default function ItemCards({ items, scoreKey, units }: {
   const shell = useMapShell();
   const strip = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Which card was last lit; null until someone swipes (cards appearing don't light the first one).
+  const last = useRef<number | null>(null);
   if (!shell || !items.length) return null;
 
   function onScroll() {
@@ -27,7 +29,10 @@ export default function ItemCards({ items, scoreKey, units }: {
       if (!el) return;
       const card = el.firstElementChild as HTMLElement | null;
       const width = card ? card.offsetWidth + 10 : el.clientWidth;
-      const it = items[Math.min(items.length - 1, Math.max(0, Math.round(el.scrollLeft / width)))];
+      const idx = Math.min(items.length - 1, Math.max(0, Math.round(el.scrollLeft / width)));
+      if (last.current === null && idx === 0) return;
+      last.current = idx;
+      const it = items[idx];
       shell!.setHoverId(it?.kind === "road" ? it.road.id : null);
     }, 120);
   }
