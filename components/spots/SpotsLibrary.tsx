@@ -20,7 +20,7 @@ export default function SpotsLibrary() {
   const [spots, setSpots] = useState<MySpot[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [filter, setFilter] = useState<string>("all");
-  const [editing, setEditing] = useState<Spot | "new" | null>(null);
+  const [editing, setEditing] = useState<MySpot | "new" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -91,6 +91,7 @@ export default function SpotsLibrary() {
       <div className="page">
         <SpotEditor
           spot={editing === "new" ? null : editing}
+          inPrivateGroup={editing !== "new" && inPrivate(editing)}
           onSaved={(id) => {
             setEditing(null);
             load().then(() => shell?.focusSpot(id));

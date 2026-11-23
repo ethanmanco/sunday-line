@@ -812,3 +812,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Your note: "All roads" closed a road but left the map zoomed in on it. Now All roads (on a road or a spot) closes it and flies the map smoothly back out: to the area around you, at the same zoom the app opens at, if your location is set (your own location, a point you set, or a town you searched); otherwise to the whole mainland (no Alaska or Hawaii), fitted between the search and the list on phones and on desktop. The list then shows every road in that view.
 - The logo still returns to the full map as before; no Back button. The location stays in the page's memory only.
 - Tested on a phone (website and installed-app layouts) and on desktop, with location set and not set.
+
+### 11.57 No profile choice for private-group spots (2026-11-23)
+
+- Your note: adding a spot in a private group still offered "Show on my profile". A private group's spots never show on a profile (the database already turns it off), so the spot form now leaves the checkbox out and says the spot stays off your profile. This covers adding a spot from a private group's page and editing a spot that's in a private group from Your spots.

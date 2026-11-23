@@ -74,6 +74,7 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
         <SpotEditor
           groupId={editing === "new" ? group.id : null}
           groupName={group.name}
+          inPrivateGroup={group.visibility === "private"}
           spot={editing === "new" ? null : editing}
           onSaved={() => {
             setEditing(null);

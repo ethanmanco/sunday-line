@@ -36,10 +36,12 @@ type RoadSource =
  * roads, any other road on the map (traced from the base map), or drawn by
  * tapping points. Suggested and traced roads can be trimmed with a start and end.
  */
-export default function SpotEditor({ groupId = null, spot = null, groupName, initialKind, initialBbox, onSaved, onCancel }: {
+export default function SpotEditor({ groupId = null, spot = null, groupName, inPrivateGroup = false, initialKind, initialBbox, onSaved, onCancel }: {
   groupId?: string | null;
   spot?: Spot | null;
   groupName?: string;
+  /** The spot is (or is going into) a private group, so it can't show on a profile. */
+  inPrivateGroup?: boolean;
   /** Start as a place or a road (from the map's add button). */
   initialKind?: SpotKind;
   /** Start the map here (the view the person was looking at). */
@@ -219,7 +221,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
         line: encodePolyline(simplifyLine(segment)),
       };
     }
-    row = { ...row, name: name.trim(), description: description.trim() || null, show_on_profile: onProfile };
+    row = { ...row, name: name.trim(), description: description.trim() || null, show_on_profile: onProfile && !inPrivateGroup };
     setBusy(true);
     const res = spot
       ? await sb.from("spots").update(row).eq("id", spot.id).select("id").single()
@@ -356,11 +358,19 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
         <textarea maxLength={500} rows={2} value={description} onChange={(e) => setDescription(e.target.value)}
           placeholder={kind === "road" ? "Best direction, rough spots" : "Where to park, hours"} />
       </label>
-      <label className="check">
-        <input type="checkbox" checked={onProfile} onChange={(e) => setOnProfile(e.target.checked)} />
-        <span>Show on my profile (when your profile is set to show spots you pick)</span>
-      </label>
-      {groupId && !spot && <p className="fine">Group spots are seen by group members only. Group managers may need to accept it first.</p>}
+      {!inPrivateGroup && (
+        <label className="check">
+          <input type="checkbox" checked={onProfile} onChange={(e) => setOnProfile(e.target.checked)} />
+          <span>Show on my profile (when your profile is set to show spots you pick)</span>
+        </label>
+      )}
+      {groupId && !spot && (
+        <p className="fine">
+          Group spots are seen by group members only. Group managers may need to accept it first.
+          {inPrivateGroup && " It's a private group, so the spot stays off your profile."}
+        </p>
+      )}
+      {inPrivateGroup && !(groupId && !spot) && <p className="fine">It&apos;s in a private group, so it stays off your profile.</p>}
       <div className="row">
         <button type="submit" className="button" disabled={busy}>{busy ? "Saving..." : "Save spot"}</button>
         <button type="button" className="button ghost" onClick={onCancel}>Cancel</button>
