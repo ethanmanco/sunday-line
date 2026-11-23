@@ -90,6 +90,18 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, inP
   const baseLine: LL[] | null = suggested ? suggested.coords : source?.from === "traced" ? source.coords : null;
   const roadName = suggested ? suggested.name : source?.from === "traced" ? source.name : null;
 
+  // Has the person changed the road itself (not just the name or notes)? Saving an unchanged road
+  // keeps its stored line exactly, so an on-request score survives (a new line clears it, 11.27).
+  const geometryKey = JSON.stringify([kind, drawing, kind === "point" ? pin : null, points, source, whole, start, end]);
+  const initialGeometry = useRef(geometryKey);
+  const roadChanged = !!spot && geometryKey !== initialGeometry.current;
+  const [hadScore, setHadScore] = useState(false);
+  useEffect(() => {
+    if (spot?.kind !== "road") return;
+    getSupabase()?.from("road_scores").select("status").eq("spot_id", spot.id).maybeSingle()
+      .then(({ data }) => setHadScore(!!data && data.status !== "failed"));
+  }, [spot?.id, spot?.kind]);
+
   const segment = useMemo((): LL[] | null => {
     if (kind !== "road") return null;
     if (drawing) return points.length > 1 ? points : null;
@@ -200,7 +212,9 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, inP
       return;
     }
     let row: Record<string, unknown>;
-    if (kind === "point") {
+    if (spot?.kind === "road" && kind === "road" && !roadChanged) {
+      row = {}; // The road itself is unchanged: leave its line, and its score, as they are.
+    } else if (kind === "point") {
       if (!pin) return setError("Tap the map to place the spot.");
       row = { kind, category, lat: pin[1], lng: pin[0], road_id: null, road_region: null, start_frac: null, end_frac: null, line: null };
     } else {
@@ -358,6 +372,11 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, inP
         <textarea maxLength={500} rows={2} value={description} onChange={(e) => setDescription(e.target.value)}
           placeholder={kind === "road" ? "Best direction, rough spots" : "Where to park, hours"} />
       </label>
+      {hadScore && roadChanged && (
+        <p className="hint warn" role="status">
+          You changed the road, so its score will be cleared when you save. Score it again afterward.
+        </p>
+      )}
       {!inPrivateGroup && (
         <label className="check">
           <input type="checkbox" checked={onProfile} onChange={(e) => setOnProfile(e.target.checked)} />

@@ -828,3 +828,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Any member can ask for a score on a road the group has accepted (not one only suggested), with the same 20-a-day limit. The notification now reads "<road> has its scores", since it may not be your road.
 - "Submit to public map" shows on a public group's roads for its spot managers and for the road's owner. Private groups don't show it, and the database now refuses it there too unless the road's owner does it (owners still decide about their own roads, from Your spots).
 - The note beside "Score this road" on a spot's card has a 12px gap and wraps in its own column beside the button instead of under it.
+
+### 11.60 Editing a scored road keeps its score (2026-11-23)
+
+- Your note: renaming a road you'd scored cleared its score. The editor sent the road's line again on every save, and any new line clears a score. Now saving a road you didn't change (name, notes, profile) leaves its line alone, so the score stays. If you change the road itself (draw, trim, extend, pick another), the editor warns that its score will be cleared and needs scoring again.
+- Tested on the local database: renaming a scored drawn road kept the same line and its score; undoing a point showed the warning.
