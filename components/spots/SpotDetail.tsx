@@ -6,7 +6,7 @@ import SpotFacts from "./SpotFacts";
 import RoadScorePanel from "./RoadScorePanel";
 import { decodePolyline } from "@/lib/polyline";
 import { directionsLinks } from "@/lib/roads";
-import { lineMiles, SPOT_GRADIENT_CSS, spotLabel, type Spot } from "@/lib/spots";
+import { lineMiles, spotColors, spotColorsCss, spotLabel, type Spot } from "@/lib/spots";
 import type { RoadOnMap } from "@/lib/roadData";
 type Units = "imperial" | "metric";
 
@@ -57,7 +57,7 @@ export default function SpotDetail({ spot, road, units, origin, originName, onCl
       </div>
       <div className="detail-body" key={spot.id}>
         <header className="detail-head">
-          <span className="badge big spot-badge" style={{ background: SPOT_GRADIENT_CSS }} aria-hidden="true" />
+          <span className="badge big spot-badge" style={{ background: spotColorsCss(spotColors(spot)) }} aria-hidden="true" />
           <div>
             <h1 id="spot-title" tabIndex={-1}>{spot.name}</h1>
             <p className="sub">{[spotLabel(spot), miles !== null ? `${miles.toFixed(1)} mi` : null].filter(Boolean).join(" · ")}</p>

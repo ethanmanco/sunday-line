@@ -80,6 +80,13 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const checkingRoads = useRef(new Set<string>());
   // On-request scores for drawn roads (11.27).
   const [roadScores, setRoadScores] = useState<Record<string, RoadScore>>({});
+  /** A road spot's Overall score: scored on request, or the scored road it sits on (11.48). */
+  const spotScore = useCallback((s: Spot): number | null => {
+    if (s.kind !== "road") return null;
+    const own = roadScores[s.id];
+    if (own?.status === "done" && own.scores) return own.scores.overall ?? null;
+    return spotRoads[s.id]?.scores.overall ?? null;
+  }, [roadScores, spotRoads]);
   const loadedScores = useRef(new Set<string>());
   const [overlay, setOverlay] = useState<{ title: string; spots: Spot[] } | null>(null);
   const [showEverything, setShowEverything] = useState(false);
@@ -600,6 +607,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onSelectSpot={doFocusSpot}
               headsUps={headsUps}
               onSelectHeadsUp={(id) => { setHuSelected(id); setHuPlace(null); }}
+              meId={user?.id ?? null}
+              spotScore={spotScore}
               onHover={setHoverId}
               onBounds={setBounds}
             />

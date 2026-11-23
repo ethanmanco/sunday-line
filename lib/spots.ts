@@ -31,6 +31,8 @@ export interface Spot {
   group_status?: "proposed" | "accepted";
   /** Groups the spot is in (filled in where it matters). */
   group_ids?: string[];
+  /** Filled in by the main map: whose colors this spot shows (11.48). */
+  colors?: string[];
   /** Filled in by the main map for group spots. */
   group_name?: string | null;
 }
@@ -66,13 +68,34 @@ export function linkedSpots(rows: unknown): Spot[] {
 }
 
 /**
- * Every spot uses one cool gradient (teal, sky, lavender) so spots read as
- * their own thing next to the warm Driver's road colors, whatever their
- * category or score (11.26).
+ * Spot colors say whose a spot is (11.48). They're all cool, so they never
+ * read as a road score (the warm Driver's road ramp): your own spots are teal,
+ * each group has its own color, and public map spots are light slate. A spot
+ * in several groups carries each group's color. On a road spot the center line
+ * keeps the road's score color (if it has one) and the owners' colors are the
+ * outline.
  */
-export const SPOT_STOPS = ["#2dd4bf", "#38bdf8", "#a78bfa"] as const;
-export const SPOT_COLOR = SPOT_STOPS[1];
-export const SPOT_GRADIENT_CSS = `linear-gradient(135deg, ${SPOT_STOPS.join(", ")})`;
+export const MINE_COLOR = "#2dd4bf";
+export const PUBLIC_COLOR = "#cbd5e1";
+/** Group colors, by groups.color (0-6). */
+export const GROUP_COLORS = ["#38bdf8", "#3b82f6", "#6366f1", "#a78bfa", "#22d3ee", "#4ade80", "#bae6fd"] as const;
+export const GROUP_COLOR_NAMES = ["Sky", "Blue", "Indigo", "Violet", "Cyan", "Green", "Ice"] as const;
+export const groupColor = (c: number | null | undefined): string => GROUP_COLORS[c ?? 0] ?? GROUP_COLORS[0];
+/** Kept for older callers: the color a spot shows when nothing else is known. */
+export const SPOT_COLOR = MINE_COLOR;
+
+/** Whose colors a spot shows: its own `colors` if the map worked them out, else yours (teal) or public. */
+export function spotColors(s: Spot, me: string | null = null): string[] {
+  if (s.colors?.length) return s.colors;
+  return [s.owner_id === me ? MINE_COLOR : PUBLIC_COLOR];
+}
+
+/** A CSS background for a spot's colors: solid, or equal slices for several. */
+export function spotColorsCss(colors: string[]): string {
+  if (colors.length <= 1) return colors[0] ?? PUBLIC_COLOR;
+  const step = 100 / colors.length;
+  return `conic-gradient(${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(", ")})`;
+}
 
 export const CATEGORY_LABEL: Record<SpotCategory, string> = {
   meetup: "Meetup spot",
@@ -188,25 +211,77 @@ export function loadRoads(): Promise<{ bbox: [number, number, number, number]; r
 /** Road spots record the data set they came from. */
 export const ROAD_REGION = "us";
 
-/** Spots as map features: points and road stretches. */
-export function spotFeatures(spots: Spot[]): GeoJSON.FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: spots.map((s) => ({
-      type: "Feature",
-      id: s.id,
-      properties: {
+/**
+ * Spots as map features: points and road stretches. With `bands`, each road
+ * spot also gets one outline band per owner color, side by side (the main map
+ * draws them under the line; MapLibre can't vary a gradient per road).
+ */
+export function spotFeatures(spots: Spot[], opts: { me?: string | null; bands?: boolean; score?: (s: Spot) => number | null } = {}): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = [];
+  for (const s of spots) {
+    const colors = spotColors(s, opts.me ?? null);
+    if (s.kind === "road" && s.line) {
+      const coordinates = decodePolyline(s.line);
+      const score = opts.score?.(s) ?? null;
+      features.push({
+        type: "Feature",
         id: s.id,
-        name: s.name,
-        kind: s.kind,
-        color: SPOT_COLOR,
-      },
-      geometry:
-        s.kind === "road" && s.line
-          ? { type: "LineString", coordinates: decodePolyline(s.line) }
-          : { type: "Point", coordinates: [s.lng, s.lat] },
-    })),
-  };
+        properties: { id: s.id, name: s.name, kind: s.kind, color: colors[0], ...(score !== null ? { score } : {}) },
+        geometry: { type: "LineString", coordinates },
+      });
+      if (opts.bands) {
+        const n = colors.length;
+        colors.forEach((color, i) => {
+          features.push({
+            type: "Feature",
+            properties: { id: s.id, band: true, color, w: 1 / n, k: (i - (n - 1) / 2) / n },
+            geometry: { type: "LineString", coordinates },
+          });
+        });
+      }
+    } else {
+      features.push({
+        type: "Feature",
+        id: s.id,
+        properties: { id: s.id, name: s.name, kind: s.kind, color: colors[0], icon: `spotpin:${colors.join(",")}` },
+        geometry: { type: "Point", coordinates: [s.lng, s.lat] },
+      });
+    }
+  }
+  return { type: "FeatureCollection", features };
+}
+
+/** The map pin for a place: a dot split into equal slices of its owners' colors (11.48). */
+export function spotPinIcon(id: string): ImageData | null {
+  if (!id.startsWith("spotpin:") || typeof document === "undefined") return null;
+  const colors = id.slice(8).split(",").filter((c) => /^#[0-9a-f]{6}$/i.test(c));
+  if (!colors.length) return null;
+  const S = 40;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  const r = 16;
+  colors.forEach((color, i) => {
+    const a0 = -Math.PI / 2 + (i * 2 * Math.PI) / colors.length;
+    const a1 = -Math.PI / 2 + ((i + 1) * 2 * Math.PI) / colors.length;
+    g.beginPath();
+    g.moveTo(20, 20);
+    g.arc(20, 20, r, a0, a1);
+    g.closePath();
+    g.fillStyle = color;
+    g.fill();
+  });
+  g.beginPath();
+  g.arc(20, 20, r, 0, Math.PI * 2);
+  g.lineWidth = 4;
+  g.strokeStyle = "#0b0d11";
+  g.stroke();
+  g.beginPath();
+  g.arc(20, 20, 5, 0, Math.PI * 2);
+  g.fillStyle = "#0b0d11";
+  g.fill();
+  return g.getImageData(0, 0, S, S);
 }
 
 export function spotsBbox(spots: Spot[]): [number, number, number, number] | null {

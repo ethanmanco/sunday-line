@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
+import { spotFeatures, spotPinIcon, spotsBbox, type Spot } from "@/lib/spots";
 import { headsUpIcon, headsUpIconId, type HeadsUp } from "@/lib/headsUps";
 import type { PickState } from "@/lib/mapShell";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
-import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
-import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LayerSpecification, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
+import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, scoreRamp, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
 
@@ -47,6 +47,9 @@ interface Props {
   /** The selected spot, drawn like a selected road. */
   selectedSpotId?: string | null;
   onSelectSpot?: (id: string) => void;
+  /** Who's looking (their spots are teal) and a spot road's score, if any (11.48). */
+  meId?: string | null;
+  spotScore?: (s: Spot) => number | null;
   /** Live heads-ups (11.39) and what happens when one is tapped. */
   headsUps?: HeadsUp[];
   onSelectHeadsUp?: (id: string) => void;
@@ -90,7 +93,7 @@ export default function MapView(props: Props) {
       });
       // Landmark icons (parks, peaks, volcanoes) are drawn here when the map first needs them.
       map.setMissingStyleImageResolver((id) => {
-        const img = landmarkIcon(id) ?? headsUpIcon(id);
+        const img = landmarkIcon(id) ?? headsUpIcon(id) ?? spotPinIcon(id);
         if (img && !map.hasImage(id)) map.addImage(id, img, { pixelRatio: 2 });
       });
       map.touchZoomRotate.disableRotation();
@@ -100,26 +103,41 @@ export default function MapView(props: Props) {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         for (const layer of roadLayers()) map.addLayer(layer, ROADS_BEFORE);
         // lineMetrics: road spots are drawn with a gradient along their length.
-        map.addSource("public-spots", { type: "geojson", lineMetrics: true, data: { type: "FeatureCollection", features: [] } });
+        // Spots (11.48): whose a spot is shows as color. A road spot draws one
+        // outline band per owner color under its line; the line itself is the
+        // road's score color when it has one, else the owner's color. Places
+        // are pins split into their owners' colors.
+        map.addSource("public-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-segment", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-vertices", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        const spotWidth = (a: number, b: number): ExpressionSpecification =>
+          ["interpolate", ["linear"], ["zoom"], 8, a, 14, b] as unknown as ExpressionSpecification;
+        const spotLineColor = ["case", ["has", "score"], scoreRamp, ["get", "color"]] as unknown as ExpressionSpecification;
         map.addLayer({
-          id: "ps-line", type: "line", source: "public-spots", filter: ["==", ["geometry-type"], "LineString"],
+          id: "ps-band", type: "line", source: "public-spots", filter: ["has", "band"],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#2dd4bf", 0.5, "#38bdf8", 1, "#a78bfa"], "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2.5, 14, 6] },
-        });
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 8, ["*", ["get", "w"], 8], 14, ["*", ["get", "w"], 16]],
+            "line-offset": ["interpolate", ["linear"], ["zoom"], 8, ["*", ["get", "k"], 8], 14, ["*", ["get", "k"], 16]],
+          },
+        } as LayerSpecification);
         map.addLayer({
-          id: "ps-focus-line", type: "line", source: "public-spots",
-          filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
+          id: "ps-line", type: "line", source: "public-spots",
+          filter: ["all", ["==", ["geometry-type"], "LineString"], ["!", ["has", "band"]]],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 7, 14, 14] },
-        });
+          paint: { "line-color": spotLineColor, "line-width": spotWidth(2.5, 6) },
+        } as LayerSpecification);
         map.addLayer({
-          id: "ps-focus-line-top", type: "line", source: "public-spots",
-          filter: ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "id"], ""]],
+          id: "ps-focus-line", type: "line", source: "public-spots", filter: ["==", ["get", "id"], ""],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#2dd4bf", 0.5, "#38bdf8", 1, "#a78bfa"], "line-width": ["interpolate", ["linear"], ["zoom"], 8, 4, 14, 9] },
-        });
+          paint: { "line-color": "#ffffff", "line-width": spotWidth(10, 20) },
+        } as LayerSpecification);
+        map.addLayer({
+          id: "ps-focus-line-top", type: "line", source: "public-spots", filter: ["==", ["get", "id"], ""],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": spotLineColor, "line-width": spotWidth(4, 9) },
+        } as LayerSpecification);
         map.addLayer({
           id: "ps-focus-point", type: "circle", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "Point"], ["==", ["get", "id"], ""]],
@@ -135,14 +153,12 @@ export default function MapView(props: Props) {
           paint: { "circle-color": "#f5a524", "circle-radius": 5, "circle-stroke-color": "#0b0d11", "circle-stroke-width": 2 },
         });
         map.addLayer({
-          id: "ps-point", type: "circle", source: "public-spots", filter: ["==", ["geometry-type"], "Point"],
-          paint: {
-            "circle-color": ["get", "color"],
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 3, 14, 8],
-            "circle-stroke-color": "#0b0d11",
-            "circle-stroke-width": 1.5,
+          id: "ps-point", type: "symbol", source: "public-spots", filter: ["==", ["geometry-type"], "Point"],
+          layout: {
+            "icon-image": ["get", "icon"], "icon-allow-overlap": true, "icon-ignore-placement": true,
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 6, 0.5, 14, 1],
           },
-        });
+        } as LayerSpecification);
         // Heads-ups sit on top of everything, so they're easy to see and tap.
         map.addSource("heads-ups", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({
@@ -186,7 +202,7 @@ export default function MapView(props: Props) {
           return;
         }
         // Spots next: they sit on top of the roads.
-        const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line"] });
+        const spotHits = map.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["ps-point", "ps-line", "ps-band"] });
         const spot = spotHits.length ? cb.current.spots?.find((s) => s.id === spotHits[0].properties.id) : undefined;
         if (spot) {
           cb.current.onSelectSpot?.(spot.id);
@@ -265,8 +281,10 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    (map.getSource("public-spots") as GeoJSONSource | undefined)?.setData(spotFeatures(props.spots ?? []));
-  }, [ready, props.spots]);
+    (map.getSource("public-spots") as GeoJSONSource | undefined)?.setData(
+      spotFeatures(props.spots ?? [], { bands: true, me: props.meId ?? null, score: props.spotScore }),
+    );
+  }, [ready, props.spots, props.meId, props.spotScore]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, type View } from "@/lib/roads";
 import { useMapShell, type ListItem } from "@/lib/mapShell";
-import { SPOT_GRADIENT_CSS, spotLabel, type Spot } from "@/lib/spots";
+import { spotColors, spotColorsCss, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
 import type { LoadedRoad } from "@/lib/types";
 
@@ -110,16 +110,19 @@ export default function RoadList({ items, view, scoreKey, units, originName, onS
 export function SpotMark({ spot, scoreKey }: { spot: Spot; scoreKey: keyof LoadedRoad["scores"] }) {
   const shell = useMapShell();
   const road = shell?.spotRoad(spot.id);
+  // Whose it is, as a ring around the score (like the outline on the map, 11.48).
+  const colors = spotColors(spot);
+  const ring = { boxShadow: colors.map((c, i) => `0 0 0 ${2 + i * 2}px ${c}`).join(", ") };
   if (road) {
     // A stretch of the road gets its own score.
     const part = spotStretch(spot, road, shell?.stretchModel);
     const s = (part?.scores ?? road.scores)[scoreKey];
-    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`${road.name}: ${s}`}>{s}</span>;
+    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s), ...ring }} title={`${road.name}: ${s}`}>{s}</span>;
   }
   const own = shell?.roadScore(spot.id);
   if (own?.status === "done" && own.scores) {
     const s = own.scores[scoreKey] ?? own.scores.overall;
-    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s) }} title={`Scored on request: ${s}`}>{s}</span>;
+    return <span className="badge" style={{ background: scoreColor(s), color: scoreInk(s), ...ring }} title={`Scored on request: ${s}`}>{s}</span>;
   }
-  return <span className={`spot-dot${spot.kind === "road" ? " is-road" : ""}`} style={{ background: SPOT_GRADIENT_CSS }} aria-hidden="true" />;
+  return <span className={`spot-dot${spot.kind === "road" ? " is-road" : ""}`} style={{ background: spotColorsCss(colors) }} aria-hidden="true" />;
 }

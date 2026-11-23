@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { getSupabase, type Group } from "@/lib/supabase";
-import type { Spot } from "@/lib/spots";
+import { groupColor, MINE_COLOR, PUBLIC_COLOR, type Spot } from "@/lib/spots";
 
 const KEY = "sl-map-layers";
 
@@ -96,6 +96,7 @@ export function useSpotLayers() {
   }, []);
 
   const names = useMemo(() => new Map(groups.map((g) => [g.id, g.name])), [groups]);
+  const colorOf = useMemo(() => new Map(groups.map((g) => [g.id, groupColor(g.color)])), [groups]);
   const spots = useMemo(() => {
     const shown: Spot[] = [];
     const seen = new Set<string>();
@@ -105,13 +106,19 @@ export function useSpotLayers() {
       seen.add(s.id);
       const gids = inGroups.get(s.id) ?? [];
       const label = gids.map((g) => names.get(g)).filter(Boolean).join(", ");
-      shown.push(gids.length ? { ...s, group_ids: gids, group_name: label || null } : s);
+      // Whose it is (11.48): yours, then each group's color; public otherwise.
+      const colors = [...new Set<string>([
+        ...(user && s.owner_id === user.id ? [MINE_COLOR] : []),
+        ...gids.map((g) => colorOf.get(g)).filter((c): c is string => Boolean(c)),
+      ])];
+      const withColors = { ...s, colors: colors.length ? colors : [PUBLIC_COLOR] };
+      shown.push(gids.length ? { ...withColors, group_ids: gids, group_name: label || null } : withColors);
     };
     if (saved.mine) mySpots.forEach(add);
     for (const s of groupSpots) if ((s.group_ids ?? []).some((g) => !saved.hidden.includes(g))) add(s);
     if (saved.public) publicSpots.forEach(add);
     return shown;
-  }, [mySpots, groupSpots, publicSpots, saved, names]);
+  }, [mySpots, groupSpots, publicSpots, saved, names, colorOf, user]);
 
   return { spots, groups, saved, save, reload: loadMine, signedIn: !!user };
 }
