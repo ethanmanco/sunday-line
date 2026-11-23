@@ -821,3 +821,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your question: Your spots showed "Submit to public map" but no way to score a road. "Score this road" had only ever been on the spot's own card (open the spot on the map), so it was easy to miss. Your spots now shows it too, on a road you picked off the map or drew, then "Waiting to be scored" or "Being scored", then "Scored 72" (opens the spot with its scores). Suggested roads already have scores and show nothing extra.
 - Recommendation taken: scoring stays separate from the public map. A score is seen only by people who can already see the spot (you, your groups, your profile), and the public map is a bigger step with a review, so tying the two together would make people publish just to get a number.
+
+### 11.59 Score and publish roads from a group page (2026-11-23)
+
+- Your note: members should be able to score a group's roads from the group page, and public groups should have "Submit to public map" there (not private groups). The road may not be in your own spots, but whoever asks gets the notification when it's scored.
+- Any member can ask for a score on a road the group has accepted (not one only suggested), with the same 20-a-day limit. The notification now reads "<road> has its scores", since it may not be your road.
+- "Submit to public map" shows on a public group's roads for its spot managers and for the road's owner. Private groups don't show it, and the database now refuses it there too unless the road's owner does it (owners still decide about their own roads, from Your spots).
+- The note beside "Score this road" on a spot's card has a 12px gap and wraps in its own column beside the button instead of under it.

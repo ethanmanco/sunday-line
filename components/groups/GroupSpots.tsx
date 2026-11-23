@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
+import ScoreRoadControl from "@/components/spots/ScoreRoadControl";
 import { can, type Membership } from "./GroupView";
 import { getSupabase, PROFILE_COLUMNS, type Group, type Profile } from "@/lib/supabase";
 import { linkedSpots, type Spot } from "@/lib/spots";
@@ -22,6 +23,7 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
   const [editing, setEditing] = useState<Spot | "new" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const manager = can(me, "spots");
+  const publicGroup = group.visibility === "public";
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -122,13 +124,15 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
               <SpotCard key={s.id} spot={s} showStatus={manager || s.owner_id === myId} onOpen={() => onFocus(s.id)}>
                 <span className="fine by-line">Added by {owners[s.owner_id]?.display_name ?? "a member"}</span>
                 {s.owner_id === myId && <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>}
-                {manager && s.kind === "road" && (s.public_status === "none" || s.public_status === "rejected") && (
+                <ScoreRoadControl spot={s} onMessage={setMessage} />
+                {/* The public map: public groups only. A private group's roads stay with the group (11.59). */}
+                {publicGroup && (manager || s.owner_id === myId) && s.kind === "road" && (s.public_status === "none" || s.public_status === "rejected") && (
                   <button type="button" className="link" onClick={() => run(() => sb.rpc("submit_spot_public", { p_spot: s.id }),
                     (d) => (d === "approved" ? `${s.name} is on the public map.` : `${s.name} is waiting for a quick review.`))}>
                     Submit to public map
                   </button>
                 )}
-                {manager && (s.public_status === "approved" || s.public_status === "pending") && (
+                {(manager || s.owner_id === myId) && (s.public_status === "approved" || s.public_status === "pending") && (
                   <button type="button" className="link" onClick={() => run(() => sb.rpc("withdraw_spot_public", { p_spot: s.id }), "Taken off the public map.")}>
                     Take off public map
                   </button>

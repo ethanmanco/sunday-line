@@ -66,7 +66,7 @@ export function describe(n: AppNotification, roadName: (id: string) => string): 
     }
     case "road_scored":
       return n.detail.status === "done"
-        ? { text: `Your road ${title} has its scores`, href: `/?spot=${n.spot_id}` }
+        ? { text: `${title} has its scores`, href: `/?spot=${n.spot_id}` }
         : { text: `We couldn't score ${title}. Try drawing it again.`, href: `/?spot=${n.spot_id}` };
     case "spot_reviewed":
       return n.detail.status === "approved"

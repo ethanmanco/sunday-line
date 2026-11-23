@@ -33,7 +33,7 @@ select throws_ok($$ select public.finish_score_job(pg_temp.id('road'), '{"overal
   'people cannot write a finished score');
 
 select pg_temp.act_as('9b000000-0000-0000-0000-000000000002');
-select throws_ok($$ select public.request_road_score(pg_temp.id('road')) $$, '42501', null, 'only the owner asks');
+select throws_ok($$ select public.request_road_score(pg_temp.id('road')) $$, '42501', null, 'someone outside its groups can''t ask');
 select is((select count(*)::int from public.road_scores where spot_id = pg_temp.id('road')), 0,
   'a private spot''s score is hidden like the spot');
 

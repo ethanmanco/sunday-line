@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import SpotCard from "@/components/spots/SpotCard";
 import SpotEditor from "@/components/spots/SpotEditor";
+import ScoreRoadControl from "@/components/spots/ScoreRoadControl";
 import { getSupabase, rememberReturn, type Group } from "@/lib/supabase";
 import type { Spot, SpotLink } from "@/lib/spots";
 import { usePageOnMap } from "@/lib/usePageOnMap";
@@ -84,28 +85,6 @@ export default function SpotsLibrary() {
     load();
   }
 
-  // A road picked off the map or drawn isn't one of the scored roads; its owner can ask for a score
-  // (11.27). Scoring is separate from the public map: only people who can see the spot see its score.
-  async function score(s: Spot) {
-    setMessage(null);
-    const { error } = await sb.rpc("request_road_score", { p_spot: s.id });
-    setMessage(error
-      ? (error.message.includes("20 score") ? "That's 20 score requests today. Try again tomorrow." : "Couldn't ask for a score. Try again.")
-      : `${s.name} is waiting to be scored, usually within the hour.`);
-    await shell?.reloadRoadScore(s.id);
-  }
-  function scoreControl(s: Spot) {
-    if (s.kind !== "road" || s.road_id || !shell || shell.spotRoad(s.id)) return null;
-    const rs = shell.roadScore(s.id);
-    if (rs?.status === "done" && rs.scores) {
-      return <button type="button" className="chip" onClick={() => shell.focusSpot(s.id)}>Scored {rs.scores.overall}</button>;
-    }
-    if (rs?.status === "queued" || rs?.status === "scoring") {
-      return <span className="chip">{rs.status === "scoring" ? "Being scored" : "Waiting to be scored"}</span>;
-    }
-    return <button type="button" className="link" onClick={() => score(s)}>{rs?.status === "failed" ? "Try scoring again" : "Score this road"}</button>;
-  }
-
   const inPrivate = (s: MySpot) => s.links.some((l) => groupById.get(l.group_id)?.visibility === "private");
 
   if (editing) {
@@ -172,7 +151,7 @@ export default function SpotsLibrary() {
                     </select>
                   )}
                   <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>
-                  {scoreControl(s)}
+                  <ScoreRoadControl spot={s} onMessage={setMessage} />
                   {priv ? (
                     <span className="chip" title="Spots in a private group stay off your profile.">Private group: not on profile</span>
                   ) : (
