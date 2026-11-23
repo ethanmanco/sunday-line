@@ -389,7 +389,14 @@ def build(region: Region) -> list[dict]:
     print(f"  review verdicts: {len(verdicts)}")
 
     # Off-road parks, parks, fee areas, and neighborhoods.
-    venue_items = [(k[0], name, to_proj(geom)) for k, (geom, name) in osm.venues.items()]
+    # Some park and fee-area outlines on the map cross themselves (one in Arizona
+    # stopped a whole run), so repair them before measuring how much road is inside.
+    venue_items = []
+    for k, (geom, name) in osm.venues.items():
+        p = to_proj(geom)
+        if not p.is_valid:
+            p = shapely.make_valid(p)
+        venue_items.append((k[0], name, p))
     venue_tree = STRtree([v[2] for v in venue_items]) if venue_items else None
     print(f"  venues: {Counter(v[0] for v in venue_items)}")
     ov_buildings = overture.path(region, "buildings")
