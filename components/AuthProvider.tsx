@@ -65,6 +65,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     profile,
     refreshProfile: () => loadProfile(user),
     signOut: async () => {
+      // This device stops getting their notifications (11.43).
+      await import("@/lib/push").then((m) => m.turnPushOff()).catch(() => {});
       await getSupabase()?.auth.signOut();
       setUser(null);
       setProfile(null);

@@ -864,3 +864,8 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .shell-panel .page h1 { font-size: 32px; }
 .shell-scroll:has(> .thread.page) { overflow: hidden; display: flex; flex-direction: column; }
 .shell-panel .thread.page { height: auto; flex: 1; min-height: 0; padding-bottom: 12px; }
+
+/* Push notifications on this device (11.43) */
+.push-box { display: grid; gap: 8px; justify-items: start; padding: 12px 14px; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
+.push-box p { margin: 0; }
+

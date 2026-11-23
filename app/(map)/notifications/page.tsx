@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import PushToggle from "@/components/PushToggle";
 import { ago } from "@/lib/headsUps";
 import { describe, loadNotifications, markAllRead, type AppNotification } from "@/lib/notifications";
 import { roadsById, type RoadOnMap } from "@/lib/roadData";
@@ -76,6 +77,7 @@ export default function NotificationsPage() {
   return (
     <div className="page narrow">
       <h1>Notifications</h1>
+      <PushToggle />
       {failed ? (
         <p className="fine">Couldn&apos;t load notifications. Check your connection.</p>
       ) : items === null ? (

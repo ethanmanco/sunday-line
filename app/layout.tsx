@@ -7,6 +7,7 @@ import NotificationsLink from "@/components/NotificationsLink";
 import MessagesLink from "@/components/MessagesLink";
 import PeopleLink from "@/components/PeopleLink";
 import PhotoViewer from "@/components/PhotoViewer";
+import ServiceWorker from "@/components/ServiceWorker";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -20,6 +21,9 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME}: great driving roads`, template: `%s | ${SITE_NAME}` },
   description:
     "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
+  // Installable (11.43): Home Screen icon and full-screen on iPhone.
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black" },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -50,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main id="main">{children}</main>
+        <ServiceWorker />
         <PhotoViewer />
         </AuthProvider>
       </body>
