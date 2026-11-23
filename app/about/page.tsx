@@ -25,14 +25,15 @@ export default async function About() {
       </p>
       <ul>
         <li><b>Twisty:</b> cornering, braking, and direction changes compared with those tracks. 70 is track average.</li>
-        <li><b>Speed:</b> the average legal speed through the corners. 35 mph scores 0, 65 mph scores 100.</li>
+        <li><b>Speed:</b> the average legal speed through the corners. 25 mph scores 0, 65 mph scores 100.</li>
         <li><b>Pavement:</b> how likely the pavement is smooth and kept up. Public data rarely measures pavement on county roads, so it starts from who maintains the road (state highways are kept up; many county roads here are rough chip seal or gravel), then uses federal road data, traffic counts, aerial photos, and people&apos;s checks, which always win.</li>
         <li><b>Overall:</b> needs both Twisty and Speed, so a slow twisty road and a fast straight one both score low. Pavement counts next, then flow (few stops), elevation, quiet, and scenery.</li>
         <li><b>Scenic:</b> forest, water, and wetland along the road (ESA WorldCover). It counts least in Overall and has its own list.</li>
       </ul>
       <p>
-        <b>Driver&apos;s roads</b> must be paved with a good Pavement score, have a speed limit of at least 40 mph on
-        most of their length, not run through a neighborhood, and not sit inside a park, fee area, or off-road park.
+        <b>Driver&apos;s roads</b> must be paved with a good Pavement score, have a speed limit of at least 35 mph on
+        most of their length, and not sit inside a park, fee area, or off-road park. Every kind of public road can
+        make the list: back roads, city streets, and interstates. Private roads and unnamed driveways are left out.
         Most rural roads here have no surface on the map, so we also read it from USDA aerial photos. County roads
         whose pavement we can&apos;t confirm, and roads where the photos are unclear, wait in &quot;Needs a
         check&quot; until a person looks.

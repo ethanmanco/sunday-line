@@ -15,7 +15,7 @@ Every road comes from OpenStreetMap. A driving model takes each road at the spee
 - **Pavement:** how likely the pavement is smooth and kept up, from who maintains the road (FHWA HPMS), aerial photos (USDA NAIP), and people's checks.
 - **Overall:** needs both Twisty and Speed, then Pavement, flow, elevation, quiet, and scenery.
 
-Driver's roads must be paved, 40 mph or faster, and not in a neighborhood, park, or off-road area. See [docs/plan.md](docs/plan.md) for the full design.
+Driver's roads must be paved, 35 mph or faster, and not inside a park or off-road area. Every kind of public road counts, city streets and interstates included. See [docs/plan.md](docs/plan.md) for the full design.
 
 ## Running it
 

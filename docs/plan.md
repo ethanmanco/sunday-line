@@ -669,6 +669,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Speed score: 25 mph average scores 0 (was 35), so 35 mph roads can rank. Scoring version 4-draft.
 - Unposted city streets get 25 mph (living streets and service roads 15), never a state's rural default. Many rural roads are mapped as "residential", so that applies only where at least 12% of the land within 100 m is built up (ESA WorldCover) or the road passes 10 or more homes per km; elsewhere they get the rural default. In Louisiana most "residential" roads are rural parish roads (median 2.7 homes per km), which now count like any other parish road. The first Louisiana test lost 14 good rural roads before this fix. Unposted interstates use the state's typical posted limit, else 65 mph. A built-up city street with no known owner counts as city-kept for Pavement.
 - Divided highways are two one-way halves on the map; both chain, and the curvier half is kept when the two run within 150 m of each other with the same route number or name.
+- Published in steps: Louisiana first (2026-11-22, your ask, to see the Shreveport additions: 28 to 105 driver's roads within 25 miles), merged with every other state's earlier data; the other states follow when the rebuild finishes. The old Shreveport-area region output is left out of the merge, since the Louisiana, Texas and Arkansas state runs cover it.
+- Geofabrik points its "latest" links at the day's files before posting them (404 or 503 for a while each evening), so state map downloads fall back to the previous days' dated files.
 
 ### 11.34 Landmarks on the map (2026-11-22)
 
