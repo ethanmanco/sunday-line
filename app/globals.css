@@ -343,7 +343,7 @@ button.link { background: none; border: none; padding: 8px 0; color: var(--accen
 @media (max-width: 420px) { .row.three { grid-template-columns: 80px 1fr; } .row.three label:last-child { grid-column: 1 / -1; } }
 .brand { white-space: nowrap; }
 @media (max-width: 420px) {
-  .topbar { padding: 0 10px; }
+  .topbar { padding: var(--safe-top) 10px 0; }
   .brand { font-size: 18px; letter-spacing: 0.1em; gap: 8px; }
   .topbar nav { gap: 0; }
   .topbar nav a { padding: 10px 8px; }
