@@ -696,6 +696,11 @@ button.link.danger { color: #ff8a80; }
 .spot-card { padding: 0; overflow: hidden; }
 .spot-open { display: flex; gap: 4px; align-items: flex-start; width: 100%; text-align: left; background: none; border: none; color: var(--text); font: inherit; padding: 10px 12px 4px 4px; cursor: pointer; }
 .spot-open.static { cursor: default; }
+/* Spot lists (11.53): every marker sits in the same 52px column, so names line
+   up and a scored road's badge (with its owner ring) doesn't crowd the name. */
+.spot-open > .badge { flex: none; width: 36px; height: 22px; min-width: 0; padding: 0; margin: 3px 8px 0; font-size: 13px; border-radius: 6px; }
+.spot-open > .spot-dot { margin: 6px 17px; }
+.spot-open > .spot-dot.is-road { margin: 10px 14px; }
 .spot-open:hover:not(.static) { background: rgba(255, 255, 255, 0.03); }
 .spot-open .spot-top { display: grid; gap: 2px; min-width: 0; }
 .spot-open .spot-desc { color: var(--dim); white-space: pre-line; margin: 2px 0 0; }
