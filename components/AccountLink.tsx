@@ -11,7 +11,8 @@ export default function AccountLink() {
   if (!user) return <Link href="/signin">Sign in</Link>;
   if (!profile) return <Link href="/me">Me</Link>;
   return (
-    <Link href="/me" className="account-link" aria-label={`Your profile, ${profile.display_name}`}>
+    // Your profile as others see it (11.45); Edit profile is there.
+    <Link href={`/u/${profile.username}`} className="account-link" aria-label={`Your profile, ${profile.display_name}`}>
       <Avatar person={profile} size={28} />
       <span className="account-name">{profile.display_name}</span>
     </Link>

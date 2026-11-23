@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VehicleCard from "./VehicleCard";
-import { openPhoto } from "@/components/PhotoViewer";
+import { openPhotos } from "@/components/PhotoViewer";
 import ProfileSpots from "./ProfileSpots";
 import { usePageOnMap } from "@/lib/usePageOnMap";
 import type { Spot } from "@/lib/spots";
@@ -162,7 +162,14 @@ export default function ProfileView({ username }: { username: string }) {
   }
 
   let action: React.ReactNode = null;
-  if (isMe) action = <Link href="/me" className="button ghost">Edit profile</Link>;
+  if (isMe) {
+    action = (
+      <>
+        <Link href="/me" className="button ghost">Edit profile</Link>
+        <Link href="/spots" className="button ghost">Your spots</Link>
+      </>
+    );
+  }
   else if (!user) {
     action = (
       <Link href="/signin" className="button" onClick={() => rememberReturn(`/u/${profile.username}`)}>Follow</Link>
@@ -263,7 +270,9 @@ function Photos({ media, urls, isMe }: { media: Media[]; urls: Record<string, st
       {media.map((m) =>
         urls[m.path] ? (
           <li key={m.id}>
-            <button type="button" className="photo-button" onClick={() => openPhoto(urls[m.path], m.caption ?? "Photo")}>
+            <button type="button" className="photo-button"
+              onClick={() => openPhotos(media.filter((x) => urls[x.path]).map((x) => ({ src: urls[x.path], alt: x.caption ?? "Photo" })),
+                media.filter((x) => urls[x.path]).indexOf(m))}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={urls[m.path]} alt={m.caption ?? "Photo"} loading="lazy" />
             </button>
