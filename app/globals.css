@@ -923,7 +923,7 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
    contents start lower and the blur only covers plain dark top bar (11.45). */
 @supports (-webkit-touch-callout: none) {
   /* Portrait only: on its side the iPhone hides the status bar. */
-  @media (display-mode: standalone) and (orientation: portrait) { :root { --ios-edge: 8px; } }
+  @media (display-mode: standalone) and (orientation: portrait) { :root { --ios-edge: 20px; } }
 }
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone), (display-mode: fullscreen) {
