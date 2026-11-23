@@ -552,6 +552,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               focus={focus}
               myLocation={myLocation}
               layoutKey={`${isSheet}-${panelOpen}-${panelWide}`}
+              phone={isSheet}
               spots={mapSpots}
               focusSpot={focusSpot}
               pick={pick}

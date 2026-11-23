@@ -7,7 +7,7 @@ import { headsUpIcon, headsUpIconId, type HeadsUp } from "@/lib/headsUps";
 import type { PickState } from "@/lib/mapShell";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
-import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
+import { baseStyle, landmarkIcon, LINE_OPACITY, roadLayers, ROADS_BEFORE, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
 
@@ -28,6 +28,8 @@ interface Props {
   myLocation: [number, number] | null;
   /** Changes when the space around the map changes (phone full-map button). */
   layoutKey?: string;
+  /** Phones in portrait: cards and the search sit over the map, so the card's road glows and the rest dim. */
+  phone?: boolean;
   /** Spots approved for the public map. */
   spots?: Spot[];
   /** Fly to and highlight one spot (change key to repeat). */
@@ -331,8 +333,14 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    map.setFilter("sl-hover", idFilter(props.hoverId && props.hoverId !== props.selectedId ? props.hoverId : null));
-  }, [ready, props.hoverId, props.selectedId]);
+    const hover = props.hoverId && props.hoverId !== props.selectedId ? props.hoverId : null;
+    map.setFilter("sl-hover", idFilter(hover));
+    // Phones: glow around it, and the other roads step back while a card shows one.
+    map.setFilter("sl-hover-glow", idFilter(props.phone ? hover : null));
+    map.setPaintProperty("sl-line", "line-opacity", props.phone && hover
+      ? ["case", ["==", ["get", "id"], hover], 1, 0.35]
+      : LINE_OPACITY);
+  }, [ready, props.hoverId, props.selectedId, props.phone]);
 
   useEffect(() => {
     const map = mapRef.current;

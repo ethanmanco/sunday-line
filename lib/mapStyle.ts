@@ -235,11 +235,24 @@ export function landmarkIcon(id: string): ImageData | null {
   return g.getImageData(0, 0, S, S);
 }
 
+/** How strongly each scored road draws (better roads brighter when zoomed out). */
+export const LINE_OPACITY: ExpressionSpecification = [
+  "interpolate", ["linear"], ["zoom"], 6, ["interpolate", ["linear"], ["get", "score"], 40, 0.45, 70, 1], 11, 1,
+] as unknown as ExpressionSpecification;
+
 /** Our scored roads, drawn above the base map and below the place labels. */
 export function roadLayers(): LayerSpecification[] {
   const width = (a: number, b: number, c: number): ExpressionSpecification =>
     ["interpolate", ["linear"], ["zoom"], 6, a, 10, b, 15, c];
   return [
+    {
+      // Phones (11.41): a soft glow under the road a card is showing, so it
+      // stands out even when it runs behind the cards or the search box. The
+      // road keeps its own color on top.
+      id: "sl-hover-glow", type: "line", source: "roads", filter: ["==", ["get", "id"], ""],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": "#fff4d6", "line-width": width(18, 24, 32), "line-blur": width(9, 12, 16), "line-opacity": 0.8 },
+    },
     {
       id: "sl-casing", type: "line", source: "roads",
       layout: { "line-cap": "round", "line-join": "round" },
@@ -266,7 +279,7 @@ export function roadLayers(): LayerSpecification[] {
           10, ["interpolate", ["linear"], ["get", "score"], 40, 2, 75, 4.5],
           15, 7,
         ],
-        "line-opacity": ["interpolate", ["linear"], ["zoom"], 6, ["interpolate", ["linear"], ["get", "score"], 40, 0.45, 70, 1], 11, 1],
+        "line-opacity": LINE_OPACITY,
       },
     },
     {

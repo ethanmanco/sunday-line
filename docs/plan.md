@@ -716,3 +716,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Rows are written only by the database (triggers and functions), so they always match what happened, and nobody is told about anything done by someone they blocked or who blocked them. Opening the page marks everything read; requests and invites keep their buttons until answered. The bell updates live. Read ones are deleted after 60 days, all after 120 (daily job).
 - Not yet: email or phone push for notifications (needs the email sender set up for this, and a push service).
 
+
+### 11.41 Phone card highlight (2026-11-22)
+
+- Your note: on phones the road a card shows can hide behind the cards or the town search. In phone layout only, the road now gets a soft bright glow underneath (it keeps its own color), and the other roads dim while a card shows one. The map doesn't move on its own: the cards list what's in view, so panning would reshuffle them mid-swipe. Desktop is unchanged.
