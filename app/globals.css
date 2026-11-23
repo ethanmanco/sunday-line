@@ -869,3 +869,6 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .push-box { display: grid; gap: 8px; justify-items: start; padding: 12px 14px; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
 .push-box p { margin: 0; }
 
+
+/* Touch screens: pinch to zoom; the +/- buttons are just clutter there. */
+@media (pointer: coarse) { .maplibregl-ctrl-top-right .maplibregl-ctrl-group { display: none; } }

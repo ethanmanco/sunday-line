@@ -531,6 +531,12 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onDrag={setDragPx}
               onSnap={(st) => {
                 if (adding && st === "closed") return;
+                if (accountPage && (st === "peek" || st === "closed")) {
+                  // Account pages (notifications, messages, profile...): swiping down goes back to the map.
+                  setSheet("closed");
+                  router.push("/");
+                  return;
+                }
                 if (selectedId && (st === "peek" || st === "closed")) {
                   // Back to all roads, keeping the same map view.
                   setSelectedId(null);
