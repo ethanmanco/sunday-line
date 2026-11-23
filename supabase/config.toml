@@ -429,3 +429,8 @@ content_path = "./supabase/templates/sign_in.html"
 [auth.email.template.confirmation]
 subject = "Your Sunday Line sign-in code"
 content_path = "./supabase/templates/sign_in.html"
+
+# Web push sender (11.43). Called by the database; it only sends real, unsent
+# notifications to their owners, so it needs no login.
+[functions.push]
+verify_jwt = false
