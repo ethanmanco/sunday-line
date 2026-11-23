@@ -674,6 +674,6 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your ask: show what's around the roads. The map now labels national parks and monuments, state parks and forests, national forests, wilderness areas and wildlife refuges (each with a tree icon, sorted by name because the tiles' park types are inconsistent), mountain peaks and passes with elevation in feet, volcanoes (own icon and color), viewpoints (zoom 12 and closer), and lake and reservoir names. Park outlines are drawn from zoom 7.
 - Everything comes from the OpenFreeMap tiles the map already uses (OpenStreetMap data, already credited), so there is no new service, key, or cost. Icons are drawn in the browser.
-- Zooms: national parks from 5; peaks and volcanoes from 7 (the tiles have no peaks before that), only the most prominent peaks until 11; national forests from 7, state parks from 8, wilderness and refuges from 9, passes from 11.
+- Zooms: peaks and volcanoes from 7 (the tiles have no peaks before that), only the most prominent peaks until 11; passes from 11. Park names were raised the same day on your note that they covered the roads: national parks from 9 (was 5), national forests and state parks from 10 (were 7 and 8), wilderness and refuges from 11 (was 9).
 - When labels collide, volcanoes win, then national parks, then other peaks; a park's name always shows with its icon or not at all, never a lone icon. Labels stay visible over the satellite view.
 - Not in the tiles: waterfalls. Doing those would mean adding them to our own data.

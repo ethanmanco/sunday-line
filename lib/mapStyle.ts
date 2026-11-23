@@ -173,9 +173,9 @@ function landmarkLayers(name: ExpressionSpecification): LayerSpecification[] {
       layout: { "text-field": name, "text-font": ["Noto Sans Italic"], "text-size": 11, "text-max-width": 8 },
       paint: { "text-color": t.lmWater, ...halo },
     },
-    park("wild", 9, t.lmWild, 11),
-    park("forest", 7, t.lmForest, 11),
-    park("state", 8, t.lmState, 11),
+    park("wild", 11, t.lmWild, 11),
+    park("forest", 10, t.lmForest, 11),
+    park("state", 10, t.lmState, 11),
     {
       id: "viewpoints", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12,
       filter: ["==", ["get", "subclass"], "viewpoint"],
@@ -186,7 +186,7 @@ function landmarkLayers(name: ExpressionSpecification): LayerSpecification[] {
     peak("peaks-all", "peak", "lm-peak", 11, t.lmPeak),
     peak("peaks-major", "peak", "lm-peak", 8, t.lmPeak, [["<=", ["coalesce", ["get", "rank"], 9], 1]], 11),
     // Last layers win when labels collide: national parks over ordinary peaks, volcanoes over all.
-    park("national", 5, t.lmNational, 12),
+    park("national", 9, t.lmNational, 12),
     peak("volcanoes", "volcano", "lm-volcano", 7, t.lmVolcano),
   ];
 }
