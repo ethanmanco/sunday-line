@@ -738,3 +738,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your notes: (1) phones lose the map's +/- buttons (pinch to zoom; hidden on touch screens only). (2) A spot could only be in groups of one kind. Now a spot can join a private group any time, but can't join a public group once it's in a private one, so a private group's place still never reaches a public group (replaces the all-public-or-all-private rule from 11.25). (3) Only roads go on the public map; places (pins) stay with their owner, groups, and profile. A public road changed into a place comes off. There were no public places when this shipped. (4) Phones: swiping Notifications, Messages, profile, Groups, People, or About down goes back to the full map.
 
+
+### 11.45 iPhone app top, profile, admin queues, photo galleries (2026-11-22)
+
+- iPhone app: newer iOS draws installed web apps under the status bar and blurs what's behind it, which blurred the top half of the top bar. The app now fills the screen on purpose (viewport-fit=cover, black-translucent status bar): the top bar's dark background reaches up behind the status bar and its contents sit just below it (env(safe-area-inset-top)), so the blur covers plain dark color. Bottom items (cards, buttons, sheet, map credit) clear the home bar. Both spaces are zero on other devices; desktop is unchanged.
+- Profile: the avatar in the top bar opens your profile as others see it (Instagram style), with Edit profile (the old /me page) and Your spots buttons. Recommendation taken for phones: Your spots lives on your profile next to Edit profile. The profile's Spots tab still shows only what others see.
+- Site admin: spot review and road checks moved from the profile page to a collapsed box at the bottom of Notifications, showing what's waiting and links to the full review pages.
+- Photos: vehicle photo strips have previous/next arrows on desktop (phones swipe), and the full-screen viewer is a gallery (arrows, arrow keys, swipe, "2 / 3") for garage photos and the Photos tab.
