@@ -5,6 +5,7 @@ Downloads go to data/raw (untrusted data, never executed).
 """
 from __future__ import annotations
 
+import datetime as dt
 import email.utils
 import math
 import os
@@ -31,11 +32,37 @@ USGS_1AS = (
 )
 
 
+def _recent_extract(url: str, dest: Path, days: int = 4) -> str | None:
+    """Geofabrik points "-latest" at today's dated file before that file is up
+    (it answers 404 or 503 for a while each evening). Try the last few days'
+    dated files instead: "oregon-latest.osm.pbf" -> "oregon-261121.osm.pbf"."""
+    if not url.endswith("-latest.osm.pbf"):
+        return None
+    today = dt.datetime.now(dt.timezone.utc).date()
+    for back in range(1, days + 1):
+        day = (today - dt.timedelta(days=back)).strftime("%y%m%d")
+        try:
+            got = _download_once(url.replace("-latest.osm.pbf", f"-{day}.osm.pbf"), dest)
+        except urllib.error.HTTPError:
+            continue
+        if got != "missing":
+            print(f"    latest not posted yet; used the {day} file", flush=True)
+            return got
+    return None
+
+
 def _download(url: str, dest: Path, tries: int = 5, wait_if_missing: bool = False) -> str:
     """Download with retries: big state runs hit dropped connections now and then."""
     for attempt in range(tries):
         try:
-            got = _download_once(url, dest)
+            try:
+                got = _download_once(url, dest)
+            except urllib.error.HTTPError as e:
+                if not (wait_if_missing and e.code >= 500):
+                    raise
+                got = "missing"
+            if wait_if_missing and got == "missing" and not dest.exists():
+                got = _recent_extract(url, dest) or got
             # Geofabrik briefly answers 404 while it publishes each day's files.
             if wait_if_missing and got == "missing" and not dest.exists() and attempt < tries - 1:
                 wait = 120 * (attempt + 1)
