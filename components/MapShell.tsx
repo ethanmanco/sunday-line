@@ -455,7 +455,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     sheet, setSheet, setPanelWide, isSheet,
   };
 
-  const showCards = isSheet && home && !adding && (sheet === "closed" || sheet === "peek");
+  // The phone road cards, only when there are roads to show (else the buttons sit at the bottom).
+  const showCards = isSheet && home && !adding && (sheet === "closed" || sheet === "peek") && items.length > 0;
   const sheetClass = isSheet ? ` sheet-${panelOpen}` : "";
 
   return (
