@@ -70,17 +70,28 @@ export default function Me() {
 /** Only shows for the site admin. */
 function ReviewLink() {
   const [waiting, setWaiting] = useState<number | null>(null);
+  const [checks, setChecks] = useState(0);
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
     sb.rpc("am_site_admin").then(async ({ data }) => {
       if (!data) return;
-      const { count } = await sb.from("spots").select("id", { count: "exact", head: true }).eq("public_status", "pending");
-      setWaiting(count ?? 0);
+      const [spots, checks] = await Promise.all([
+        sb.from("spots").select("id", { count: "exact", head: true }).eq("public_status", "pending"),
+        sb.from("road_checks").select("road_id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      setWaiting(spots.count ?? 0);
+      setChecks(checks.count ?? 0);
     });
   }, []);
   if (waiting === null) return null;
-  return <Link href="/admin/spots">Spot review ({waiting} waiting)</Link>;
+  return (
+    <>
+      <Link href="/admin/spots">Spot review ({waiting} waiting)</Link>
+      {" · "}
+      <Link href="/admin/roads">Road checks ({checks} waiting)</Link>
+    </>
+  );
 }
 
 function CreateProfile({ userId }: { userId: string }) {

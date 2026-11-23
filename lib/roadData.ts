@@ -9,6 +9,7 @@
 // someone opens it.
 
 import { decodePolyline } from "./polyline";
+import { getSupabase } from "./supabase";
 import type { Bounds } from "./roads";
 import type { LoadedRoad, Road } from "./types";
 
@@ -53,6 +54,42 @@ const json = <T,>(url: string) =>
 
 const decode = (roads: Road[]): RoadOnMap[] => roads.map((r) => ({ ...r, coords: decodePolyline(r.line) }));
 
+// ---- Road checks (11.38): what members flagged and the site admin accepted ----
+
+export type CheckKind = "gravel" | "private" | "closed" | "rough";
+export const CHECK_REASON: Record<CheckKind, string> = {
+  gravel: "gravel or dirt (members flagged it, checked)",
+  private: "private or no entry (members flagged it, checked)",
+  closed: "closed or doesn't go through (members flagged it, checked)",
+  rough: "poor pavement (members flagged it, checked)",
+};
+
+let checksP: Promise<Map<string, CheckKind[]>> | null = null;
+/** Accepted road checks, loaded once per visit (empty if accounts are off or offline). */
+export function loadRoadChecks(): Promise<Map<string, CheckKind[]>> {
+  checksP ??= (async () => {
+    const out = new Map<string, CheckKind[]>();
+    const sb = getSupabase();
+    if (!sb) return out;
+    const { data, error } = await sb.from("road_checks").select("road_id, kind").eq("status", "accepted");
+    if (error) return out;
+    for (const r of (data as { road_id: string; kind: CheckKind }[] | null) ?? []) {
+      out.set(r.road_id, [...(out.get(r.road_id) ?? []), r.kind]);
+    }
+    return out;
+  })().catch(() => new Map());
+  return checksP;
+}
+
+/** A road with its accepted checks applied: gravel moves to Gravel; private, closed, or rough leave Driver's roads. */
+export function withChecks<T extends Road>(r: T, kinds: CheckKind[] | undefined): T {
+  if (!kinds?.length) return r;
+  const excluded = [...r.excluded, ...kinds.map((k) => CHECK_REASON[k])];
+  const blocked = kinds.includes("private") || kinds.includes("closed");
+  const category = blocked ? "other" : kinds.includes("gravel") ? "gravel" : r.category === "drivers" ? "other" : r.category;
+  return { ...r, category, excluded };
+}
+
 let indexP: Promise<DataIndex> | null = null;
 export function loadIndex(): Promise<DataIndex> {
   indexP ??= json<DataIndex>(`${DATA_BASE}/index.json`).catch((e) => {
@@ -66,7 +103,8 @@ const cache = new Map<string, Promise<RoadOnMap[]>>();
 function load(path: string): Promise<RoadOnMap[]> {
   let p = cache.get(path);
   if (!p) {
-    p = json<{ roads: Road[] }>(`${path.startsWith("cells/") ? CELLS_BASE : DATA_BASE}/${path}`).then((d) => decode(d.roads)).catch((e) => {
+    p = Promise.all([json<{ roads: Road[] }>(`${path.startsWith("cells/") ? CELLS_BASE : DATA_BASE}/${path}`), loadRoadChecks()])
+      .then(([d, checks]) => decode(d.roads.map((r) => withChecks(r, checks.get(r.id))))).catch((e) => {
       cache.delete(path);
       throw e;
     });
