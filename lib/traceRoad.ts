@@ -64,12 +64,89 @@ function overlapIndex(line: LL[], p: LL, fromStart: boolean): number {
 /** The map's road-name data has small gaps (bridges, short segments); bridge up to this. */
 const GAP_METERS = 400;
 
+// Divided roads (parkways, boulevards) are two same-name lines, one per
+// direction. Tracing follows the side that was tapped: a piece that would mean
+// turning back sharper than this, or that mostly runs alongside the line
+// already traced (the other side), is not joined.
+const MAX_TURN_DEG = 110;
+const TWIN_METERS = 150;
+const TWIN_SHARE = 0.6;
+
+/** Unit direction (in local meters) from `from` toward the first point at least 25 m away along `pts`. */
+function heading(from: LL, pts: LL[]): [number, number] | null {
+  const k = Math.cos((from[1] * Math.PI) / 180);
+  for (const p of pts) {
+    if (meters(from, p) >= 25) {
+      const x = (p[0] - from[0]) * k;
+      const y = p[1] - from[1];
+      const n = Math.hypot(x, y);
+      return [x / n, y / n];
+    }
+  }
+  return null;
+}
+
+/** Degrees the road turns when going along direction `a`, then `b` (0 = straight on, 180 = U-turn). */
+function turnDeg(a: [number, number] | null, b: [number, number] | null): number {
+  if (!a || !b) return 0;
+  return (Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1]))) * 180) / Math.PI;
+}
+
+/** Meters from `p` to the nearest point on `line` (local flat approximation). */
+function metersToLine(line: LL[], p: LL): number {
+  const k = Math.cos((p[1] * Math.PI) / 180) * 111320;
+  let best = Infinity;
+  for (let i = 1; i < line.length; i++) {
+    const ax = (line[i - 1][0] - p[0]) * k, ay = (line[i - 1][1] - p[1]) * 110540;
+    const bx = (line[i][0] - p[0]) * k, by = (line[i][1] - p[1]) * 110540;
+    const dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return best;
+}
+
+/**
+ * True when most of `piece` runs within TWIN_METERS of `line`: the other side
+ * of a divided road. Points near the line's two ends don't count, so a piece
+ * that simply continues the road isn't mistaken for it (the turn check covers
+ * the ends).
+ */
+function runsAlongside(line: LL[], piece: LL[]): boolean {
+  const n = Math.min(piece.length, 10);
+  if (n < 2) return false;
+  const a = line[0];
+  const z = line[line.length - 1];
+  let near = 0;
+  for (let s = 0; s < n; s++) {
+    const p = piece[Math.round((s * (piece.length - 1)) / (n - 1))];
+    if (meters(p, a) > 2 * TWIN_METERS && meters(p, z) > 2 * TWIN_METERS && metersToLine(line, p) <= TWIN_METERS) near++;
+  }
+  return near / n >= TWIN_SHARE;
+}
+
+/** Turn at the join if `p` (already flipped as it would be) is added at the line's end or start. */
+function joinTurn(line: LL[], p: LL[], atEnd: boolean): number {
+  if (atEnd) {
+    const end = line[line.length - 1];
+    const k = overlapIndex(p, end, true);
+    const after = p.slice(k >= 0 ? k : 0);
+    const back = heading(end, [...line].reverse());
+    return turnDeg(back && [-back[0], -back[1]], heading(after[0], after.slice(1)));
+  }
+  const start = line[0];
+  const k = overlapIndex(p, start, false);
+  const before = p.slice(0, k >= 0 ? k + 1 : p.length);
+  const into = heading(before[before.length - 1], [...before].reverse());
+  return turnDeg(into && [-into[0], -into[1]], heading(start, line.slice(1)));
+}
+
 /**
  * Join pieces into one line, growing from the piece nearest the tap. Each step
  * attaches the closest remaining piece to either end. Pieces that overlap the
  * end (tile edges) are trimmed; pieces a short gap away are joined straight.
  */
-function chain(pieces: LL[][], first: number): LL[] {
+export function chain(pieces: LL[][], first: number): LL[] {
   const used = new Set([first]);
   let line = [...pieces[first]];
   for (;;) {
@@ -79,6 +156,7 @@ function chain(pieces: LL[][], first: number): LL[] {
     for (let i = 0; i < pieces.length; i++) {
       if (used.has(i)) continue;
       const p = pieces[i];
+      if (runsAlongside(line, p)) continue; // the other side of a divided road
       const options = [
         { atEnd: true, flip: false, d: meters(end, p[0]) },
         { atEnd: true, flip: true, d: meters(end, p[p.length - 1]) },
@@ -94,7 +172,12 @@ function chain(pieces: LL[][], first: number): LL[] {
       if (o2 >= 0) options.push({ atEnd: true, flip: true, d: 0 });
       if (o3 >= 0) options.push({ atEnd: false, flip: false, d: 0 });
       if (o4 >= 0) options.push({ atEnd: false, flip: true, d: 0 });
-      for (const o of options) if (o.d <= GAP_METERS && (!best || o.d < best.d)) best = { i, ...o };
+      for (const o of options) {
+        if (o.d > GAP_METERS || (best && o.d >= best.d)) continue;
+        // No U-turns onto the other side of a divided road.
+        if (joinTurn(line, o.flip ? [...p].reverse() : p, o.atEnd) > MAX_TURN_DEG) continue;
+        best = { i, ...o };
+      }
     }
     if (!best) return line;
     used.add(best.i);
@@ -185,16 +268,41 @@ export function traceRoadAt(map: MLMap, point: { x: number; y: number }): Traced
   }
   if (!pieces.length) return null;
 
-  let first = 0;
-  let best = Infinity;
-  pieces.forEach((p, i) => {
-    const d = pixelDistance(map, p, point);
-    if (d < best) {
-      best = d;
-      first = i;
-    }
-  });
+  // The tapped piece first, then other pieces near the tap (the other side of a divided road).
+  const near = pieces
+    .map((p, i) => ({ i, d: pixelDistance(map, p, point) }))
+    .filter((x, _, all) => x.d <= Math.min(...all.map((y) => y.d)) + NEAR_SIDE_PX)
+    .sort((a, b) => a.d - b.d)
+    .map((x) => x.i);
   // Simplifying also removes the short back-and-forth where tile pieces overlap.
-  const coords = simplifyLine(chain(pieces, first), 2);
+  const coords = simplifyLine(bestSide(pieces, near), 2);
   return coords.length > 1 ? { name, coords } : null;
+}
+
+/** How far (screen pixels) from the tap the other side of a divided road may be. */
+const NEAR_SIDE_PX = 40;
+
+/**
+ * Trace from the tapped piece (`starts[0]`). If the map data for that side is
+ * cut short, use another nearby start (the other side of the road) when it
+ * reaches at least 30% farther.
+ */
+export function bestSide(pieces: LL[][], starts: number[]): LL[] {
+  let best = chain(pieces, starts[0]);
+  let bestLen = lengthMeters(best);
+  for (const s of starts.slice(1)) {
+    const line = chain(pieces, s);
+    const len = lengthMeters(line);
+    if (len > 1.3 * bestLen) {
+      best = line;
+      bestLen = len;
+    }
+  }
+  return best;
+}
+
+function lengthMeters(line: LL[]): number {
+  let s = 0;
+  for (let i = 1; i < line.length; i++) s += meters(line[i - 1], line[i]);
+  return s;
 }
