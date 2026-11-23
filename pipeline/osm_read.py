@@ -17,13 +17,20 @@ import numpy as np
 import osmium
 import shapely
 
-# Roads that can become candidates.
-ELIGIBLE = {"primary", "secondary", "tertiary", "unclassified"}
+# Roads that can become candidates (11.33: every public road type, city
+# streets and interstates included). Ramps are left out; tracks are dirt.
+# Service roads only when they carry a name: unnamed ones are driveways and
+# parking aisles, which can never be candidates (require_name) and would only
+# use memory.
+ELIGIBLE = {
+    "motorway", "trunk", "primary", "secondary", "tertiary", "unclassified",
+    "residential", "living_street", "service",
+}
 
 # Roads that count as an interruption where they meet a candidate.
 # Service roads (driveways, parking aisles) and tracks are left out on purpose.
-DRIVABLE = ELIGIBLE | {
-    "motorway", "trunk", "residential", "living_street",
+DRIVABLE = {
+    "motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street",
     "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link",
 }
 
@@ -176,8 +183,9 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
                     if first.location.valid() and inside(first.location.lon, first.location.lat):
                         data.service_refs.append(first.ref)
                         data.service_refs.append(last.ref)
-                    continue
-                if hw in DRIVABLE:
+                    if "name" not in tags and "ref" not in tags:
+                        continue
+                if hw in DRIVABLE or hw in ELIGIBLE:
                     nodes = obj.nodes
                     first = nodes[0].location
                     if not first.valid() or not (
@@ -193,7 +201,7 @@ def read_extracts(paths: list[Path], bbox, tmp_dir: Path, states=()) -> OsmData:
                             coords.append((loc.lon, loc.lat))
                     if len(refs) < 2 or not any(inside(x, y) for x, y in coords):
                         continue
-                    if obj.id not in seen_drivable:
+                    if hw in DRIVABLE and obj.id not in seen_drivable:
                         seen_drivable.add(obj.id)
                         data.drivable_refs.extend(refs)
                         data.drivable_refs.extend(refs[1:-1])  # interior nodes count twice

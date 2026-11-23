@@ -301,7 +301,9 @@ def input_files(region: Region) -> list[Path]:
         p = overture.path(region, kind)
         if p is not None:
             files += [p, p.with_name(p.name + ".state")]
-    files.append(DATA_DIR / "cache" / f"osm_{region.slug}.pkl")
+    from .build import osm_cache_path
+
+    files.append(osm_cache_path(region))
     files.append(raw / "naip" / f"points_{region.slug}.json")
     for p in osm_paths(region):
         files += sorted((DATA_DIR / "tmp").glob(f"{p.stem}.*nodecache"))
@@ -319,11 +321,14 @@ def cleanup(region: Region) -> dict:
     gc.collect()  # let go of OSM reader handles so the node caches can be deleted
     removed = kept = 0
     kept_names = []
+    # Two states building at once can share border elevation and land cover
+    # tiles; SUNDAY_LINE_KEEP_TILES=1 keeps them until every state is done.
+    keep_tiles = os.environ.get("SUNDAY_LINE_KEEP_TILES") == "1"
     for p in input_files(region):
         if not p.exists():
             continue
         size = p.stat().st_size
-        if p.resolve() in keep:
+        if p.resolve() in keep or (keep_tiles and p.suffix == ".tif"):
             kept += size
             kept_names.append(p.name)
             continue

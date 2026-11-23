@@ -145,7 +145,7 @@ def report(region: Region, top: int = 20) -> str:
         f"Land cover © ESA WorldCover 2021 (CC BY 4.0). Elevation: USGS 3DEP. Aerial photos: USDA NAIP.\n\n"
         f"{total} candidates found; {len(long_enough)} are at least 1.9 mi (3 km), the app's default minimum. "
         f"**Driver's roads** must be paved, have a speed limit of at least {cat['min_speed']} {unit} on "
-        f"{cat['min_speed_share'] * 100:.0f}% of their length, not run through a neighborhood, and not sit inside "
+        f"{cat['min_speed_share'] * 100:.0f}% of their length, and not sit inside "
         f"a park, fee area, or off-road park; {left_out} long-enough candidates are left out of that list.\n\n"
         f"## Driver's roads: top {top}\n\n{drivers_table(drivers[:top], imperial)}\n\n"
         + (f"## Local: driver's roads within {region.local_radius_mi:.0f} miles of {region.home_name}\n\n"

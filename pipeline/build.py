@@ -20,7 +20,7 @@ from pyproj import Transformer
 from shapely.strtree import STRtree
 
 from . import geometry as g
-from .chains import build_chains
+from .chains import build_chains, is_oneway, road_key
 from .config import DATA_DIR, REVIEW_DIR, Region, load_scoring
 from .dem import Dem
 from .landcover import Landcover
@@ -31,6 +31,14 @@ from . import overture
 from .osm_read import read_extracts
 
 KMH_PER_MPH = 1.609344
+
+# Bump when the OSM reader keeps different ways, so old caches are not reused.
+OSM_CACHE_VERSION = 2
+
+# City street types (11.33). With no posted limit they get the city default
+# below, never a state's rural highway default.
+CITY_CLASSES = ("residential", "living_street", "service")
+CLASS_ESTIMATES = {"motorway": 65, "trunk": 55, "residential": 25, "living_street": 15, "service": 15}
 
 
 # ---------- helpers ----------------------------------------------------------
@@ -94,7 +102,7 @@ def state_route_ref(codes=()) -> re.Pattern:
 
 def pavement_score(pc: dict, *, state: str | None, owner: int | None, state_ref: bool, hp_unpaved: bool,
                    aadt: float | None, iri: float | None, tagged_paved: bool, p_unpaved: float | None,
-                   photo_used: bool, verdict: str | None) -> tuple[float, str]:
+                   photo_used: bool, verdict: str | None, city_street: bool = False) -> tuple[float, str]:
     """Pavement quality, 0 to 100, and a plain-language reason.
 
     Public data rarely measures pavement on county roads, so this leans on who
@@ -116,7 +124,7 @@ def pavement_score(pc: dict, *, state: str | None, owner: int | None, state_ref:
     elif owner in hpms.OWNER_COUNTY:
         score = pc["county"].get(state or "", pc["unknown"])
         why = "parish road" if state == "Louisiana" else "county road"
-    elif owner in hpms.OWNER_CITY:
+    elif owner in hpms.OWNER_CITY or (owner is None and city_street):
         score, why = pc["city"], "city street"
     else:
         score, why = pc["unknown"], "owner unknown"
@@ -148,6 +156,35 @@ VERDICT_REASONS = {
 }
 
 
+def drop_second_halves(pieces: list, ways: dict, within_m: float = 150.0) -> list:
+    """Keep one half of each divided highway (11.33).
+
+    Interstates and expressways are mapped as two one-way halves a few dozen
+    meters apart, so both halves pass the curvature check. Of two one-way
+    pieces with the same route number or name that run alongside each other,
+    keep the curvier one.
+    """
+    def oneway_share(ch, oa, ob):
+        seg = ch.seg_way[oa:ob]
+        return float(np.mean([is_oneway(ways[int(w)]) for w in seg])) if len(seg) else 0.0
+
+    order = sorted(range(len(pieces)), key=lambda i: -pieces[i][6])
+    kept_by_key: dict = {}
+    drop = set()
+    for i in order:
+        ch, xy, cum, oa, ob, length, wc = pieces[i]
+        if oneway_share(ch, oa, ob) < 0.5:
+            continue
+        w = ways[int(ch.seg_way[oa])]
+        key = road_key(w["tags"], w["highway"])
+        line = shapely.LineString(xy[oa : ob + 1])
+        if any(line.intersection(b).length >= 0.6 * line.length for b in kept_by_key.get(key, [])):
+            drop.add(i)
+            continue
+        kept_by_key.setdefault(key, []).append(line.buffer(within_m))
+    return [p for i, p in enumerate(pieces) if i not in drop]
+
+
 def overall_score(f: dict, ow: dict) -> float:
     """Weighted overall score.
 
@@ -172,6 +209,8 @@ def default_limit(tags: dict, highway: str, sd: dict | None, state: str | None,
     state are posted at in OpenStreetMap (state DOTs usually post these below
     the legal maximum). Other roads: the state's legal default.
     """
+    if highway in CITY_CLASSES:
+        return region.speed_estimates.get(highway, CLASS_ESTIMATES[highway]), "estimated"
     if sd:
         if is_numbered(tags, sd):
             t = typical.get((state, highway)) or typical.get((state, "*"))
@@ -179,7 +218,7 @@ def default_limit(tags: dict, highway: str, sd: dict | None, state: str | None,
                 return t, "estimated"
             return sd["numbered"], "state_default"
         return sd["unnumbered"], "state_default"
-    return region.speed_estimates.get(highway, 35), "estimated"
+    return region.speed_estimates.get(highway, CLASS_ESTIMATES.get(highway, 35)), "estimated"
 
 
 def typical_numbered_limits(osm, state_of, sd_all: dict, imperial: bool, min_km: float = 20) -> dict:
@@ -213,8 +252,12 @@ def resample(xy: np.ndarray, cum: np.ndarray, every: float) -> tuple[np.ndarray,
 
 # ---------- main ---------------------------------------------------------------
 
+def osm_cache_path(region: Region):
+    return DATA_DIR / "cache" / f"osm_{region.slug}_v{OSM_CACHE_VERSION}.pkl"
+
+
 def load_osm(region: Region):
-    cache = DATA_DIR / "cache" / f"osm_{region.slug}.pkl"
+    cache = osm_cache_path(region)
     sources = osm_paths(region)
     newest = max(p.stat().st_mtime for p in sources)
     if cache.exists() and cache.stat().st_mtime > newest:
@@ -285,6 +328,8 @@ def build(region: Region) -> list[dict]:
                 continue
             pieces.append((ch, xy, cum, oa, ob, length, wc))
     print(f"pieces passing curvature: {len(pieces)} ({time.time() - t0:.0f}s)")
+    pieces = drop_second_halves(pieces, osm.ways)
+    print(f"pieces after dropping second halves of divided highways: {len(pieces)}")
 
     # Scenery indexes in projected meters.
     def to_proj(geom):
@@ -405,6 +450,19 @@ def build(region: Region) -> list[dict]:
 
         mid_ll = ch.lonlat[(oa + ob) // 2]
         state = state_of(mid_ll[0], mid_ll[1])
+        # Built-up land around each segment. Many rural roads are mapped as
+        # "residential", so only built-up stretches count as city streets (11.33).
+        piece_ll = ch.lonlat[oa : ob + 1]
+        if land is not None:
+            in_town = land.window_means((piece_ll[:-1] + piece_ll[1:]) / 2, 100, "built") >= hc["neighborhood_built_share"]
+        else:
+            in_town = np.ones(len(seg_len), dtype=bool)
+        line_p = shapely.LineString(pxy)
+        n_buildings = len(building_tree.query(line_p, predicate="dwithin", distance=hc["building_within_m"])) if building_tree is not None else 0
+        n_driveways = int(np.isin(nodes, service_nodes).sum())
+        homes_per_km = (n_buildings + n_driveways) / km
+        if homes_per_km >= hc["neighborhood_homes_per_km"]:
+            in_town[:] = True  # a subdivision under trees: little built-up land, many homes
         sd = region.speed_defaults.get(state) if state else None
 
         # Match each segment to the nearest federal road section (within 12 m).
@@ -465,7 +523,9 @@ def build(region: Region) -> list[dict]:
                 fhwa_posted_len += L
             else:
                 untagged_len += L
-                seg_limit[i], src = default_limit(tags, hw, sd, state, typical, region)
+                # A rural road mapped as residential gets the rural default, not 25 mph.
+                cls = "unclassified" if hw == "residential" and not in_town[i] else hw
+                seg_limit[i], src = default_limit(tags, cls, sd, state, typical, region)
                 src_len[src] += L
             if tags.get("bridge") not in (None, "no"):
                 bridge[i] = True
@@ -508,15 +568,16 @@ def build(region: Region) -> list[dict]:
             # Traffic counts beat road class for how quiet a road is.
             quiet = 100.0 * float(np.clip((6000 - aadt) / 5500, 0, 1))
         state_ref = any(route_ref.match(r) for r in refs_c)
+        main_class = class_len.most_common(1)[0][0]
         verdict = verdicts.get(rid, {}).get("verdict")
         pavement, pavement_why = pavement_score(
             pc, state=state, owner=owner, state_ref=state_ref, hp_unpaved=hp_unpaved, aadt=aadt, iri=iri,
             tagged_paved=surface_shares.get("paved", 0) >= 0.5, p_unpaved=p_unpaved,
             photo_used=surface_shares.get("untagged", 0) >= 0.5, verdict=verdict,
+            city_street=main_class in CITY_CLASSES and float(seg_len[in_town].sum()) >= 0.5 * total_len,
         )
 
         # Speed limits: posted (OpenStreetMap or FHWA) first, then estimates.
-        main_class = class_len.most_common(1)[0][0]
         share_untagged = untagged_len / total_len
         by_val = Counter()
         for v, L in zip(seg_limit, seg_len):
@@ -530,7 +591,7 @@ def build(region: Region) -> list[dict]:
             speed_source = "partly_default" if main_src == "state_default" else "partly_estimated"
         else:
             speed_source = main_src
-        share_40 = float(seg_len[seg_limit >= cfg["categories"]["min_speed"]].sum() / total_len)
+        share_fast = float(seg_len[seg_limit >= cfg["categories"]["min_speed"]].sum() / total_len)
 
         # Driving model: how hard the road works a car at legal speeds.
         unit = drive.MPH if imperial else 1 / 3.6
@@ -545,10 +606,6 @@ def build(region: Region) -> list[dict]:
 
         # Interruptions (interior nodes only)
         # Homes along the road: buildings near it and driveways joining it.
-        line_p = shapely.LineString(pxy)
-        n_buildings = len(building_tree.query(line_p, predicate="dwithin", distance=hc["building_within_m"])) if building_tree is not None else 0
-        n_driveways = int(np.isin(nodes, service_nodes).sum())
-        homes_per_km = (n_buildings + n_driveways) / km
         venue_share = Counter()
         venue_name = {}
         if venue_tree is not None:
@@ -669,7 +726,7 @@ def build(region: Region) -> list[dict]:
         # Most Scenic list and in search, just not ranked as a driver's road.
         cat = cfg["categories"]
         excluded_because = []
-        if share_40 < cat["min_speed_share"]:
+        if share_fast < cat["min_speed_share"]:
             excluded_because.append(f"speed limit under {cat['min_speed']} {'mph' if imperial else 'km/h'}")
         if not paved:
             if surface_check == "unpaved in federal road data":
@@ -687,13 +744,8 @@ def build(region: Region) -> list[dict]:
         for kind in ("park", "fee"):
             if venue_share[kind] >= 0.5:
                 excluded_because.append(f"inside {venue_name[kind] or 'a park'} (may charge entry)")
-        neighborhood = (
-            homes_per_km >= hc["neighborhood_homes_per_km"]
-            or built_share >= hc["neighborhood_built_share"]
-            or venue_share["residential"] >= 0.5
-        )
-        if neighborhood:
-            excluded_because.append("runs through a neighborhood")
+        # Roads through neighborhoods and cities count too (11.33); homes_per_km
+        # and built_share are still recorded for each road.
         if verdict == "good":
             excluded_because = []  # a person checked it
         elif verdict in VERDICT_REASONS:

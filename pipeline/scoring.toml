@@ -2,7 +2,7 @@
 # Any change to this file bumps `version`, and every road records the version
 # that scored it.
 
-version = "3-draft"
+version = "4-draft"
 
 [candidate]
 min_length_m = 2000          # shorter stretches are not candidates
@@ -48,15 +48,21 @@ photo_override_at = 0.9     # tagged paved, but photos are this sure it's gravel
 
 [homes]
 building_within_m = 60
+# Recorded for each road. Since 11.33 neighborhoods no longer keep a road off the list.
 neighborhood_homes_per_km = 10   # a house or driveway about every 100 m (rural median here is about 4)
 neighborhood_built_share = 0.12  # share of built-up land within 100 m (ESA WorldCover)
 venue_point_within_m = 400       # an off-road park or race track this close to the road
 
 [quiet]
+living_street = 100
+service = 100
 unclassified = 100
+residential = 90
 tertiary = 90
 secondary = 65
 primary = 35
+trunk = 20
+motorway = 0
 more_than_two_lanes_penalty = 20
 
 [scenery]
@@ -95,7 +101,7 @@ quiet = 0.04
 scenic = 0.02
 
 [categories]
-min_speed = 40          # driver's roads: speed limit at least this...
+min_speed = 35          # driver's roads: speed limit at least this (40 before 11.33)...
 min_speed_share = 0.8   # ...on at least 80% of the stretch, and paved
 min_pavement = 55       # and a Pavement score at least this (below: "needs a check")
 
@@ -135,7 +141,7 @@ braking = 0.25          # braking zones into slower corners
 transitions = 0.15      # quick left-right changes (esses)
 
 [drive.speed]
-zero_at_mph = 35        # average legal speed that scores 0
+zero_at_mph = 25        # average legal speed that scores 0 (35 before 11.33, when the floor was 40 mph)
 full_at_mph = 65        # average legal speed that scores 100
 
 # Track averages from `python -m pipeline.reference` (Twisty about 70).

@@ -2,8 +2,8 @@
 
 Ways join end to end when they carry the same route number (or, without one,
 the same name) and the join is the straightest continuation at that node.
-One-way carriageways and roundabouts are left out so divided highways do not
-show up twice.
+Roundabouts and one-way city streets are left out. One-way halves of divided
+highways chain separately; build.py drops the second half of each pair.
 """
 from __future__ import annotations
 
@@ -33,10 +33,19 @@ class Chain:
     seg_way: np.ndarray      # way id for each segment (n - 1)
 
 
+# Divided highways (interstates, expressways) are mapped as two one-way
+# halves. Their halves chain on their own; build.py keeps one of each pair.
+DIVIDED = {"motorway", "trunk", "primary", "secondary"}
+
+
+def is_oneway(way) -> bool:
+    return way["tags"].get("oneway") in ("yes", "1", "-1", "true")
+
+
 def _usable(way) -> bool:
     t = way["tags"]
-    if t.get("oneway") in ("yes", "1", "-1", "true"):
-        return False
+    if is_oneway(way) and way["highway"] not in DIVIDED:
+        return False  # one-way city street pairs would show up twice
     if t.get("junction") in ("roundabout", "circular"):
         return False
     return len(way["nodes"]) >= 2
