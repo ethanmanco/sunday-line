@@ -43,6 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <body>
+        {/* iPhone Home Screen app only (11.45): an invisible strip pinned to the top
+            edge. iOS 26 blurs the top of installed web apps unless a fixed element
+            with a background sits there; this one paints nothing (see globals.css). */}
+        <div className="edge-strip" aria-hidden="true" />
         <AuthProvider>
         <a href="#main" className="skip">Skip to content</a>
         <header className="topbar">

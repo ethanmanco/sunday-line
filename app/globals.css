@@ -913,3 +913,20 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .admin-queues h3 { font-size: 16px; margin: 14px 0 6px; }
 .admin-queues ul { margin: 0; padding-left: 18px; }
 
+/* iOS 26 top-edge blur in the installed app (11.45): a fixed, full-width strip
+   with the top bar's background, clipped to text so it paints nothing. WebKit
+   sees an opaque fixed box under the top edge and skips the blur. Confirmed on
+   an iPhone by another project (gravesisme/planestro#574). Only in the
+   installed iPhone/iPad app; hidden everywhere else. */
+.edge-strip { display: none; }
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone), (display-mode: fullscreen) {
+    .edge-strip {
+      display: block; position: fixed; top: 0; left: 0; right: 0;
+      height: max(env(safe-area-inset-top, 0px), 11px);
+      background-color: #0b0d11; -webkit-background-clip: text; background-clip: text;
+      pointer-events: none; z-index: 2147483647;
+    }
+  }
+}
+
