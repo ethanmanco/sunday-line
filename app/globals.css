@@ -14,7 +14,7 @@
      background reaches up behind it and its contents sit below (11.45). Zero elsewhere. */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --topbar: calc(52px + var(--safe-top));
+  --topbar: calc(52px + var(--safe-top) + var(--ios-edge, 0px));
   --radius: 10px;
   color-scheme: dark;
 }
@@ -42,7 +42,7 @@ h1, h2, h3 { font-family: var(--font-display), var(--font-body), sans-serif; let
 .topbar {
   height: var(--topbar);
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--safe-top) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  padding: calc(var(--safe-top) + var(--ios-edge, 0px)) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
   background: #0b0d11;
   border-bottom: 1px solid var(--line);
   /* Pinned with a solid background: iOS 26 then fills the status bar with this
@@ -343,7 +343,7 @@ button.link { background: none; border: none; padding: 8px 0; color: var(--accen
 @media (max-width: 420px) { .row.three { grid-template-columns: 80px 1fr; } .row.three label:last-child { grid-column: 1 / -1; } }
 .brand { white-space: nowrap; }
 @media (max-width: 420px) {
-  .topbar { padding: var(--safe-top) 10px 0; }
+  .topbar { padding: calc(var(--safe-top) + var(--ios-edge, 0px)) 10px 0; }
   .brand { font-size: 18px; letter-spacing: 0.1em; gap: 8px; }
   .topbar nav { gap: 0; }
   .topbar nav a { padding: 10px 8px; }
@@ -919,6 +919,11 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
    an iPhone by another project (gravesisme/planestro#574). Only in the
    installed iPhone/iPad app; hidden everywhere else. */
 .edge-strip { display: none; }
+/* Installed iPhone app: iOS blurs the top edge no matter what, so the top bar's
+   contents start lower and the blur only covers plain dark top bar (11.45). */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) { :root { --ios-edge: 28px; } }
+}
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone), (display-mode: fullscreen) {
     .edge-strip {
