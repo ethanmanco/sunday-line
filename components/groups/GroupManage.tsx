@@ -41,6 +41,7 @@ export default function GroupManage({ group, me, urls, onChanged, onDeleted }: {
         </section>
       )}
       {can(me, "approve") && <Requests group={group} onChanged={onChanged} />}
+      {can(me, "invites") && <InviteMember group={group} />}
       {can(me, "invites") && <Invites group={group} />}
       {me.role === "organizer" && <Settings group={group} onChanged={onChanged} onDeleted={onDeleted} />}
     </div>
@@ -95,6 +96,43 @@ function Requests({ group, onChanged }: { group: Group; onChanged: () => void })
 
 const EXPIRY: [string, number | null][] = [["Never", null], ["1 day", 1], ["7 days", 7], ["30 days", 30]];
 const USES: [string, number | null][] = [["No limit", null], ["1 person", 1], ["10 people", 10], ["50 people", 50]];
+
+/** Invite a member by username (11.40); they get a notification to join or decline. */
+function InviteMember({ group }: { group: Group }) {
+  const [username, setUsername] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const name = username.trim().replace(/^@/, "");
+    if (!name) return;
+    setBusy(true);
+    setMsg(null);
+    const { error } = (await getSupabase()?.rpc("invite_to_group", { p_group: group.id, p_username: name })) ?? {};
+    setBusy(false);
+    if (!error) {
+      setMsg({ ok: true, text: `Invited @${name}. They'll see it in their notifications.` });
+      setUsername("");
+    } else {
+      setMsg({ ok: false, text: error.message || "Couldn't send the invite." });
+    }
+  }
+
+  return (
+    <section aria-labelledby="invite-member">
+      <h2 id="invite-member">Invite a member</h2>
+      <form className="row" onSubmit={send}>
+        <label className="grow">
+          <span className="visually-hidden">Username</span>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="@username" autoComplete="off" maxLength={21} />
+        </label>
+        <button type="submit" className="button" disabled={busy || !username.trim()}>{busy ? "Inviting..." : "Invite"}</button>
+      </form>
+      {msg && <p className={msg.ok ? "fine" : "hint warn"} role="status">{msg.text}</p>}
+    </section>
+  );
+}
 
 function Invites({ group }: { group: Group }) {
   const [rows, setRows] = useState<Invite[] | null>(null);

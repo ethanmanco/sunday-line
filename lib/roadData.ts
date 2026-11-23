@@ -144,3 +144,20 @@ export function levelFor(b: Bounds): "cells" | "blocks" | "top" {
   if (width <= BLOCKS_BELOW) return "blocks";
   return "top";
 }
+
+let roadCellsP: Promise<Record<string, string>> | null = null;
+/** Roads by id, found through road-cells.json (which square each road is in). Missing ids are left out. */
+export async function roadsById(ids: string[]): Promise<Record<string, RoadOnMap>> {
+  if (!ids.length) return {};
+  roadCellsP ??= json<Record<string, string>>(`${DATA_BASE}/road-cells.json`).catch((e) => {
+    roadCellsP = null;
+    throw e;
+  });
+  const cells = await roadCellsP.catch(() => ({} as Record<string, string>));
+  const want = new Set(ids);
+  const found: Record<string, RoadOnMap> = {};
+  for (const key of new Set(ids.map((id) => cells[id]).filter(Boolean))) {
+    for (const r of await loadCell(key).catch(() => [] as RoadOnMap[])) if (want.has(r.id)) found[r.id] = r;
+  }
+  return found;
+}

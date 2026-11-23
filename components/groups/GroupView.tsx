@@ -33,7 +33,10 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [count, setCount] = useState<number | null>(null);
   const [requested, setRequested] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("events");
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tab");
+    return t === "spots" || t === "chat" || t === "members" || t === "manage" ? t : "events";
+  });
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [mapSpots, setMapSpots] = useState<Spot[] | null>(null);
   const shell = usePageOnMap(group?.name ?? null, mapSpots);

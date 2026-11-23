@@ -355,9 +355,11 @@ button.link { background: none; border: none; padding: 8px 0; color: var(--accen
 .cropper .button:disabled { opacity: 0.6; }
 
 /* Top bar: Groups and Messages */
-.messages-link { position: relative; gap: 6px; }
+.messages-link, .notifications-link { position: relative; gap: 6px; }
+/* The bell is icon only; its name is in aria-label. */
+.notifications-link .nav-label { display: none; }
 .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 700; }
-.messages-link .badge { position: absolute; top: 4px; right: 0; min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
+.messages-link .badge, .notifications-link .badge { position: absolute; top: 4px; right: 0; min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
 @media (max-width: 640px) { .messages-link .nav-label { display: none; } }
 @media (max-width: 520px) { .nav-about { display: none !important; } }
 
@@ -845,3 +847,14 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
   position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%;
   display: grid; place-items: center; background: transparent; border: 0; color: var(--dim); cursor: pointer;
 }
+
+/* Notifications (11.40) */
+.notif-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.notif { display: grid; gap: 4px; padding: 12px 10px; border-bottom: 1px solid var(--line); border-radius: 8px; }
+.notif.new { background: var(--raised); }
+.notif-text { color: var(--text); text-decoration: none; }
+.notif-text:hover { text-decoration: underline; }
+.notif .row { margin-top: 4px; }
+label.grow { flex: 1 1 180px; }
+label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
+

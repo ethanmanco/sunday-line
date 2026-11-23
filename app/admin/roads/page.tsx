@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { DATA_BASE, loadCell, type CheckKind, type RoadOnMap } from "@/lib/roadData";
+import { roadsById, type CheckKind, type RoadOnMap } from "@/lib/roadData";
 import { FLAG_LABEL, getSupabase } from "@/lib/supabase";
 
 interface Check {
@@ -28,12 +28,6 @@ const KIND_LABEL: Record<CheckKind, string> = {
   closed: FLAG_LABEL.closed,
   rough: "Poor pavement",
 };
-
-let roadCellsP: Promise<Record<string, string>> | null = null;
-function roadCells(): Promise<Record<string, string>> {
-  roadCellsP ??= fetch(`${DATA_BASE}/road-cells.json`).then((r) => r.json());
-  return roadCellsP;
-}
 
 /** Site admin only (11.38): roads members flagged three times, plus what's been accepted. */
 export default function RoadChecks() {
@@ -61,12 +55,7 @@ export default function RoadChecks() {
     const byRoad: Record<string, Review[]> = {};
     for (const r of (rv as Review[] | null) ?? []) (byRoad[r.road_id] ??= []).push(r);
     setReviews(byRoad);
-    const cells = await roadCells().catch(() => ({} as Record<string, string>));
-    const found: Record<string, RoadOnMap> = {};
-    for (const key of new Set(ids.map((id) => cells[id]).filter(Boolean))) {
-      for (const r of await loadCell(key).catch(() => [] as RoadOnMap[])) if (ids.includes(r.id)) found[r.id] = r;
-    }
-    setRoads(found);
+    setRoads(await roadsById(ids));
   }, []);
 
   useEffect(() => {

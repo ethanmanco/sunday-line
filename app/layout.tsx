@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
+import NotificationsLink from "@/components/NotificationsLink";
 import MessagesLink from "@/components/MessagesLink";
 import PeopleLink from "@/components/PeopleLink";
 import PhotoViewer from "@/components/PhotoViewer";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/groups">Groups</Link>
             <PeopleLink />
             <Link href="/about" className="nav-about">About</Link>
+            <NotificationsLink />
             <MessagesLink />
             <AccountLink />
           </nav>
