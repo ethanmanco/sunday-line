@@ -1,6 +1,6 @@
 -- Security tests for spots, the public review, and group pictures.
 begin;
-select plan(58);
+select plan(59);
 
 -- O organizes a private group, M is a member, X is an outsider, A is a site
 -- admin, N has a brand-new account.
@@ -138,17 +138,20 @@ select throws_ok(
 
 -- ---- The public map ----
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
-select is(public.submit_spot_public(pg_temp.id('org_spot'))::text, 'approved', 'a spot that passes the checks goes straight to the public map');
-with x as (insert into public.spots (kind, name, category, lat, lng, description) values ('point', 'Cars and coffee', 'meetup', 32.51, -93.71, 'See www.example.com') returning id)
+with x as (insert into public.spots (kind, name, lat, lng, line) values ('road', 'Club loop', 32.5, -93.75, '_p~iF~ps|U_ulLnnqC_mqNvxq`@') returning id)
+insert into ids select 'org_road', id from x;
+select throws_ok($$ select public.submit_spot_public(pg_temp.id('org_spot')) $$, '23514', null, 'places stay off the public map');
+select is(public.submit_spot_public(pg_temp.id('org_road'))::text, 'approved', 'a road that passes the checks goes straight to the public map');
+with x as (insert into public.spots (kind, name, lat, lng, line, description) values ('road', 'Cars and coffee loop', 32.51, -93.71, '_p~iF~ps|U_ulLnnqC_mqNvxq`@', 'See www.example.com') returning id)
 insert into ids select 'linky', id from x;
-with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Nurburgring', 'track', 50.33, 6.94) returning id)
+with x as (insert into public.spots (kind, name, lat, lng, line) values ('road', 'Nurburgring', 50.33, 6.94, '_p~iF~ps|U_ulLnnqC_mqNvxq`@') returning id)
 insert into ids select 'far', id from x;
 select is(public.submit_spot_public(pg_temp.id('linky'))::text, 'pending', 'a link sends it to a person');
 select is(public.submit_spot_public(pg_temp.id('far'))::text, 'pending', 'outside the United States sends it to a person');
 select matches((select public_note from public.spots where id = pg_temp.id('linky')), 'link', 'the reason is recorded');
 
 select pg_temp.act_as('5e000000-0000-0000-0000-000000000005');
-with x as (insert into public.spots (kind, name, category, lat, lng) values ('point', 'Lake view', 'scenic', 32.7, -93.9) returning id)
+with x as (insert into public.spots (kind, name, lat, lng, line) values ('road', 'Lake view road', 32.7, -93.9, '_p~iF~ps|U_ulLnnqC_mqNvxq`@') returning id)
 insert into ids select 'newbie', id from x;
 select is(public.submit_spot_public(pg_temp.id('newbie'))::text, 'pending', 'brand-new accounts wait for a person');
 
@@ -166,8 +169,8 @@ select lives_ok($$ select public.review_spot(pg_temp.id('linky'), true, 'Fine, i
 select is(pg_temp.status('linky'), 'approved', 'approved spots go public');
 
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');
-update public.spots set description = 'Join us at bit.ly/xyz' where id = pg_temp.id('org_spot');
-select is(pg_temp.status('org_spot'), 'pending', 'editing a public spot runs the checks again');
+update public.spots set description = 'Join us at bit.ly/xyz' where id = pg_temp.id('org_road');
+select is(pg_temp.status('org_road'), 'pending', 'editing a public spot runs the checks again');
 
 -- ---- A public group's shared spots ----
 select pg_temp.act_as('5a000000-0000-0000-0000-000000000001');

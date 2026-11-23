@@ -72,7 +72,7 @@ export default function SpotsLibrary() {
     const { data, error } = await sb.rpc("add_spot_to_group", { p_spot: s.id, p_group: groupId });
     const name = groupById.get(groupId)?.name ?? "the group";
     setMessage(error
-      ? (error.message.includes("private") ? "A spot in a private group can only go in other private groups, and a spot in a public group only in public ones." : "Couldn't add it to the group.")
+      ? (error.message.includes("private") ? "A spot in a private group can't go in a public group." : "Couldn't add it to the group.")
       : data === "accepted" ? `Added to ${name}.` : `Suggested to ${name}. A manager will accept it.`);
     load();
   }
@@ -125,10 +125,9 @@ export default function SpotsLibrary() {
         ) : (
           <ul className="spot-list">
             {visible.map((s) => {
-              // A spot's groups stay all private or all public.
-              const linkedVis = s.links.map((l) => groupById.get(l.group_id)?.visibility).find(Boolean);
-              const free = groups.filter((g) => !s.links.some((l) => l.group_id === g.id) && (!linkedVis || g.visibility === linkedVis));
+              // Private groups can always take a spot; public ones can't once it's in a private group (11.44).
               const priv = inPrivate(s);
+              const free = groups.filter((g) => !s.links.some((l) => l.group_id === g.id) && (g.visibility === "private" || !priv));
               return (
                 <SpotCard key={s.id} spot={s} showStatus onOpen={() => shell?.focusSpot(s.id)}>
                   {s.links.map((l) => (
@@ -159,7 +158,7 @@ export default function SpotsLibrary() {
                       {s.show_on_profile ? "On profile" : "Show on profile"}
                     </button>
                   )}
-                  {s.public_status === "none" || s.public_status === "rejected" ? (
+                  {s.kind === "point" && s.public_status === "none" ? null : s.public_status === "none" || s.public_status === "rejected" ? (
                     <button type="button" className="link" onClick={() => submit(s)}>Submit to public map</button>
                   ) : (
                     <button type="button" className="link" onClick={() => run(() => sb.rpc("withdraw_spot_public", { p_spot: s.id }), "Taken off the public map.")}>

@@ -734,3 +734,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - How it's sent: a trigger on new notifications calls a Supabase Edge Function (`supabase/functions/push`) through pg_net. The function needs no login to call, because it only claims real, unsent, unread notifications (each once, within 15 minutes) through `claim_push`, which only the service role can run. Dead devices are dropped. Push keys: the public key is in `lib/config.ts`; the private key is a Supabase function secret (copy in the gitignored `.env.local`). Signing out removes the device.
 - App stores later: once regular phone users ask for it and the report-button question is decided (see 11.13).
 
+### 11.44 Spot and phone fixes (2026-11-22)
+
+- Your notes: (1) phones lose the map's +/- buttons (pinch to zoom; hidden on touch screens only). (2) A spot could only be in groups of one kind. Now a spot can join a private group any time, but can't join a public group once it's in a private one, so a private group's place still never reaches a public group (replaces the all-public-or-all-private rule from 11.25). (3) Only roads go on the public map; places (pins) stay with their owner, groups, and profile. A public road changed into a place comes off. There were no public places when this shipped. (4) Phones: swiping Notifications, Messages, profile, Groups, People, or About down goes back to the full map.
+

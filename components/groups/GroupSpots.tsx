@@ -121,7 +121,7 @@ export default function GroupSpots({ group, me, myId, onFocus, onChanged }: {
               <SpotCard key={s.id} spot={s} showStatus={manager || s.owner_id === myId} onOpen={() => onFocus(s.id)}>
                 <span className="fine by-line">Added by {owners[s.owner_id]?.display_name ?? "a member"}</span>
                 {s.owner_id === myId && <button type="button" className="link" onClick={() => setEditing(s)}>Edit</button>}
-                {manager && (s.public_status === "none" || s.public_status === "rejected") && (
+                {manager && s.kind === "road" && (s.public_status === "none" || s.public_status === "rejected") && (
                   <button type="button" className="link" onClick={() => run(() => sb.rpc("submit_spot_public", { p_spot: s.id }),
                     (d) => (d === "approved" ? `${s.name} is on the public map.` : `${s.name} is waiting for a quick review.`))}>
                     Submit to public map
