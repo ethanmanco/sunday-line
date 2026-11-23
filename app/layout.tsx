@@ -22,12 +22,13 @@ export const metadata: Metadata = {
   description:
     "Find twisty, fast, paved roads anywhere in the United States, rated against real race tracks at legal speeds. Save spots, plan drives with your group.",
   // Installable (11.43): Home Screen icon and full-screen on iPhone.
-  // No status bar style on purpose (11.45): since iOS 26.1, "black-translucent"
-  // makes iOS blur the top of an installed web app, and the page can't stop it.
-  // Without the key (Apple's advice, WebKit bug 317153) the status bar is solid,
-  // in the color of the top of the page: our dark top bar. iOS reads this only
-  // when the app is added to the Home Screen.
-  appleWebApp: { capable: true, title: SITE_NAME },
+  // No apple-mobile-web-app-* tags on purpose (11.45): since iOS 26.1 the
+  // "black-translucent" status bar style makes iOS blur the top of an installed
+  // web app, and Apple's advice (WebKit bug 317153) is to leave the status bar
+  // key out so the bar is solid, in the color of the top of the page (our dark
+  // top bar). Next writes that key whenever appleWebApp is set, so it isn't:
+  // the web app manifest already makes the app full screen with its name and
+  // icon. iOS reads this only when the app is added to the Home Screen.
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
