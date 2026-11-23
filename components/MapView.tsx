@@ -103,40 +103,44 @@ export default function MapView(props: Props) {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         for (const layer of roadLayers()) map.addLayer(layer, ROADS_BEFORE);
         // lineMetrics: road spots are drawn with a gradient along their length.
-        // Spots (11.48): whose a spot is shows as color. A road spot draws one
-        // outline band per owner color under its line; the line itself is the
-        // road's score color when it has one, else the owner's color. Places
-        // are pins split into their owners' colors.
+        // Spots (11.48, 11.52): whose a spot is shows as color. A road spot is
+        // wrapped in one ring per owner color (yours innermost), drawn as wider
+        // lines under it so loops and ends close cleanly. The center is the
+        // road's score color when it's rated; unrated spots are hollow (dark
+        // center). Places are pins split into their owners' colors.
         map.addSource("public-spots", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-segment", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addSource("pick-vertices", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         const spotWidth = (a: number, b: number): ExpressionSpecification =>
           ["interpolate", ["linear"], ["zoom"], 8, a, 14, b] as unknown as ExpressionSpecification;
-        const spotLineColor = ["case", ["has", "score"], scoreRamp, ["get", "color"]] as unknown as ExpressionSpecification;
+        const spotLineColor = ["case", ["has", "score"], scoreRamp, "#14181f"] as unknown as ExpressionSpecification;
         map.addLayer({
           id: "ps-band", type: "line", source: "public-spots", filter: ["has", "band"],
-          layout: { "line-cap": "round", "line-join": "round" },
+          // Outer rings first, so each inner ring sits on top of the one around it.
+          layout: { "line-cap": "round", "line-join": "round", "line-sort-key": ["-", 0, ["get", "r"]] },
           paint: {
             "line-color": ["get", "color"],
-            "line-width": ["interpolate", ["linear"], ["zoom"], 8, ["*", ["get", "w"], 8], 14, ["*", ["get", "w"], 16]],
-            "line-offset": ["interpolate", ["linear"], ["zoom"], 8, ["*", ["get", "k"], 8], 14, ["*", ["get", "k"], 16]],
+            // Center width plus a ring of 1.5px (zoomed out) to 2.5px (zoomed in) per side, per color.
+            "line-width": ["interpolate", ["linear"], ["zoom"],
+              8, ["+", 2, ["*", ["+", ["get", "r"], 1], 3]],
+              14, ["+", 4, ["*", ["+", ["get", "r"], 1], 5]]],
           },
         } as LayerSpecification);
         map.addLayer({
           id: "ps-line", type: "line", source: "public-spots",
           filter: ["all", ["==", ["geometry-type"], "LineString"], ["!", ["has", "band"]]],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": spotLineColor, "line-width": spotWidth(2.5, 6) },
+          paint: { "line-color": spotLineColor, "line-width": spotWidth(2, 4) },
         } as LayerSpecification);
         map.addLayer({
           id: "ps-focus-line", type: "line", source: "public-spots", filter: ["==", ["get", "id"], ""],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#ffffff", "line-width": spotWidth(10, 20) },
+          paint: { "line-color": "#ffffff", "line-width": spotWidth(9, 17) },
         } as LayerSpecification);
         map.addLayer({
           id: "ps-focus-line-top", type: "line", source: "public-spots", filter: ["==", ["get", "id"], ""],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": spotLineColor, "line-width": spotWidth(4, 9) },
+          paint: { "line-color": spotLineColor, "line-width": spotWidth(3, 6) },
         } as LayerSpecification);
         map.addLayer({
           id: "ps-focus-point", type: "circle", source: "public-spots",

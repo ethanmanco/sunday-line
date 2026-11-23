@@ -213,8 +213,8 @@ export const ROAD_REGION = "us";
 
 /**
  * Spots as map features: points and road stretches. With `bands`, each road
- * spot also gets one outline band per owner color, side by side (the main map
- * draws them under the line; MapLibre can't vary a gradient per road).
+ * spot also gets one ring per owner color (the main map draws them as wider
+ * lines under it, innermost first; MapLibre can't vary a gradient per road).
  */
 export function spotFeatures(spots: Spot[], opts: { me?: string | null; bands?: boolean; score?: (s: Spot) => number | null } = {}): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
@@ -230,11 +230,11 @@ export function spotFeatures(spots: Spot[], opts: { me?: string | null; bands?: 
         geometry: { type: "LineString", coordinates },
       });
       if (opts.bands) {
-        const n = colors.length;
-        colors.forEach((color, i) => {
+        // One ring per owner color around the line, the first (yours) innermost (11.52).
+        colors.forEach((color, r) => {
           features.push({
             type: "Feature",
-            properties: { id: s.id, band: true, color, w: 1 / n, k: (i - (n - 1) / 2) / n },
+            properties: { id: s.id, band: true, color, r },
             geometry: { type: "LineString", coordinates },
           });
         });

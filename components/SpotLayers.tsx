@@ -107,9 +107,11 @@ export function useSpotLayers() {
       const gids = inGroups.get(s.id) ?? [];
       const label = gids.map((g) => names.get(g)).filter(Boolean).join(", ");
       // Whose it is (11.48): yours, then each group's color; public otherwise.
+      // Only the layers that are on add a color (11.52): with Mine off, your
+      // spot shows just its groups' colors; with a group off, not that group's.
       const colors = [...new Set<string>([
-        ...(user && s.owner_id === user.id ? [MINE_COLOR] : []),
-        ...gids.map((g) => colorOf.get(g)).filter((c): c is string => Boolean(c)),
+        ...(saved.mine && user && s.owner_id === user.id ? [MINE_COLOR] : []),
+        ...gids.filter((g) => !saved.hidden.includes(g)).map((g) => colorOf.get(g)).filter((c): c is string => Boolean(c)),
       ])];
       const withColors = { ...s, colors: colors.length ? colors : [PUBLIC_COLOR] };
       shown.push(gids.length ? { ...withColors, group_ids: gids, group_name: label || null } : withColors);

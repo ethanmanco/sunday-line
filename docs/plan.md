@@ -786,3 +786,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Only in the installed app held upright, and only on map pages (sign in and site admin keep the top bar). Turned sideways, desktop and the mobile website are unchanged. To try it in a phone browser, add ?app=1 to the address (?app=0 turns it off).
 - The search is still the town and city search for now; searching roads, groups and people from it (prototype H) is a later step.
 - Your note: the iPhone's blur under the status bar reached the middle of the search text. The installed iPhone app moves the search, pills and avatar menu 14px lower, so the text starts where the old top bar's did (the spot you called perfect, 11.45). Other phones are unchanged.
+
+### 11.52 Spot outlines: rings, thinner, hollow when unrated (2026-11-23)
+
+- Your notes from the phone: the side-by-side color bands looked off. They split apart at the ends, crossed over where a spot loops back (Fern Avenue's median), an unrated spot (Clyde Fant) looked like a solid fat line next to the rated ones, and all spots felt thick.
+- Now each owner color is a ring around the line, yours innermost, so ends and loops close cleanly. Rated spots keep the score color in the center; unrated spots have a dark center (hollow), so they read as "not rated yet". Thinner: the center is 2 to 4px and each ring adds 1.5 to 2.5px a side (zoomed out to in), down from 8 to 16px for the whole spot.
+- Colors follow the Show choices: with Mine off, your spots drop the teal ring; with a group off, that group's color goes away. A spot with nothing left on shows the light slate public color.
