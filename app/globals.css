@@ -910,6 +910,12 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .shell.is-sheet .shell-scroll { padding-bottom: var(--safe-bottom); }
 .hu-card { bottom: calc(116px + var(--safe-bottom)); }
 .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { margin-bottom: var(--safe-bottom); }
+/* Phones: the map credit (24px tall) sits centered in the gap between the cards
+   (34px + home bar up) and the bottom of the screen (11.49). */
+@media (max-width: 899px) {
+  .maplibregl-ctrl-bottom-right { margin-bottom: calc(5px + var(--safe-bottom) / 2); }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact { margin-bottom: 0; }
+}
 @media (max-width: 899px) and (orientation: landscape) { .shell .map-actions { bottom: calc(16px + var(--safe-bottom)); } }
 
 /* Photo galleries (11.45): arrows on vehicle photo strips and in the full-screen viewer */

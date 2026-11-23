@@ -770,3 +770,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Places: the map pin is split into equal slices of its owners' colors. The list badge and spot page use the same colors (a ring around score badges, slices on dots).
 - Save on road pages: next to Share, saves the whole road to Your spots or straight into one of your groups (suggested if you can't add spots there yourself). One spot per road, so saving it to more groups reuses it; trim it to a stretch later from Your spots. Only roads go on the public map, so places still can't be submitted there.
 - Database: groups.color (0 to 6), picked by a trigger at creation, organizers update it.
+
+### 11.49 Map credit centered under the cards (2026-11-23)
+
+- Your note: the (i) and its credit text sit centered in the gap between the cards and the bottom of the screen (on an iPhone, 22px above and below). MapLibre's own 10px margin under it is dropped on phones.
