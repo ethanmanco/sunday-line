@@ -47,6 +47,8 @@ describe("filters", () => {
 
   it("leaves neighborhoods out of Scenic but keeps them in All", () => {
     expect(inView(hood, "scenic")).toBe(false);
+    expect(inView(road({ id: "dull", category: "other", excluded: [], scores: { ...road({}).scores, scenic: 49 } }), "scenic")).toBe(false);
+    expect(inView(road({ id: "pretty", category: "other", excluded: [], scores: { ...road({}).scores, scenic: 50 } }), "scenic")).toBe(true);
     expect(inView(hood, "all")).toBe(true);
   });
 

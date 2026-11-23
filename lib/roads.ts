@@ -16,7 +16,7 @@ export const DEFAULT_FILTERS: Filters = { view: "drivers", sort: "overall", maxM
 
 export const VIEWS: { key: View; label: string; hint: string }[] = [
   { key: "drivers", label: "Driver's roads", hint: "Paved, 35 mph or more, not inside parks" },
-  { key: "scenic", label: "Scenic", hint: "Forest, water, and quiet roads at any speed" },
+  { key: "scenic", label: "Scenic", hint: "Forest, water, and quiet roads at any speed, Scenic 50 and up" },
   { key: "gravel", label: "Gravel", hint: "Gravel and dirt roads for rally fans" },
   { key: "all", label: "All", hint: "Every candidate, with the reason it left the main list" },
 ];
@@ -44,6 +44,8 @@ export function defaultSort(view: View): SortKey {
 }
 
 const NOT_SCENIC = /neighborhood|off-road|motor/;
+/** Below this Scenic score a road doesn't look scenic, so the Scenic list leaves it out (11.46). */
+export const MIN_SCENIC = 50;
 
 export function inView(r: Road, view: View): boolean {
   switch (view) {
@@ -52,7 +54,7 @@ export function inView(r: Road, view: View): boolean {
     case "gravel":
       return r.category === "gravel";
     case "scenic":
-      return r.category !== "gravel" && r.category !== "unsure" && !r.excluded.some((e) => NOT_SCENIC.test(e));
+      return r.category !== "gravel" && r.category !== "unsure" && r.scores.scenic >= MIN_SCENIC && !r.excluded.some((e) => NOT_SCENIC.test(e));
     default:
       return true;
   }
