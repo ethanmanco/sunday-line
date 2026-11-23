@@ -778,3 +778,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.50 The map starts on the mainland (2026-11-23)
 
 - Your note: the starting view and the logo's reset no longer include Hawaii. They frame the lower 48, centered over the middle of the country. Hawaii's roads are still on the map; pan or search to get there.
+
+### 11.51 The installed app's top: search, messages, you (2026-11-23)
+
+- Your pick from the prototypes (K, "Messages icon + you"): the installed phone app has no top bar. The map runs up under the status bar like Google Maps, with a floating search (the logo on its left goes home, the same soft refresh as before), a round messages button with its unread count, and your avatar with the notification count on it, like Instagram. Under them: Driver's roads, Scenic, Gravel and List as pills.
+- Tapping your avatar opens a menu: Your profile, Edit profile, Notifications (with the count), Your spots, Groups, People, About and map credits. Signed out, it shows Groups, People, About and Sign in.
+- Only in the installed app held upright, and only on map pages (sign in and site admin keep the top bar). Turned sideways, desktop and the mobile website are unchanged. To try it in a phone browser, add ?app=1 to the address (?app=0 turns it off).
+- The search is still the town and city search for now; searching roads, groups and people from it (prototype H) is a later step.

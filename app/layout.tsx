@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import AccountLink from "@/components/AccountLink";
 import AuthProvider from "@/components/AuthProvider";
@@ -43,7 +44,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable}`}>
+    <html lang="en" className={`${body.variable} ${display.variable}`} suppressHydrationWarning>
+      <head>
+        {/* The installed app's look (11.51), set before the page shows so the top bar never flashes. */}
+        <Script id="app-mode" strategy="beforeInteractive">
+          {"try{var s=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true,q=new URLSearchParams(location.search).get('app');if(q==='1')sessionStorage.setItem('sl-app','1');if(q==='0')sessionStorage.removeItem('sl-app');if(s||sessionStorage.getItem('sl-app')==='1')document.documentElement.classList.add('app-on')}catch(e){}"}
+        </Script>
+      </head>
       <body>
         {/* iPhone Home Screen app only (11.45): an invisible strip pinned to the top
             edge. iOS 26 blurs the top of installed web apps unless a fixed element

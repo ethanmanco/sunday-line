@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import PlaceSearch from "./PlaceSearch";
+import AppBar from "./AppBar";
 import type { FocusRequest } from "./MapView";
 import { useAuth } from "./AuthProvider";
 import ItemCards from "./ItemCards";
@@ -535,6 +536,17 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   // The phone road cards, only when there are roads to show (else the buttons sit at the bottom).
   const showCards = isSheet && home && !adding && (sheet === "closed" || sheet === "peek") && items.length > 0;
   const sheetClass = isSheet ? ` sheet-${panelOpen}` : "";
+  const listChip = isSheet && home && !adding && (
+    <button type="button" className="map-chip" onClick={() => setSheet(sheet === "closed" || sheet === "peek" ? "full" : "closed")}>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+      List
+    </button>
+  );
+  const overlayChip = overlay && (
+    <button type="button" className="map-chip" aria-pressed={showEverything} onClick={() => setShowEverything(!showEverything)}>
+      {showEverything ? `Only ${overlay.title}` : "Show everything"}
+    </button>
+  );
 
   return (
     <MapShellContext.Provider value={ctx}>
@@ -617,18 +629,16 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
           )}
           <div className="map-top-left">
             {home && !adding && !pick && <PlaceSearch />}
-            {isSheet && home && !adding && (
-              <button type="button" className="map-chip" onClick={() => setSheet(sheet === "closed" || sheet === "peek" ? "full" : "closed")}>
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
-                List
-              </button>
-            )}
-            {overlay && (
-              <button type="button" className="map-chip" aria-pressed={showEverything} onClick={() => setShowEverything(!showEverything)}>
-                {showEverything ? `Only ${overlay.title}` : "Show everything"}
-              </button>
-            )}
+            {listChip}
+            {overlayChip}
           </div>
+          {/* The installed phone app's floating top (11.51); CSS shows one or the other. */}
+          {isSheet && !adding && !pick && (
+            <AppBar home={home}>
+              {listChip}
+              {overlayChip}
+            </AppBar>
+          )}
           {pick && (
             <p className="pick-hint" aria-hidden="true">
               {huPlace === "tap" ? "Tap where it is on the map" : Array.isArray(huPlace) ? "Tap again to move it" : !adding && pick.mode === "point" ? "Tap the map to set your location" : pick.mode === "point" ? "Tap to place it" : pick.mode === "draw" ? "Tap along the road" : "Tap a road"}
