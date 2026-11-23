@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestSide, chain } from "../traceRoad";
+import { bestSide, chain, extendLine } from "../traceRoad";
 import raw from "./fixtures/divided-parkways.json";
 
 type LL = [number, number];
@@ -68,4 +68,28 @@ describe("tracing a divided road follows one side", () => {
     // A tapped side that isn't cut short stays the tapped side.
     expect(bestSide(pieces, [1, 0])).toEqual(chain(pieces, 1));
   });
+
+  for (const key of ["Clyde Fant Memorial Parkway|z14", "Arthur Ray Teague Parkway|z14"]) {
+    it(`${key}: making a cut-short road longer at either end follows the same side`, () => {
+      const pieces = fixture[key];
+      const named = pieces.map((coords) => ({ name: key, coords }));
+      const full = bestSide(pieces, [1, 0]);
+      const fullLen = lengthM(full);
+      const n = full.length;
+      const middle = full.slice(Math.floor(n * 0.35), Math.ceil(n * 0.65));
+      const longerEnd = extendLine(named, middle, true);
+      expect(longerEnd).not.toBeNull();
+      expect(lengthM(longerEnd!.coords)).toBeGreaterThan(lengthM(middle) + 500);
+      expect(closestReturn(longerEnd!.coords)).toBeGreaterThan(150);
+      // The middle stays where it was: the line now starts where the cut-short one did.
+      expect(longerEnd!.coords[0]).toEqual(middle[0]);
+      const both = extendLine(named, longerEnd!.coords, false);
+      expect(both).not.toBeNull();
+      expect(lengthM(both!.coords)).toBeGreaterThan(0.85 * fullLen);
+      expect(lengthM(both!.coords)).toBeLessThan(1.15 * fullLen);
+      expect(closestReturn(both!.coords)).toBeGreaterThan(150);
+      // Nothing more past the true ends.
+      expect(extendLine(named, both!.coords, true)?.coords.length ?? 0).toBeLessThanOrEqual(both!.coords.length + 2);
+    });
+  }
 });

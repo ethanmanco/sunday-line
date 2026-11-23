@@ -8,13 +8,23 @@ import {
   CATEGORY_LABEL, encodePolyline, lineMiles, loadRoads, ROAD_REGION, simplifyLine, sliceLine,
   type Spot, type SpotCategory, type SpotKind,
 } from "@/lib/spots";
-import type { TracedRoad } from "@/lib/traceRoad";
+import type { RoadExtender, TracedRoad } from "@/lib/traceRoad";
 import { useMapShell } from "@/lib/mapShell";
 import type { LoadedRoad } from "@/lib/types";
 
 const SpotMap = dynamic(() => import("./SpotMap"), { ssr: false, loading: () => <div className="spot-map map-loading" /> });
 
 type LL = [number, number];
+
+/** Which way each end of a line lies, by compass: ["south", "north"] for a road running south to north. */
+function endWords(line: LL[]): [string, string] {
+  const a = line[0];
+  const b = line[line.length - 1];
+  const dx = (b[0] - a[0]) * Math.cos((a[1] * Math.PI) / 180);
+  const dy = b[1] - a[1];
+  if (Math.abs(dy) >= Math.abs(dx)) return dy >= 0 ? ["south", "north"] : ["north", "south"];
+  return dx >= 0 ? ["west", "east"] : ["east", "west"];
+}
 /** Where a road spot's line comes from. */
 type RoadSource =
   | { from: "suggested"; id: string }
@@ -54,6 +64,10 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fitKey, setFitKey] = useState("start");
+  const [extending, setExtending] = useState<"start" | "end" | null>(null);
+  const [extendNote, setExtendNote] = useState<string | null>(null);
+  /** Filled by the editor's own map (off the shared map) to make a road longer. */
+  const localExtend = useRef<RoadExtender | null>(null);
   // On the shared map (home, profiles, groups), the editor drives that map
   // instead of drawing its own.
   const shell = useMapShell();
@@ -113,6 +127,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
   function chooseLine(next: RoadSource, newName: string | null) {
     const oldName = roadName;
     setSource(next);
+    setExtendNote(null);
     setWhole(true);
     setStart(0);
     setEnd(100);
@@ -129,6 +144,35 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
 
   function pickTraced(t: TracedRoad) {
     chooseLine({ from: "traced", name: t.name, coords: t.coords }, t.name);
+  }
+
+  /**
+   * Make the road longer past its start or end, following the base map (11.36).
+   * Works from what's shown now (trimmed or not); the result becomes a traced road.
+   */
+  async function extend(atEnd: boolean) {
+    const line = segment;
+    const fn = shell ? shell.extendRoad : localExtend.current;
+    if (!line || line.length < 2 || !fn || extending) return;
+    const which = atEnd ? "end" : "start";
+    const word = endWords(line)[atEnd ? 1 : 0];
+    setExtending(which);
+    setExtendNote(null);
+    try {
+      const res = await fn(line, atEnd);
+      if (!res) {
+        setExtendNote(`The map shows no more of this road past the ${word} end. Zoom out and try again, or use Draw a road.`);
+        return;
+      }
+      const added = lineMiles(res.coords) - lineMiles(line);
+      setSource({ from: "traced", name: roadName ?? res.name, coords: res.coords });
+      setWhole(true);
+      setStart(0);
+      setEnd(100);
+      setExtendNote(`Added ${added.toFixed(1)} mi at the ${word} end. Tap again to keep going.`);
+    } finally {
+      setExtending(null);
+    }
   }
   // The shared map calls these; keep them pointing at the latest state.
   const pickSuggestedRef = useRef(pickSuggested);
@@ -252,6 +296,7 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
           onPickPoint={(ll) => (drawing ? setPoints((p) => (p.length < 500 ? [...p, ll] : p)) : setPin(ll))}
           onPickRoad={pickSuggested}
           onTraceRoad={pickTraced}
+          extendRef={localExtend}
         />
       ) : (
         <div className="spot-map editor map-loading" />
@@ -281,9 +326,21 @@ export default function SpotEditor({ groupId = null, spot = null, groupName, ini
               </label>
             </>
           )}
-          {source?.from === "traced" && (
+          <div className="row extend-road">
+            <button type="button" className="button ghost small" disabled={!!extending} onClick={() => extend(false)}>
+              {extending === "start" ? "Looking..." : `Longer at the ${endWords(segment ?? baseLine)[0]} end`}
+            </button>
+            <button type="button" className="button ghost small" disabled={!!extending} onClick={() => extend(true)}>
+              {extending === "end" ? "Looking..." : `Longer at the ${endWords(segment ?? baseLine)[1]} end`}
+            </button>
+          </div>
+          {extendNote && <span className="fine" role="status">{extendNote}</span>}
+          {source?.from === "suggested" && (
+            <span className="fine">Making a suggested road longer turns it into your own road; its scores stay with the original.</span>
+          )}
+          {source?.from === "traced" && !extendNote && (
             <span className="fine">
-              Traced from the map as far as it&apos;s loaded. Zoom out to fit the whole road and tap it again to trace more, or use Draw a road.
+              Traced from the map as far as it&apos;s loaded. Use the Longer buttons to follow it farther, or Draw a road.
             </span>
           )}
         </fieldset>

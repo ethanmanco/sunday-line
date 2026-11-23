@@ -16,6 +16,7 @@ import {
 import { applyFilters, badgeKey, DEFAULT_FILTERS, haversineMi, type Bounds, type Filters } from "@/lib/roads";
 import { spotsBbox, type RoadScore, type Spot, type SpotKind } from "@/lib/spots";
 import { getSupabase, rememberReturn } from "@/lib/supabase";
+import type { RoadExtender } from "@/lib/traceRoad";
 import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
 import {
@@ -77,6 +78,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [showEverything, setShowEverything] = useState(false);
   const [pick, setPickState] = useState<PickState | null>(null);
   const pickHandlers = useRef<PickHandlers | null>(null);
+  const extendRef = useRef<RoadExtender | null>(null);
   const [adding, setAdding] = useState<SpotKind | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [sheet, setSheet] = useState<SheetState>("closed");
@@ -449,6 +451,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     spotRoad: (id) => spotRoads[id] ?? null, stretchModel: index?.stretch ?? null,
     roadScore: (id) => roadScores[id] ?? null, reloadRoadScore, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),
     setPick, startAdding,
+    extendRoad: (line, atEnd) => (extendRef.current ? extendRef.current(line, atEnd) : Promise.resolve(null)),
     sheet, setSheet, setPanelWide, isSheet,
   };
 
@@ -507,6 +510,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onPickPoint={(ll) => pickHandlers.current?.onPickPoint(ll)}
               onPickRoad={(id) => pickHandlers.current?.onPickRoad(id)}
               onTraceRoad={(t) => pickHandlers.current?.onTraceRoad(t)}
+              extendRef={extendRef}
               onSelect={selectRoad}
               selectedSpotId={selectedSpotId}
               onSelectSpot={doFocusSpot}

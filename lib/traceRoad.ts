@@ -106,21 +106,43 @@ function metersToLine(line: LL[], p: LL): number {
   return best;
 }
 
+/** Closer to a line's end than this (along it) counts as "past the end", not beside it. */
+const END_MARGIN_METERS = 40;
+
 /**
- * True when most of `piece` runs within TWIN_METERS of `line`: the other side
- * of a divided road. Points near the line's two ends don't count, so a piece
- * that simply continues the road isn't mistaken for it (the turn check covers
- * the ends).
+ * True when `p` sits within `maxM` beside the middle of `line`: its nearest
+ * point on the line is more than END_MARGIN_METERS from both ends. A piece that
+ * continues the road lies past an end; the other side of a divided road lies
+ * beside the middle.
  */
+function besideMiddle(line: LL[], p: LL, maxM: number): boolean {
+  const k = Math.cos((p[1] * Math.PI) / 180) * 111320;
+  let best = Infinity;
+  let bestAlong = 0;
+  let along = 0;
+  for (let i = 1; i < line.length; i++) {
+    const ax = (line[i - 1][0] - p[0]) * k, ay = (line[i - 1][1] - p[1]) * 110540;
+    const bx = (line[i][0] - p[0]) * k, by = (line[i][1] - p[1]) * 110540;
+    const dx = bx - ax, dy = by - ay;
+    const segLen = Math.hypot(dx, dy);
+    const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+    const d = Math.hypot(ax + t * dx, ay + t * dy);
+    if (d < best) {
+      best = d;
+      bestAlong = along + t * segLen;
+    }
+    along += segLen;
+  }
+  return best <= maxM && bestAlong > END_MARGIN_METERS && along - bestAlong > END_MARGIN_METERS;
+}
+
+/** True when most of `piece` runs beside the middle of `line`: the other side of a divided road. */
 function runsAlongside(line: LL[], piece: LL[]): boolean {
   const n = Math.min(piece.length, 10);
   if (n < 2) return false;
-  const a = line[0];
-  const z = line[line.length - 1];
   let near = 0;
   for (let s = 0; s < n; s++) {
-    const p = piece[Math.round((s * (piece.length - 1)) / (n - 1))];
-    if (meters(p, a) > 2 * TWIN_METERS && meters(p, z) > 2 * TWIN_METERS && metersToLine(line, p) <= TWIN_METERS) near++;
+    if (besideMiddle(line, piece[Math.round((s * (piece.length - 1)) / (n - 1))], TWIN_METERS)) near++;
   }
   return near / n >= TWIN_SHARE;
 }
@@ -146,7 +168,7 @@ function joinTurn(line: LL[], p: LL[], atEnd: boolean): number {
  * attaches the closest remaining piece to either end. Pieces that overlap the
  * end (tile edges) are trimmed; pieces a short gap away are joined straight.
  */
-export function chain(pieces: LL[][], first: number): LL[] {
+export function chain(pieces: LL[][], first: number, only?: "start" | "end"): LL[] {
   const used = new Set([first]);
   let line = [...pieces[first]];
   for (;;) {
@@ -174,6 +196,7 @@ export function chain(pieces: LL[][], first: number): LL[] {
       if (o4 >= 0) options.push({ atEnd: false, flip: true, d: 0 });
       for (const o of options) {
         if (o.d > GAP_METERS || (best && o.d >= best.d)) continue;
+        if (only && o.atEnd !== (only === "end")) continue;
         // No U-turns onto the other side of a divided road.
         if (joinTurn(line, o.flip ? [...p].reverse() : p, o.atEnd) > MAX_TURN_DEG) continue;
         best = { i, ...o };
@@ -305,4 +328,114 @@ function lengthMeters(line: LL[]): number {
   let s = 0;
   for (let i = 1; i < line.length; i++) s += meters(line[i - 1], line[i]);
   return s;
+}
+
+// ---- Making a picked road longer (11.36) ------------------------------------
+
+/** A base map line belongs to the road if it runs within this of the road's last stretch. */
+const SAME_ROAD_METERS = 25;
+/** Parts of a base map line this close to the road are road we already have. */
+const OVERLAP_METERS = 20;
+/** When making a road longer, a line this close beside its middle is the other side, not more road. */
+const BESIDE_METERS = 80;
+
+/** Points about `ds` meters back from one end of `line`, walking inward. */
+function pointsBack(line: LL[], atEnd: boolean, ds: number[]): LL[] {
+  const pts = atEnd ? [...line].reverse() : line;
+  const out: LL[] = [];
+  let along = 0;
+  let k = 0;
+  for (let i = 1; i < pts.length && k < ds.length; i++) {
+    along += meters(pts[i - 1], pts[i]);
+    while (k < ds.length && along >= ds[k]) {
+      out.push(pts[i]);
+      k++;
+    }
+  }
+  return out.length ? out : [pts[0]];
+}
+
+/** The runs of `piece` that aren't on `line`, each keeping one point of overlap so it still meets the line. */
+function offLine(piece: LL[], line: LL[]): LL[][] {
+  const on = piece.map((p) => metersToLine(line, p) <= OVERLAP_METERS);
+  const runs: LL[][] = [];
+  let cur: LL[] = [];
+  for (let i = 0; i < piece.length; i++) {
+    if (!on[i]) {
+      if (!cur.length && i > 0) cur.push(piece[i - 1]);
+      cur.push(piece[i]);
+    } else if (cur.length) {
+      cur.push(piece[i]);
+      runs.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) runs.push(cur);
+  return runs.filter((r) => r.length > 1);
+}
+
+export interface NamedLine {
+  name: string;
+  coords: LL[];
+}
+
+/**
+ * Continue `line` past one end along the base map road it follows, as far as
+ * the given base map lines go. The road is found by where it runs (its last
+ * stretch), not by name, since our road names don't always match the map's.
+ * Returns null when the map shows no more of it.
+ */
+export function extendLine(named: NamedLine[], line: LL[], atEnd: boolean): { name: string; coords: LL[] } | null {
+  const probes = pointsBack(line, atEnd, [20, 60, 120]);
+  let name: string | null = null;
+  let nearest = SAME_ROAD_METERS;
+  for (const f of named) {
+    const d = Math.max(...probes.map((p) => metersToLine(f.coords, p)));
+    if (d < nearest) {
+      nearest = d;
+      name = f.name;
+    }
+  }
+  if (!name) return null;
+  const runs = dedupe(named.filter((f) => f.name === name).map((f) => f.coords))
+    .flatMap((p) => offLine(p, line))
+    // Any of it beside the road we already have means it's the other side
+    // (or the road looping back), not more road. Its two end points only meet the line.
+    .filter((r) => !r.slice(1, -1).some((p) => besideMiddle(line, p, BESIDE_METERS)));
+  if (!runs.length) return null;
+  const longer = chain([line, ...runs], 0, atEnd ? "end" : "start");
+  const added = lengthMeters(longer) - lengthMeters(line);
+  return added > 30 ? { name, coords: simplifyLine(longer, 2) } : null;
+}
+
+/** Continues a picked road past one end on a map (see extendOnMap). */
+export type RoadExtender = (line: LL[], atEnd: boolean) => Promise<{ name: string; coords: LL[] } | null>;
+
+/** Base map road lines that are loaded, with their names. */
+export function namedLines(map: MLMap): NamedLine[] {
+  return map
+    .querySourceFeatures("omt", { sourceLayer: "transportation_name" })
+    .flatMap((f) => {
+      const n = nameOf(f);
+      return n ? parts(f).map((coords) => ({ name: n, coords })) : [];
+    });
+}
+
+/**
+ * Move the map to one end of `line` at zoom 14 (the base map tiles only carry
+ * every road name at their most detailed zoom), wait for it to load, then
+ * continue the road from there.
+ */
+export async function extendOnMap(map: MLMap, line: LL[], atEnd: boolean): Promise<{ name: string; coords: LL[] } | null> {
+  const end = atEnd ? line[line.length - 1] : line[0];
+  await new Promise<void>((resolve) => {
+    const done = () => resolve();
+    const timer = setTimeout(done, 5000);
+    map.once("idle", () => {
+      clearTimeout(timer);
+      done();
+    });
+    map.easeTo({ center: end, zoom: 14, duration: 600 });
+  });
+  return extendLine(namedLines(map), line, atEnd);
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
 import type { PickState } from "@/lib/mapShell";
-import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
+import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { FilterSpecification, GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
 import type { Bounds } from "@/lib/roads";
@@ -36,6 +36,8 @@ interface Props {
   onPickPoint?: (ll: [number, number]) => void;
   onPickRoad?: (id: string) => void;
   onTraceRoad?: (t: TracedRoad) => void;
+  /** Filled with a way to make a picked road longer on this map. */
+  extendRef?: { current: RoadExtender | null };
   /** Pixels hidden at the bottom (the phone sheet), kept clear when fitting views. */
   bottomInset?: number;
   onSelect: (id: string) => void;
@@ -186,10 +188,17 @@ export default function MapView(props: Props) {
         cb.current.onHover(null);
       });
       mapRef.current = map;
+      if (cb.current.extendRef) cb.current.extendRef.current = (line, atEnd) => extendOnMap(map, line, atEnd);
       // Follow the container's size (for example the phone's full-map button).
       resize = new ResizeObserver(() => map.resize());
       resize.observe(el.current);
-      if (process.env.NODE_ENV === "development") (window as unknown as { __slmap: MLMap }).__slmap = map;
+      if (process.env.NODE_ENV === "development") {
+        // Debug handles for testing in the browser (development only).
+        const w = window as unknown as { __slmap: MLMap; __slextend: RoadExtender; __sltrace: typeof traceRoadAt };
+        w.__slmap = map;
+        w.__slextend = (line, atEnd) => extendOnMap(map, line, atEnd);
+        w.__sltrace = traceRoadAt;
+      }
     })();
     return () => {
       cancelled = true;

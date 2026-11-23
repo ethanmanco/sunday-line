@@ -5,7 +5,7 @@ import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-g
 import "maplibre-gl/dist/maplibre-gl.css";
 import { baseStyle } from "@/lib/mapStyle";
 import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
-import { traceRoadAt, type TracedRoad } from "@/lib/traceRoad";
+import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { LoadedRoad } from "@/lib/types";
 
 type Box = [number, number, number, number];
@@ -31,6 +31,8 @@ interface Props {
   onPickRoad?: (id: string) => void;
   /** A road from the base map that isn't one of the suggested ones. */
   onTraceRoad?: (road: TracedRoad) => void;
+  /** Filled with a way to make a picked road longer on this map. */
+  extendRef?: { current: RoadExtender | null };
   onSpotClick?: (id: string) => void;
 }
 
@@ -157,6 +159,7 @@ export default function SpotMap(props: Props) {
         map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
       }
       mapRef.current = map;
+      if (cb.current.extendRef) cb.current.extendRef.current = (line, atEnd) => extendOnMap(map, line, atEnd);
       if (process.env.NODE_ENV === "development") (window as unknown as { __spotmap: MLMap }).__spotmap = map;
       resize = new ResizeObserver(() => map.resize());
       resize.observe(el.current);

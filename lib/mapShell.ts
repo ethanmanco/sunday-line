@@ -94,6 +94,8 @@ export interface MapShell {
   fitTo: (bbox: Bounds) => void;
   // Adding a spot on this map.
   setPick: (state: PickState | null, handlers?: PickHandlers) => void;
+  /** Make a picked road longer past one end, following the base map (11.36). */
+  extendRoad: import("./traceRoad").RoadExtender;
   startAdding: (kind: SpotKind) => void;
   // Layout.
   sheet: SheetState;
