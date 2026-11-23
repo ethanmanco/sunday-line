@@ -727,3 +727,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your ask: Groups, People, About, Notifications, Messages, and your profile now open in the map's left panel on desktop, in place of the list, with the map beside them (they moved into `app/(map)`; addresses are unchanged). A chat fills the panel with the message box at the bottom. On phones they open as a full-height sheet over the map.
 
+### 11.43 Installable, with web push (2026-11-22)
+
+- Your ask, after the app-store question: the site is installable (web app manifest, icons from the brand mark, a service worker that doesn't cache pages so the site is always current). On Android Chrome it offers Install; on iPhone it's Share, then Add to Home Screen.
+- Web push: the Notifications page has "Turn on notifications" for this device. Every new notification is then also a phone or desktop notification; tapping it opens the right page. A chat pushes once until it's read. iPhones (iOS 16.4 and later) get pushes only from the Home Screen app, and the page says so.
+- How it's sent: a trigger on new notifications calls a Supabase Edge Function (`supabase/functions/push`) through pg_net. The function needs no login to call, because it only claims real, unsent, unread notifications (each once, within 15 minutes) through `claim_push`, which only the service role can run. Dead devices are dropped. Push keys: the public key is in `lib/config.ts`; the private key is a Supabase function secret (copy in the gitignored `.env.local`). Signing out removes the device.
+- App stores later: once regular phone users ask for it and the report-button question is decided (see 11.13).
+
