@@ -74,6 +74,8 @@ export interface MapShell {
   selectedId: string | null;
   selectRoad: (id: string) => void;
   closeRoad: () => void;
+  /** "All roads": close the road or spot and fly back out to your area or the mainland. */
+  showAllRoads: () => void;
   hoverId: string | null;
   setHoverId: (id: string | null) => void;
   // A page's own spots (profile, group, event) shown instead of the usual layers.

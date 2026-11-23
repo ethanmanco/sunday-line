@@ -15,6 +15,24 @@ export interface FocusRequest {
   bbox: [number, number, number, number];
   key: number;
   exact?: boolean; // restore a saved view instead of framing a road
+  fly?: boolean; // a long move: fly there, keeping the area clear of the floating controls
+}
+
+/** How far down the map the floating search and chips reach (0 when nothing floats there). */
+function topOverlay(container: HTMLElement): number {
+  const box = container.getBoundingClientRect();
+  let bottom = 0;
+  for (const el of document.querySelectorAll<HTMLElement>(".app-bar, .map-top-left")) {
+    const r = el.getBoundingClientRect();
+    if (!r.height || r.bottom <= box.top || r.top > box.top + box.height / 2) continue;
+    // The app bar spans the screen but only its rows are solid: measure those.
+    const parts = el.classList.contains("app-bar") ? [...el.children].filter((c) => !c.classList.contains("you-menu")) : [el];
+    for (const p of parts) {
+      const pr = p.getBoundingClientRect();
+      if (pr.height && pr.right > box.left && pr.left < box.right) bottom = Math.max(bottom, pr.bottom - box.top);
+    }
+  }
+  return Math.max(0, Math.min(bottom, box.height / 3));
 }
 
 interface Props {
@@ -374,6 +392,14 @@ export default function MapView(props: Props) {
     const map = mapRef.current;
     if (!ready || !map || !props.focus) return;
     const [w, s, e, n] = props.focus.bbox;
+    if (props.focus.fly) {
+      // A long move out (All roads, 11.56): a smooth flight, clear of whatever
+      // floats over the top of the map (phone search and chips).
+      const top = topOverlay(map.getContainer());
+      const cam = map.cameraForBounds([[w, s], [e, n]], { padding: { top: top + 24, bottom: 24, left: 24, right: 24 } });
+      if (cam) map.flyTo({ ...cam, bearing: 0, pitch: 0, duration: 1400 });
+      return;
+    }
     map.fitBounds([[w, s], [e, n]], props.focus.exact ? { padding: 0, duration: 400 } : { padding: 48, maxZoom: 13.5, duration: 600 });
   }, [ready, props.focus]);
 

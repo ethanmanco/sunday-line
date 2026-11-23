@@ -30,6 +30,9 @@ const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => 
 
 const SHEET_MEDIA = "(max-width: 899px) and (orientation: portrait), (max-width: 599px)";
 
+/** The local view around a location: about 50 miles across, the drives near you, not just your street. */
+const localView = (ll: LL): Bounds => [ll[0] - 0.45, ll[1] - 0.33, ll[0] + 0.45, ll[1] + 0.33];
+
 function spotIn(s: Spot, b: Bounds): boolean {
   const box = spotsBbox([s]);
   if (!box) return false;
@@ -65,6 +68,9 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [satellite, setSatellite] = useState(false);
   const [myLocation, setMyLocation] = useState<LL | null>(null);
+  // In this page's memory only, like myLocation itself.
+  const myLocationLatest = useRef<LL | null>(null);
+  myLocationLatest.current = myLocation;
   // Where myLocation came from: the phone's location, or a point picked on the map.
   const [locSource, setLocSource] = useState<"gps" | "set" | "place" | null>(null);
   const locSourceRef = useRef(locSource);
@@ -330,6 +336,19 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     setSheet((s) => (s === "half" || s === "full" ? "half" : s));
   }, []);
 
+  // "All roads" on a road or spot (11.56): close it and fly back out, to the
+  // area around your location if one is set (the same view the app opens at),
+  // or to the whole mainland. The list follows the new view.
+  const showAllRoads = useCallback(() => {
+    setSelectedId(null);
+    setSelectedSpotId(null);
+    setHoverId(null);
+    if (window.location.pathname !== "/" || window.location.search.includes("spot=")) window.history.pushState(null, "", "/");
+    setSheet((s) => (s === "half" || s === "full" ? "half" : s));
+    const ll = myLocationLatest.current;
+    setFocus({ bbox: ll ? localView(ll) : US_BBOX, key: Date.now(), fly: true });
+  }, []);
+
   // The logo tapped on the map (11.46): a soft refresh back to the starting view.
   useEffect(() => {
     const onHome = () => {
@@ -509,8 +528,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
         const ll: LL = [pos.coords.longitude, pos.coords.latitude];
         setMyLocation(ll);
         setLocSource("gps");
-        // About 50 miles across: the drives near you, not just your street.
-        setFocus({ bbox: [ll[0] - 0.45, ll[1] - 0.33, ll[0] + 0.45, ll[1] + 0.33], key: Date.now() });
+        setFocus({ bbox: localView(ll), key: Date.now(), fly: true });
       },
       () => {},
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
@@ -572,7 +590,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     settingLocation: settingLoc,
     startSettingLocation: () => { setSettingLoc(true); startSettingLocation(); },
     addRoad: (r: RoadOnMap) => selectRoad(r.id, r),
-    selectedId, selectRoad, closeRoad, hoverId, setHoverId,
+    selectedId, selectRoad, closeRoad, showAllRoads, hoverId, setHoverId,
     overlay, setOverlay, focusSpot: doFocusSpot, selectedSpotId, selectedSpot, closeSpot,
     spotRoad: (id) => spotRoads[id] ?? null, stretchModel: index?.stretch ?? null,
     roadScore: (id) => roadScores[id] ?? null, reloadRoadScore, fitTo: (b) => setFocus({ bbox: b, key: Date.now() }),

@@ -78,12 +78,12 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
     const sp = shell.selectedSpot;
     return (
       <SpotDetail spot={sp} road={shell.spotRoad(sp.id)} units={shell.region.units} origin={shell.origin}
-        originName={shell.originName} onClose={shell.closeSpot} />
+        originName={shell.originName} onClose={shell.showAllRoads} />
     );
   }
   const selected = shell.selectedId ? shell.byId.get(shell.selectedId) ?? null : null;
   if (selected) {
-    return <RoadDetail road={selected} units={shell.region.units} origin={shell.origin} originName={shell.originName} onClose={shell.closeRoad} />;
+    return <RoadDetail road={selected} units={shell.region.units} origin={shell.origin} originName={shell.originName} onClose={shell.showAllRoads} />;
   }
   return (
     <>

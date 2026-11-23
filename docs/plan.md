@@ -806,3 +806,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your note: grab the location the first time the app opens and center on it, with no tap if possible. Opening the home map now asks the phone for your location right away (the system prompt is the one tap the browser requires). Allow, and the map centers on you about 50 miles across, with distances measured from you. After that it centers on you every time you open the app, without asking, while location is allowed. If you say no it never asks again on its own; the locate button still works.
 - Links to a road, spot or page keep their own view, and a search or tap made while the location loads wins. Only "already asked" is saved on the device; the location itself stays in the page's memory, as before. About updated to say so.
+
+### 11.56 All roads flies back out (2026-11-23)
+
+- Your note: "All roads" closed a road but left the map zoomed in on it. Now All roads (on a road or a spot) closes it and flies the map smoothly back out: to the area around you, at the same zoom the app opens at, if your location is set (your own location, a point you set, or a town you searched); otherwise to the whole mainland (no Alaska or Hawaii), fitted between the search and the list on phones and on desktop. The list then shows every road in that view.
+- The logo still returns to the full map as before; no Back button. The location stays in the page's memory only.
+- Tested on a phone (website and installed-app layouts) and on desktop, with location set and not set.
