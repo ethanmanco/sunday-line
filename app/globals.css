@@ -118,6 +118,8 @@ h1, h2, h3 { font-family: var(--font-display), var(--font-body), sans-serif; let
 /* Map credit (11.45): centered, no box, readable over any map. */
 .maplibregl-ctrl-attrib { background: transparent !important; color: var(--dim); font-size: 10px; line-height: 1.3; text-shadow: 0 0 3px #000, 0 0 2px #000; }
 .maplibregl-ctrl-attrib.maplibregl-compact { background: transparent !important; }
+/* Open: the credit text sits level with the (i), not at the top of its box. */
+.maplibregl-ctrl-attrib.maplibregl-compact-show { display: flex; align-items: center; }
 .maplibregl-ctrl-bottom-right { left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl { pointer-events: auto; margin: 0; float: none; }
 /* Folded into the (i): it sits at the right, not the middle. */
