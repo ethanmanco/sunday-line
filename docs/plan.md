@@ -816,3 +816,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.57 No profile choice for private-group spots (2026-11-23)
 
 - Your note: adding a spot in a private group still offered "Show on my profile". A private group's spots never show on a profile (the database already turns it off), so the spot form now leaves the checkbox out and says the spot stays off your profile. This covers adding a spot from a private group's page and editing a spot that's in a private group from Your spots.
+
+### 11.58 Score a road from Your spots (2026-11-23)
+
+- Your question: Your spots showed "Submit to public map" but no way to score a road. "Score this road" had only ever been on the spot's own card (open the spot on the map), so it was easy to miss. Your spots now shows it too, on a road you picked off the map or drew, then "Waiting to be scored" or "Being scored", then "Scored 72" (opens the spot with its scores). Suggested roads already have scores and show nothing extra.
+- Recommendation taken: scoring stays separate from the public map. A score is seen only by people who can already see the spot (you, your groups, your profile), and the public map is a bigger step with a review, so tying the two together would make people publish just to get a number.
