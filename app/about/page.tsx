@@ -55,6 +55,23 @@ export default async function About() {
         <li>Legal notices: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
       </ul>
 
+      <h2>Reviews and heads-ups</h2>
+      <ul>
+        <li>
+          <b>How far would you drive for it?</b> Reviews ask this instead of stars: Skip it, Fun if you&apos;re nearby,
+          Worth a detour, or Worth a road trip. It means the same thing everywhere. To say a road is a local gem, tick
+          &quot;One of the best roads around here&quot;.
+        </li>
+        <li>
+          <b>Flags:</b> gravel or dirt, private or gated, closed, police often here, and poor pavement. When three
+          members flag a road the same way, it gets a check and can move off Driver&apos;s roads.
+        </li>
+        <li>
+          <b>Heads-ups</b> mark something on a road right now, like a crash or something in the lane. They end by
+          themselves (1 to 12 hours, by kind), and they show without the poster&apos;s name.
+        </li>
+      </ul>
+
       <h2>Data and credits</h2>
       <ul>
         <li>
@@ -84,7 +101,7 @@ export default async function About() {
         </li>
         <li>
           A private profile shows your garage, photos, and follow lists only to followers you approve. Your name,
-          picture, bio, and road ratings stay public.
+          picture, bio, and road reviews stay public. Heads-ups never show who posted them.
         </li>
         <li>Blocking someone is private: they aren&apos;t told. You stop following each other, and they can&apos;t follow you or see your garage and photos.</li>
         <li>You can change or delete anything you post at any time.</li>

@@ -690,3 +690,22 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - The divided-road rules from tracing apply: no U-turns, and anything running beside the road you already have is the other side, not more road.
 - A suggested road that's made longer becomes your own road line; its scores stay with the original, and Score this road can score the longer one.
 - Checked on the real map: Clyde Fant traced to 3.9 mi grew to 6.8 mi (one side end to end) in four presses, never doubling back. Tests use real map pieces for Clyde Fant and Arthur Ray Teague.
+
+### 11.37 Reviews: how far you'd drive, not stars (2026-11-22)
+
+- Your point: 5 stars mixes "great for Shreveport" with "great anywhere". Reviews now ask "How far would you drive for it?" (Skip it, Fun if you're nearby, Worth a detour, Worth a road trip), which means the same in every state, plus a separate "One of the best roads around here" tick for local gems. The summary shows the most common answer ("Worth a detour, say 3 of 4") and how many call it a local best.
+- Other options considered: stars with written meanings (still invites grading on a local curve), or two scores (local and national; twice the work for every review). No live ratings existed, so the old 1 to 5 "fun" column was replaced outright.
+- Every part of a review is optional: it can be just a flag, just pavement, or just a note.
+
+### 11.38 Flags and road checks (2026-11-22)
+
+- Review flags: Gravel or dirt road, Private/gated/no entry, Closed or doesn't go through, Police often here. "Poor quality" is Pavement: "Poor, broken up".
+- Three members flagging the same thing (police excepted, it's information only) put the road in a check queue at /admin/roads (linked from your profile next to Spot review). Your own flags (as @mango, the site admin) are accepted the moment you save. "It's fine" dismisses a check; three newer flags bring it back. Accepted checks apply in the app right away: gravel moves the road to Gravel; private, closed, or poor pavement move it off Driver's roads, with the reason shown.
+- Not yet: feeding accepted checks into the data pipeline's verdicts, so a rebuild keeps them in the data itself (the app keeps applying them meanwhile).
+
+### 11.39 Heads-ups (2026-11-22)
+
+- My recommendation, since there are few members yet: short-lived notes on the map, called heads-ups. Kinds and how long each lasts: Police and Animal 1 hour, Crash and Stalled car 2 hours, Something on the road 3 hours, Oil or spill 4 hours, Road work and Flooding 12 hours.
+- Post from + then Heads-up, tap where it is (tap again to move it), pick the kind, optional note (120 characters). Others can say "Still there" (restarts its time) or "Gone" (two of those end it); the poster can take it down. Expired ones are deleted after a day (hourly job).
+- Privacy: heads-ups show without the poster's name, and the table can't be read directly; the app reads them through a function that leaves out who posted. A limit of 20 a day per member. Copy never suggests posting while driving, and nothing checks or blocks it.
+
