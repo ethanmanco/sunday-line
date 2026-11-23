@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -40,6 +40,18 @@ export default function GroupView({ shortId }: { shortId: string }) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [mapSpots, setMapSpots] = useState<Spot[] | null>(null);
   const shell = usePageOnMap(group?.name ?? null, mapSpots);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  // Phones: the chat takes the whole sheet, tabs at the top and the message box
+  // at the bottom edge (11.46).
+  const chatOpen = tab === "chat";
+  const isSheet = shell?.isSheet ?? false;
+  const setSheet = shell?.setSheet;
+  useEffect(() => {
+    if (!chatOpen || !isSheet || !setSheet) return;
+    setSheet("full");
+    const t = setTimeout(() => tabsRef.current?.scrollIntoView({ block: "start" }), 250);
+    return () => clearTimeout(t);
+  }, [chatOpen, isSheet, setSheet]);
 
   // The page's map: accepted spots for members; ones on the public map for everyone else.
   const loadMap = useCallback(async (groupId: string, member: boolean) => {
@@ -179,7 +191,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
 
       {me ? (
         <>
-          <div className="tabs" role="tablist" aria-label="Group sections">
+          <div ref={tabsRef} className="tabs" role="tablist" aria-label="Group sections">
             {([["events", "Events"], ["spots", "Spots"], ["chat", "Chat"], ["members", "Members"], ...(manages ? [["manage", "Manage"]] : [])] as [Tab, string][]).map(([k, label]) => (
               <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
             ))}

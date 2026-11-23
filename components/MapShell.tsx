@@ -318,6 +318,20 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     setSheet((s) => (s === "half" || s === "full" ? "half" : s));
   }, []);
 
+  // The logo tapped on the map (11.46): a soft refresh back to the starting view.
+  useEffect(() => {
+    const onHome = () => {
+      setSelectedId(null);
+      setSelectedSpotId(null);
+      setHoverId(null);
+      if (window.location.search) window.history.pushState(null, "", "/");
+      setSheet(isSheet ? "closed" : "half");
+      if (region) setFocus({ bbox: region.bbox, key: Date.now() });
+    };
+    window.addEventListener("sl-home", onHome);
+    return () => window.removeEventListener("sl-home", onHome);
+  }, [isSheet, region]);
+
   const doFocusSpot = useCallback((id: string) => {
     setSelectedSpotId(id);
     setFocusSpotState({ id, key: Date.now() });

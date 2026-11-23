@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useMapShell, type ListItem } from "@/lib/mapShell";
 import { lengthText, milesText, scoreColor, scoreInk, speedShort } from "@/lib/roads";
 import { spotLabel } from "@/lib/spots";
@@ -20,6 +20,28 @@ export default function ItemCards({ items, scoreKey, units }: {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Which card was last lit; null until someone swipes (cards appearing don't light the first one).
   const last = useRef<number | null>(null);
+
+  // The map moved and the cards changed: keep the highlight only if the card
+  // under the thumb is still that road (11.46).
+  const hoverId = shell?.hoverId ?? null;
+  useEffect(() => {
+    if (!shell || !hoverId) return;
+    const el = strip.current;
+    let current: string | null = null;
+    if (el && items.length) {
+      const card = el.firstElementChild as HTMLElement | null;
+      const width = card ? card.offsetWidth + 10 : el.clientWidth;
+      const it = items[Math.min(items.length - 1, Math.max(0, Math.round(el.scrollLeft / width)))];
+      current = it?.kind === "road" ? it.road.id : null;
+    }
+    if (current !== hoverId) {
+      shell.setHoverId(null);
+      last.current = null;
+    }
+    // Only when what's in view changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   if (!shell || !items.length) return null;
 
   function onScroll() {
