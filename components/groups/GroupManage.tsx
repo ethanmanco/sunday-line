@@ -7,6 +7,7 @@ import { can, type Membership } from "./GroupView";
 import {
   getSupabase, PROFILE_COLUMNS, type Group, type GroupVisibility, type JoinPolicy, type Profile,
 } from "@/lib/supabase";
+import { GROUP_COLORS, GROUP_COLOR_NAMES } from "@/lib/spots";
 
 interface Request {
   user_id: string;
@@ -258,6 +259,7 @@ function Settings({ group, onChanged, onDeleted }: { group: Group; onChanged: ()
   const [area, setArea] = useState(group.home_area ?? "");
   const [visibility, setVisibility] = useState<GroupVisibility>(group.visibility);
   const [join, setJoin] = useState<JoinPolicy>(group.join_policy);
+  const [color, setColor] = useState<number>(group.color ?? 0);
   const [message, setMessage] = useState<string | null>(null);
 
   async function save(e: React.FormEvent) {
@@ -268,6 +270,7 @@ function Settings({ group, onChanged, onDeleted }: { group: Group; onChanged: ()
       home_area: area.trim() || null,
       visibility,
       join_policy: join,
+      color,
     }).eq("id", group.id);
     setMessage(error ? "Couldn't save. Names are 3 to 60 characters." : "Saved.");
     if (!error) onChanged();
@@ -304,6 +307,18 @@ function Settings({ group, onChanged, onDeleted }: { group: Group; onChanged: ()
             </div>
           </fieldset>
         )}
+        <fieldset>
+          <legend>Spot color</legend>
+          <p className="hint">The group&apos;s spots wear this color on the map.</p>
+          <div className="swatches" role="radiogroup" aria-label="Spot color">
+            {GROUP_COLORS.map((c, i) => (
+              <button
+                key={c} type="button" role="radio" aria-checked={color === i} aria-label={GROUP_COLOR_NAMES[i]} title={GROUP_COLOR_NAMES[i]}
+                className="swatch" style={{ background: c }} onClick={() => setColor(i)}
+              />
+            ))}
+          </div>
+        </fieldset>
         <button type="submit" className="button">Save settings</button>
         {message && <p className="hint" role="status">{message}</p>}
       </form>

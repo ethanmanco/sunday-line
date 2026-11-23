@@ -9,6 +9,7 @@ import {
 } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
 import SpotFacts from "./spots/SpotFacts";
+import SaveRoad from "./SaveRoad";
 import { decodePolyline } from "@/lib/polyline";
 import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
@@ -98,9 +99,12 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         <button type="button" className="back" onClick={onClose}>
           <span aria-hidden="true">&larr;</span> All roads
         </button>
-        <button type="button" className="share" onClick={share}>
-          {copied ? "Link copied" : "Share"}
-        </button>
+        <div className="detail-actions">
+          <SaveRoad road={r} />
+          <button type="button" className="share" onClick={share}>
+            {copied ? "Link copied" : "Share"}
+          </button>
+        </div>
       </div>
 
       {/* Its own scroll, outside the header, so nothing shows above it and each road starts at the top. */}

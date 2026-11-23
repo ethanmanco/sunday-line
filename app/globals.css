@@ -177,6 +177,17 @@ button.link:disabled { color: var(--faint); }
 .detail-bar { display: flex; justify-content: space-between; position: sticky; top: 0; background: var(--panel); padding: 8px 0; z-index: 1; }
 .detail-bar button { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; min-height: 44px; cursor: pointer; font-weight: 600; }
 .detail-bar .share { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* Save a road to your spots or a group (11.48). */
+.detail-actions { display: flex; gap: 8px; align-items: center; }
+.detail-bar .share.save-road { background: var(--raised); border: 1px solid var(--line); color: var(--text); }
+.detail-bar a.save-road { display: inline-flex; align-items: center; border-radius: 8px; padding: 8px 14px; min-height: 44px; font-weight: 600; text-decoration: none; }
+.save-road-box { position: relative; }
+.save-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; list-style: none; margin: 0; padding: 6px; min-width: 210px; max-width: 80vw; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.detail-bar .save-menu button { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: none; border: 0; border-radius: 6px; padding: 8px 10px; font-weight: 600; }
+.detail-bar .save-menu button:hover:not(:disabled) { background: var(--panel); }
+.detail-bar .save-menu button:disabled { opacity: 0.55; cursor: default; }
+.save-menu .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.save-note { position: absolute; right: 0; top: calc(100% + 6px); white-space: nowrap; font-size: 13px; color: var(--dim); background: var(--panel); padding: 2px 6px; border-radius: 6px; }
 .detail-head { display: flex; gap: 14px; align-items: flex-start; margin-top: 6px; }
 .detail-head h1 { margin: 0; font-size: 30px; }
 .detail-head h1:focus { outline: none; }
@@ -260,6 +271,10 @@ button.link:disabled { color: var(--faint); }
 .form button.link { text-align: left; }
 .form fieldset { border: none; padding: 0; margin: 0; }
 .form legend { font-size: 14px; color: var(--dim); margin-bottom: 6px; }
+/* Group spot color (11.48): seven cool swatches, the chosen one ringed. */
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 0 2px var(--bg); cursor: pointer; padding: 0; }
+.swatch[aria-checked="true"] { border-color: var(--text); }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button {
   background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; cursor: pointer; color: var(--dim);

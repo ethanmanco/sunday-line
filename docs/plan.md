@@ -754,3 +754,18 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your notes: (1) the map credit's (i) sits at the right once the credit folds away, a few pixels below the cards, with no focus ring when tapped. (2) Phones: when the map moves and the card under your thumb is no longer the highlighted road, the highlight clears. (3) Tapping the logo while already on the map is a soft refresh: closes what's open, clears highlights, closes the sheet, back to the starting view, and lets go of the tap. (4) Phones: a group's Chat tab opens the sheet to full height with the tabs at the top and the message box at the bottom edge. (5) The Scenic list only shows roads scoring Scenic 50 and up (below that they don't look scenic).
 - Install button: a download icon in the top bar of the mobile website only (not the installed app, not desktop). Android Chrome opens its own install prompt; iPhone, where a site can't start the install, shows the three steps (Share, Add to Home Screen, keep Open as Web App on). To fit it, Groups is an icon on phones (desktop keeps the word) and the icons sit a little closer.
+
+### 11.47 Desktop group chat fills the panel (2026-11-23)
+
+- Your note: a group's chat on desktop had empty space under it. The chat now fills the map panel down to its bottom edge.
+
+### 11.48 Spot colors say whose a spot is (2026-11-23)
+
+- Your call ("Build it"): spot colors stop being a single gradient and start meaning something. All are cool colors, so they never read as a road score (the warm Driver's road ramp).
+  - Your own spots are teal.
+  - Each group gets its own color from a palette of seven (Sky, Blue, Indigo, Violet, Cyan, Green, Ice). A new group gets the color its creator's groups use least; organizers can change it under Manage, Group settings, Spot color.
+  - Spots on the public map are light slate.
+- Road spots: the center line keeps the road's score color when the road is a rated one (your own on-request score, else the road's Overall); the owners' colors are the outline. A road in several of your groups wears one band per color, side by side.
+- Places: the map pin is split into equal slices of its owners' colors. The list badge and spot page use the same colors (a ring around score badges, slices on dots).
+- Save on road pages: next to Share, saves the whole road to Your spots or straight into one of your groups (suggested if you can't add spots there yourself). One spot per road, so saving it to more groups reuses it; trim it to a stretch later from Your spots. Only roads go on the public map, so places still can't be submitted there.
+- Database: groups.color (0 to 6), picked by a trigger at creation, organizers update it.
