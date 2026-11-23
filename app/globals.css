@@ -841,6 +841,8 @@ select.chip { background: transparent; color: var(--text); font: inherit; font-s
 }
 .place-field input::placeholder { color: var(--dim); font-weight: 600; }
 .place-field input::-webkit-search-cancel-button { display: none; }
+/* No contact card button in the search (Safari on a Mac shows one). */
+.place-field input::-webkit-contacts-auto-fill-button, .place-field input::-webkit-credentials-auto-fill-button { visibility: hidden; display: none !important; pointer-events: none; }
 .place-search:has(.place-clear) .place-field { padding-right: 40px; }
 .place-search:has(.place-clear) .place-field input::placeholder { color: var(--text); }
 .place-clear {

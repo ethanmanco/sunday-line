@@ -86,10 +86,16 @@ export default function PlaceSearch() {
           <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
           <path d="M15.5 15.5 20 20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
-        <span className="visually-hidden">Find a town or city</span>
+        {/* No "town", "city" or "state" in the label, placeholder or name: iOS reads
+            those as an address form and offers to fill in your contact card,
+            whatever autocomplete says. */}
+        <span className="visually-hidden">Find a place</span>
         <input
           ref={input}
           type="search"
+          name="sl-find"
+          autoCorrect="off"
+          spellCheck={false}
           role="combobox"
           aria-expanded={showList && hits.length > 0}
           aria-controls={`${id}-list`}
@@ -98,7 +104,7 @@ export default function PlaceSearch() {
           autoComplete="off"
           enterKeyHint="search"
           value={q}
-          placeholder={place ?? "Find a town or city"}
+          placeholder={place ?? "Find a place"}
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);

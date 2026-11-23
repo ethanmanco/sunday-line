@@ -796,3 +796,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.53 Spot list markers line up (2026-11-23)
 
 - Your note: in Your spots, names sat right against rated roads' score badges, which were much bigger than the plain spot dots. Every marker now sits in the same 52px column: score badges are smaller (36 by 22) with room for their owner ring, and all names start at the same spot.
+
+### 11.54 No contact autofill in the search (2026-11-23)
+
+- Your note: iPhone kept offering to fill in your contact card in the search. Safari ignores autocomplete=off and guesses from the field's words, so "Find a town or city" looked like an address form. The search now reads "Find a place", has its own name, and turns off autocorrect and spell check (place names were getting "fixed").
+- The installed app sometimes showing solid bars at the top and bottom between pages matches a known iOS 26 bug in Home Screen apps (WebKit bug 301994, reopened, no working fix yet). Closing and reopening the app clears it. Nothing changed in the app for this.
