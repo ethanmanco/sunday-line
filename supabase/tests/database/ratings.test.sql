@@ -41,35 +41,35 @@ select throws_ok($$ select terms_accepted_at from public.profiles $$, '42501', n
 
 -- ---- Ratings ----
 select throws_ok(
-  $$ insert into public.road_ratings (road_id, user_id, fun) values ('aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 5) $$,
+  $$ insert into public.road_ratings (road_id, user_id, worth) values ('aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 4) $$,
   '42501', null, 'signed-out visitors cannot rate');
 
 select pg_temp.act_as('11111111-1111-1111-1111-111111111111');
 select lives_ok(
-  $$ insert into public.road_ratings (road_id, fun, pavement, drove_it) values ('aaaaaaaaaaaa', 5, 'smooth', true) $$,
+  $$ insert into public.road_ratings (road_id, worth, pavement, drove_it) values ('aaaaaaaaaaaa', 4, 'smooth', true) $$,
   'a person can rate a road (user id defaults to them)');
 select throws_ok(
-  $$ insert into public.road_ratings (road_id, user_id, fun) values ('aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', 1) $$,
+  $$ insert into public.road_ratings (road_id, user_id, worth) values ('aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', 1) $$,
   '42501', null, 'nobody can rate as someone else');
 select throws_ok(
-  $$ insert into public.road_ratings (road_id, fun) values ('not-a-road!', 3) $$,
+  $$ insert into public.road_ratings (road_id, worth) values ('not-a-road!', 3) $$,
   '23514', null, 'road ids must look like real road ids');
 select throws_ok(
-  $$ insert into public.road_ratings (road_id, fun) values ('bbbbbbbbbbbb', 9) $$,
-  '23514', null, 'fun is 1 to 5');
+  $$ insert into public.road_ratings (road_id, worth) values ('bbbbbbbbbbbb', 5) $$,
+  '23514', null, 'worth is 1 to 4');
 select throws_ok(
   $$ insert into public.road_ratings (road_id) values ('cccccccccccc') $$,
   '23514', null, 'an empty rating is refused');
 
 select pg_temp.act_as('22222222-2222-2222-2222-222222222222');
 select lives_ok(
-  $$ insert into public.road_ratings (road_id, fun, pavement) values ('aaaaaaaaaaaa', 3, 'loose_gravel') $$,
+  $$ insert into public.road_ratings (road_id, worth, pavement) values ('aaaaaaaaaaaa', 2, 'loose_gravel') $$,
   'second person rates the same road');
-update public.road_ratings set fun = 1 where user_id = '11111111-1111-1111-1111-111111111111';
+update public.road_ratings set worth = 1 where user_id = '11111111-1111-1111-1111-111111111111';
 delete from public.road_ratings where user_id = '11111111-1111-1111-1111-111111111111';
 select pg_temp.act_anon();
-select is((select fun::int from public.road_ratings where user_id = '11111111-1111-1111-1111-111111111111'),
-  5, 'nobody can change or delete someone else''s rating');
+select is((select worth::int from public.road_ratings where user_id = '11111111-1111-1111-1111-111111111111'),
+  4, 'nobody can change or delete someone else''s rating');
 
 select pg_temp.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok(
@@ -94,7 +94,7 @@ select lives_ok($$ insert into public.speed_reports (road_id, posted_limit) valu
 -- ---- Summary ----
 select pg_temp.act_anon();
 select is((select ratings::int from public.road_community where road_id = 'aaaaaaaaaaaa'), 2, 'summary counts ratings');
-select is((select fun_avg from public.road_community where road_id = 'aaaaaaaaaaaa'), 4.0, 'summary averages fun');
+select is((select worth_trip::int + worth_nearby::int from public.road_community where road_id = 'aaaaaaaaaaaa'), 2, 'summary counts how far people would drive');
 select is((select pavement_loose_gravel::int from public.road_community where road_id = 'aaaaaaaaaaaa'), 1,
   'summary counts loose gravel reports');
 select is((select reported_limit::int from public.road_community where road_id = 'aaaaaaaaaaaa'), 55,
