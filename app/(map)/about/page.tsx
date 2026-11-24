@@ -111,6 +111,11 @@ export default async function About() {
           the day. Nothing about you, your device, or where you are is kept, and browsers with Do Not Track or Global
           Privacy Control aren&apos;t counted.
         </li>
+        <li>
+          We also use Vercel Web Analytics, which counts visitors without cookies. It gets the same cleaned-up page
+          addresses (no group, chat, profile or invite ids, no spot links), and nothing from browsers with Do Not Track
+          or Global Privacy Control.
+        </li>
         <li>You can change or delete anything you post at any time.</li>
       </ul>
 
