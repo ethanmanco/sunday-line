@@ -11,7 +11,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { describe, type AppNotification } from "../_shared/notificationText.ts";
+import { describe, pushText, type AppNotification } from "../_shared/notificationText.ts";
 
 const SITE = "https://sundayline.app";
 
@@ -34,11 +34,28 @@ Deno.serve(async (req) => {
   const devices = (n.devices ?? []) as Device[];
   if (!devices.length) return new Response("no devices");
 
-  const note = n as AppNotification;
-  const { text, href } = describe(note, () => "a road");
+  const note = n as AppNotification & { user_id: string };
+  const { href } = describe(note, () => "a road");
+
+  // Messages and mentions show the start of the latest message (11.76). The
+  // notification exists only if the member may read that chat.
+  let said: { body: string | null; photo: boolean } | null = null;
+  if ((note.kind === "message" || note.kind === "mention") && note.conversation_id && note.actor_id) {
+    const { data: m } = await sb.from("messages").select("body, media_path")
+      .eq("conversation_id", note.conversation_id).eq("sender_id", note.actor_id)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (m) said = { body: m.body, photo: Boolean(m.media_path) };
+  }
+  const { title, body: text } = pushText(note, () => "A road", said);
+
+  // The number on the app icon: unread notifications, like the bell.
+  const { count } = await sb.from("notifications").select("id", { count: "exact", head: true })
+    .eq("user_id", note.user_id).is("read_at", null);
+
   const payload = JSON.stringify({
-    title: "Sunday Line",
+    title: title || "Sunday Line",
     body: text,
+    badge: count ?? undefined,
     url: `${SITE}${href}`,
     // One notification per chat on the device; others stand alone.
     tag: note.kind === "message" && note.conversation_id ? `chat-${note.conversation_id}` : note.id,

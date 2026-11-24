@@ -50,7 +50,16 @@ function useUnread(rpc: "unread_notifications" | "unread_count", events: string[
     };
   }, [user, profile, refresh, table, eventKey, channelId]);
 
-  return user && profile ? unread : 0;
+  // The installed app's icon shows the bell's number (11.76), where supported.
+  const count = user && profile ? unread : 0;
+  useEffect(() => {
+    if (rpc !== "unread_notifications" || !ready) return;
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    if (!nav.setAppBadge || !nav.clearAppBadge) return;
+    (count > 0 ? nav.setAppBadge(count) : nav.clearAppBadge()).catch(() => {});
+  }, [rpc, ready, count]);
+
+  return count;
 }
 
 /** Unread notifications (11.40). Reading a chat clears its notification, so sl-unread refreshes it too. */

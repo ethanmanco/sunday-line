@@ -11,15 +11,19 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : "" };
   }
+  // The number on the installed app's icon (11.76), where the phone supports it.
+  const badge = typeof data.badge === "number" && self.navigator.setAppBadge
+    ? (data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()).catch(() => {})
+    : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(data.title || "Sunday Line", {
+    badge.then(() => self.registration.showNotification(data.title || "Sunday Line", {
       body: data.body || "",
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-96.png",
       tag: data.tag,
       renotify: Boolean(data.tag),
       data: { url: data.url || "/notifications" },
-    }),
+    })),
   );
 });
 

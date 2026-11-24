@@ -85,3 +85,61 @@ export function describe(n: AppNotification, roadName: (id: string) => string): 
     case "admin_spot_review": return { text: `Spot waiting for review: ${title}`, href: "/admin/spots" };
   }
 }
+
+/**
+ * A push notification's bold title and its text (11.76). The phone already
+ * shows the app's name above it, so the title says who or what it's about.
+ * `said` is the start of the latest message, for message and mention pushes.
+ */
+export function pushText(
+  n: AppNotification,
+  roadName: (id: string) => string,
+  said?: { body: string | null; photo: boolean } | null,
+): { title: string; body: string } {
+  const who = n.actor?.display_name ?? "Someone";
+  const title = n.title ?? "";
+  const road = n.road_id ? roadName(n.road_id) : "A road";
+  const quote = said ? (said.body ? clip(said.body) : said.photo ? "Sent a photo" : null) : null;
+  const k = n.detail.count ?? 1;
+  switch (n.kind) {
+    case "follow_request": return { title: who, body: "Asked to follow you" };
+    case "new_follower": return { title: who, body: "Started following you" };
+    case "follow_accepted": return { title: who, body: "Accepted your follow request" };
+    case "group_invite": return { title: who, body: `Invited you to join ${title}` };
+    case "join_request": return { title, body: `${who} asked to join` };
+    case "join_approved": return { title, body: "You're in! Your request was approved" };
+    case "event_new": return { title, body: `New drive, ${when(n.detail.starts_at)}` };
+    case "event_changed": return { title, body: `New time: ${when(n.detail.starts_at)}` };
+    case "event_cancelled": return { title, body: "Canceled" };
+    case "event_soon": return { title, body: `Coming up: ${when(n.detail.starts_at)}` };
+    case "event_location": return { title, body: "The location is out" };
+    case "message":
+      if (n.title) return { title, body: quote ? `${who}: ${quote}` : `${k} new ${k === 1 ? "message" : "messages"}` };
+      return { title: who, body: quote ?? (k === 1 ? "Sent you a message" : `Sent you ${k} messages`) };
+    case "mention":
+      if (n.title) return { title, body: quote ? `${who} mentioned you: ${quote}` : `${who} mentioned you` };
+      return { title: who, body: quote ? `Mentioned you: ${quote}` : "Mentioned you in a message" };
+    case "road_scored":
+      return n.detail.status === "done"
+        ? { title, body: "Has its scores" }
+        : { title, body: "Couldn't be scored. Try drawing it again." };
+    case "spot_reviewed":
+      return n.detail.status === "approved"
+        ? { title, body: "Is on the public map" }
+        : { title, body: `Wasn't added to the public map${n.detail.note ? `: ${n.detail.note}` : ""}` };
+    case "group_spot_proposed": return { title, body: `${who} suggested ${n.detail.spot ?? "a spot"}` };
+    case "group_spot_accepted": return { title, body: `${n.detail.spot ?? "Your spot"} was added` };
+    case "road_check_helped":
+      return { title: road, body: `Your flag helped mark it as ${CHECK_WORDS[n.detail.kind ?? ""] ?? "checked"}. Thanks!` };
+    case "admin_road_check":
+      return { title: "Road check waiting", body: `${road} (${CHECK_WORDS[n.detail.kind ?? ""] ?? n.detail.kind})` };
+    case "admin_spot_review": return { title: "Spot waiting for review", body: title };
+  }
+  return { title: "Sunday Line", body: describe(n, roadName).text };
+}
+
+/** One line of a message, at most about 140 characters. */
+function clip(s: string): string {
+  const one = s.replace(/\s+/g, " ").trim();
+  return one.length > 140 ? `${one.slice(0, 139).trimEnd()}…` : one;
+}

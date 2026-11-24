@@ -947,3 +947,12 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Once a chat has shown up it stays, even if a follow ends later. Blocks still stop everything.
 - The + opens a picker: search anyone by name or @username (blocked people never show); with no search it lists people you follow and who follow you. Each row has the picture, name and @username, and says when messages would wait or when they aren't taking messages from you.
 - Database tests: supabase/tests/database/message_requests.test.sql (22 checks).
+
+### 11.76 Better push notifications (2026-11-24)
+
+- Your note: pushes read "Sunday Line / from Sunday Line / alex asked to follow you" every time. The top line is the app's name and the "from" line is added by iOS for Home Screen web apps; neither can change. The bold title was always "Sunday Line" from our sender.
+- Titles now say who or what it's about, and the text says what happened: "Alex / Asked to follow you", "Night Crew / Alex: Ride Sunday?", "Sunday at Big Bend / Canceled", "Road check waiting / Old Jena Road (gravel or dirt)".
+- Message and mention pushes show the start of the latest message (up to about 140 characters), or "Sent a photo", like iMessage. It shows on the lock screen.
+- The installed app's icon shows the bell's number, set by each push and kept up to date while the app is open; it clears when everything is read.
+- iOS doesn't show pictures or buttons in web app notifications, so those stay as they are.
+- Known gap: event times in pushes are written on the server in UTC, so they can read hours off; the app's list is right.
