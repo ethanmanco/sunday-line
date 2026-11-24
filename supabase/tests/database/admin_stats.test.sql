@@ -10,6 +10,9 @@ insert into public.profiles (id, username, display_name) values
   ('11111111-1111-1111-1111-111111111111', 'alice', 'Alice'),
   ('44444444-4444-4444-4444-444444444444', 'boss', 'Boss');
 insert into private.site_admins (user_id) values ('44444444-4444-4444-4444-444444444444');
+-- Start from no counts (the local database may have some from browsing; rolled back at the end).
+delete from private.page_views;
+delete from private.road_views;
 
 create or replace function pg_temp.act_as(uid uuid) returns void language sql as $$
   select set_config('role', 'authenticated', true),
