@@ -34,9 +34,19 @@ const CHECK_WORDS: Record<string, string> = {
   rough: "poor pavement",
 };
 
-function when(iso?: string): string {
+function when(iso?: string, tz?: string): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const d = new Date(iso);
+  if (!tz) return d.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  // Pushes are written on the server, so they use the event's own time zone
+  // and name it (11.77): "Sat, Nov 29, 9:00 AM CST".
+  try {
+    const text = d.toLocaleString("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    const zone = d.toLocaleString("en-US", { timeZone: tz, timeZoneName: "short" }).split(" ").pop();
+    return zone ? `${text} ${zone}` : text;
+  } catch {
+    return when(iso);
+  }
 }
 
 /** The sentence and the link for a notification. `roadName` fills in road names looked up from the road data. */
@@ -95,6 +105,7 @@ export function pushText(
   n: AppNotification,
   roadName: (id: string) => string,
   said?: { body: string | null; photo: boolean } | null,
+  timeZone?: string,
 ): { title: string; body: string } {
   const who = n.actor?.display_name ?? "Someone";
   const title = n.title ?? "";
@@ -108,10 +119,10 @@ export function pushText(
     case "group_invite": return { title: who, body: `Invited you to join ${title}` };
     case "join_request": return { title, body: `${who} asked to join` };
     case "join_approved": return { title, body: "You're in! Your request was approved" };
-    case "event_new": return { title, body: `New drive, ${when(n.detail.starts_at)}` };
-    case "event_changed": return { title, body: `New time: ${when(n.detail.starts_at)}` };
+    case "event_new": return { title, body: `New drive, ${when(n.detail.starts_at, timeZone)}` };
+    case "event_changed": return { title, body: `New time: ${when(n.detail.starts_at, timeZone)}` };
     case "event_cancelled": return { title, body: "Canceled" };
-    case "event_soon": return { title, body: `Coming up: ${when(n.detail.starts_at)}` };
+    case "event_soon": return { title, body: `Coming up: ${when(n.detail.starts_at, timeZone)}` };
     case "event_location": return { title, body: "The location is out" };
     case "message":
       if (n.title) return { title, body: quote ? `${who}: ${quote}` : `${k} new ${k === 1 ? "message" : "messages"}` };

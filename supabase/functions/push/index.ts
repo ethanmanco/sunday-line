@@ -46,7 +46,13 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (m) said = { body: m.body, photo: Boolean(m.media_path) };
   }
-  const { title, body: text } = pushText(note, () => "A road", said);
+  // Event times are written in the event's own time zone (11.77).
+  let timeZone: string | undefined;
+  if (note.event_id && note.kind.startsWith("event_")) {
+    const { data: ev } = await sb.from("events").select("timezone").eq("id", note.event_id).maybeSingle();
+    timeZone = ev?.timezone ?? "America/Chicago";
+  }
+  const { title, body: text } = pushText(note, () => "A road", said, timeZone);
 
   // The number on the app icon: unread notifications, like the bell.
   const { count } = await sb.from("notifications").select("id", { count: "exact", head: true })

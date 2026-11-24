@@ -955,4 +955,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Message and mention pushes show the start of the latest message (up to about 140 characters), or "Sent a photo", like iMessage. It shows on the lock screen.
 - The installed app's icon shows the bell's number, set by each push and kept up to date while the app is open; it clears when everything is read.
 - iOS doesn't show pictures or buttons in web app notifications, so those stay as they are.
-- Known gap: event times in pushes are written on the server in UTC, so they can read hours off; the app's list is right.
+
+### 11.77 Event times in pushes (2026-11-24)
+
+- Your go-ahead on the gap found in 11.76: pushes were written on the server in UTC, so a 9 AM Central drive could read 3 PM.
+- Event pushes now use the event's own time zone and name it: "Coming up: Sun, Nov 29, 9:00 AM CST". The list in the app already showed the right time and is unchanged.
