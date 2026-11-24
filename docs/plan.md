@@ -918,3 +918,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Now the button centers on the last spot right away, then always asks the phone for a fresh fix (GPS, nothing saved), and moves the map if you've moved more than about 100 m. If GPS is slow it takes the phone's rough location from the last minute instead.
 - Coming back to the app with your location on updates your dot and distances quietly; the map stays where it is. Opening the app accepts a location up to a minute old (was 10).
 - Still only in the page's memory: never sent anywhere or saved. Nothing follows you continuously.
+
+### 11.72 Site stats days run on Central time (2026-11-24)
+
+- Your note: Site stats showed all 99 page views and 54 visits as today and none on earlier days, though you'd seen views the day before.
+- The counts were right; the days were UTC. UTC's day turns over at 6 pm Central (7 pm in summer), and the counter went live at 11:15 pm Central on Nov 23, already Nov 24 in UTC, so every view so far was filed under Nov 24.
+- Recommendation taken (your pick): days now run on Central time. The counter files each view under the Central date, and the stats ("today", 7 days, the chart, date ranges) are built in Central time; the Vercel visitors range uses Central dates too. Views already counted stay on the day they were filed under, since the counter keeps only the day.
+- Also from your note: the Vercel token goes in Vercel's environment variables (Settings, Environment Variables, Production), not GitHub's Actions secrets, then a redeploy. The GitHub secret isn't used and can be deleted.

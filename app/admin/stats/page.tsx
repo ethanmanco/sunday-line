@@ -159,15 +159,16 @@ function addDays(iso: string, n: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function utcToday() {
-  return new Date().toISOString().slice(0, 10);
+/** Today's date in Central time, the stats' day (11.72). */
+function centralToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
 }
 
 /** Site admin only (11.66, 11.68): traffic and what people are doing, as counts. */
 export default function SiteStats() {
   const { ready, user } = useAuth();
   const [admin, setAdmin] = useState<boolean | null>(null);
-  const [req, setReq] = useState<Request>(() => ({ period: "30", from: addDays(utcToday(), -29), to: utcToday(), group: "day" }));
+  const [req, setReq] = useState<Request>(() => ({ period: "30", from: addDays(centralToday(), -29), to: centralToday(), group: "day" }));
   const [stats, setStats] = useState<Stats | null>(null);
   const [visitors, setVisitors] = useState<Visitors | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -428,7 +429,7 @@ export default function SiteStats() {
 function PeriodPicker({ req, onChange, firstDay }: { req: Request; onChange: (r: Request) => void; firstDay?: string }) {
   const [from, setFrom] = useState(req.from);
   const [to, setTo] = useState(req.to);
-  const today = utcToday();
+  const today = centralToday();
   return (
     <div className="stats-period">
       <div className="stats-chips" role="group" aria-label="Time window">
@@ -634,7 +635,7 @@ function ChartCard({ stats, visitors, group, onGroup }: {
           </p>
         )}
       </div>
-      <p className="fine">Days run on UTC time.</p>
+      <p className="fine">Days run on Central time.</p>
     </section>
   );
 }

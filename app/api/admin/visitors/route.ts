@@ -26,8 +26,9 @@ function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
+/** The date in Central time, the stats' day (11.72). */
 function isoDay(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(d);
 }
 
 async function isSiteAdmin(auth: string | null): Promise<boolean> {
