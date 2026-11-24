@@ -6,7 +6,7 @@ export type NotificationKind =
   | "follow_request" | "new_follower" | "follow_accepted"
   | "group_invite" | "join_request" | "join_approved"
   | "event_new" | "event_changed" | "event_cancelled" | "event_soon" | "event_location"
-  | "message"
+  | "message" | "mention"
   | "road_scored" | "spot_reviewed" | "group_spot_proposed" | "group_spot_accepted"
   | "road_check_helped" | "admin_road_check" | "admin_spot_review";
 
@@ -64,6 +64,10 @@ export function describe(n: AppNotification, roadName: (id: string) => string): 
         ? { text: `${k} new ${k === 1 ? "message" : "messages"} in ${title}`, href: `/messages/${n.conversation_id}` }
         : { text: `${who} sent you ${k === 1 ? "a message" : `${k} messages`}`, href: `/messages/${n.conversation_id}` };
     }
+    case "mention":
+      return n.title
+        ? { text: `${who} mentioned you in ${title}`, href: `/messages/${n.conversation_id}` }
+        : { text: `${who} mentioned you in a message`, href: `/messages/${n.conversation_id}` };
     case "road_scored":
       return n.detail.status === "done"
         ? { text: `${title} has its scores`, href: `/?spot=${n.spot_id}` }

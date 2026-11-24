@@ -837,3 +837,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 ### 11.61 Swiping down a group or profile goes home (2026-11-23)
 
 - Your note: minimizing a group or profile page should just go back to the default view. On phones (browser and installed app), swiping a group's or a person's page down to the bottom now opens the home map, like the account pages already did, instead of leaving a thin strip with the page's name. Dragging to half or full still stays on the page. Event pages and Your spots keep the strip.
+
+### 11.62 @mentions in chats (2026-11-23)
+
+- Your note: be able to @ usernames in messages and chats. Typing @ in a direct or group chat shows the people in that chat (by name or username, up to six); tap one, or use the arrow keys and Enter or Tab, to put in their @username. Escape closes the list.
+- Mentions of people in the chat show as links to their profiles, and your own @username is highlighted when someone mentions you.
+- The person mentioned gets "<name> mentioned you in <group>" (or "mentioned you in a message" in a direct chat) instead of the usual new-messages note, so one message never makes two notifications. Reading the chat clears it.
+- Only people in the chat can be mentioned and told. Blocks hold both ways: nobody across a block is suggested or told. Email addresses and @ inside words don't count, and one message tells at most 20 people.
+- Mentions are found when a message is sent; editing a message later to add a mention doesn't notify anyone.

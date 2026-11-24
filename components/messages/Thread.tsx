@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import GroupAvatar from "@/components/groups/GroupAvatar";
 import { openPhoto } from "@/components/PhotoViewer";
 import { useAuth } from "@/components/AuthProvider";
 import { GALLERY, ImageError, prepareImage } from "@/lib/images";
+import { matchPeople, mentionAt, MentionList, MentionText, type ChatPerson } from "./mentions";
 import {
   getSupabase, PROFILE_COLUMNS, signedChatUrls, timeAgo,
   type ConversationSummary, type Message, type Profile,
@@ -15,8 +16,12 @@ import {
 const PAGE = 50;
 
 export default function Thread({ conversationId, embedded = false }: { conversationId: string; embedded?: boolean }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [messages, setMessages] = useState<Message[] | null>(null);
+  // Everyone else in the chat, for @ suggestions and mention links (11.62).
+  const [chatPeople, setChatPeople] = useState<ChatPerson[]>([]);
+  const me = profile?.username ?? null;
+  const known = useMemo(() => new Set([...chatPeople.map((p) => p.username), ...(me ? [me] : [])]), [chatPeople, me]);
   const [people, setPeople] = useState<Record<string, Profile>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [info, setInfo] = useState<ConversationSummary | null>(null);
@@ -57,10 +62,11 @@ export default function Thread({ conversationId, embedded = false }: { conversat
     if (!sb || !user) return;
     let gone = false;
     (async () => {
-      const [m, convs, b] = await Promise.all([
+      const [m, convs, b, cp] = await Promise.all([
         sb.from("messages").select("*").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(PAGE),
         sb.rpc("my_conversations"),
         sb.from("blocks").select("blocked_id").eq("blocker_id", user.id),
+        sb.rpc("chat_people", { p_conversation: conversationId }),
       ]);
       if (gone) return;
       const row = ((convs.data as ConversationSummary[] | null) ?? []).find((c) => c.id === conversationId) ?? null;
@@ -70,6 +76,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
       }
       const msgs = ((m.data as Message[] | null) ?? []).reverse();
       setInfo(row);
+      setChatPeople((cp.data as ChatPerson[] | null) ?? []);
       setMore(msgs.length === PAGE);
       setBlocked(new Set(((b.data as { blocked_id: string }[] | null) ?? []).map((x) => x.blocked_id)));
       await Promise.all([addPeople(msgs.flatMap((x) => (x.sender_id ? [x.sender_id] : []))), addUrls(msgs)]);
@@ -185,6 +192,8 @@ export default function Thread({ conversationId, embedded = false }: { conversat
               mine={mine}
               who={who}
               showName={showName}
+              known={known}
+              me={me}
               url={m.media_path ? urls[m.media_path] : undefined}
               onChanged={(next) => setMessages((list) => (next ? list?.map((x) => (x.id === next.id ? next : x)) : list?.filter((x) => x.id !== m.id)) ?? null)}
             />
@@ -192,7 +201,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
         })}
       </div>
       {info?.can_send ? (
-        <Composer conversationId={conversationId} userId={user.id} onSent={(m) => {
+        <Composer conversationId={conversationId} userId={user.id} people={chatPeople} onSent={(m) => {
           stick.current = true;
           addUrls([m]);
           setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
@@ -227,11 +236,13 @@ function ThreadHeader({ info }: { info: ConversationSummary }) {
   );
 }
 
-function Bubble({ message: m, mine, who, showName, url, onChanged }: {
+function Bubble({ message: m, mine, who, showName, known, me, url, onChanged }: {
   message: Message;
   mine: boolean;
   who: Profile | undefined;
   showName: boolean;
+  known: Set<string>;
+  me: string | null;
   url: string | undefined;
   onChanged: (m: Message | null) => void;
 }) {
@@ -283,7 +294,7 @@ function Bubble({ message: m, mine, who, showName, url, onChanged }: {
             </div>
           </div>
         ) : (
-          m.body && <p>{m.body}</p>
+          m.body && <p><MentionText text={m.body} known={known} me={me} /></p>
         )}
       </div>
       <span className="msg-meta">
@@ -309,8 +320,40 @@ function Bubble({ message: m, mine, who, showName, url, onChanged }: {
   );
 }
 
-function Composer({ conversationId, userId, onSent }: { conversationId: string; userId: string; onSent: (m: Message) => void }) {
+function Composer({ conversationId, userId, people, onSent }: {
+  conversationId: string;
+  userId: string;
+  people: ChatPerson[];
+  onSent: (m: Message) => void;
+}) {
   const [text, setText] = useState("");
+  // The @word being typed and the highlighted suggestion.
+  const [at, setAt] = useState<{ start: number; query: string } | null>(null);
+  const [active, setActive] = useState(0);
+  const listId = useId();
+  const matches = at ? matchPeople(people, at.query) : [];
+  const listOpen = matches.length > 0;
+
+  function track(el: HTMLTextAreaElement) {
+    const next = el.selectionStart === el.selectionEnd ? mentionAt(el.value, el.selectionStart) : null;
+    if (next?.start !== at?.start || next?.query !== at?.query) setActive(0);
+    setAt(next);
+  }
+
+  function pick(p: ChatPerson) {
+    const el = box.current;
+    if (!el || !at) return;
+    const caret = el.selectionStart;
+    const insert = `@${p.username} `;
+    const next = text.slice(0, at.start) + insert + text.slice(caret).replace(/^ /, "");
+    setText(next);
+    setAt(null);
+    const pos = at.start + insert.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  }
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -371,8 +414,35 @@ function Composer({ conversationId, userId, onSent }: { conversationId: string; 
         value={text}
         placeholder="Message"
         aria-label="Message"
-        onChange={(e) => setText(e.target.value)}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={listOpen}
+        aria-controls={listOpen ? listId : undefined}
+        aria-activedescendant={listOpen ? `${listId}-${active}` : undefined}
+        onChange={(e) => {
+          setText(e.target.value);
+          track(e.target);
+        }}
+        onSelect={(e) => track(e.currentTarget)}
+        onBlur={() => setAt(null)}
         onKeyDown={(e) => {
+          if (listOpen) {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              e.preventDefault();
+              setActive((i) => (i + (e.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length);
+              return;
+            }
+            if ((e.key === "Enter" || e.key === "Tab") && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              pick(matches[Math.min(active, matches.length - 1)]);
+              return;
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setAt(null);
+              return;
+            }
+          }
           // Enter sends on a keyboard; Shift+Enter adds a line.
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia("(hover: hover)").matches) {
             e.preventDefault();
@@ -381,6 +451,7 @@ function Composer({ conversationId, userId, onSent }: { conversationId: string; 
         }}
       />
       <button type="submit" className="button small" disabled={!!busy || !text.trim()}>{busy ?? "Send"}</button>
+      {listOpen && <MentionList id={listId} people={matches} active={Math.min(active, matches.length - 1)} onPick={pick} />}
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(e) => { attach(e.target.files?.[0]); e.target.value = ""; }} />
       {error && <p className="hint warn" role="alert">{error}</p>}
     </form>

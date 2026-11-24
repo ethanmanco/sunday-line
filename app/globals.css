@@ -467,6 +467,19 @@ button.link.danger { color: #ff8a80; }
 .composer .attach { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 22px; cursor: pointer; flex: none; }
 .composer .button { min-height: 44px; border: none; cursor: pointer; }
 .composer .hint { flex-basis: 100%; }
+/* @mentions (11.62): suggestions above the message box; mentions as links. */
+.composer { position: relative; }
+.mention-list {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 5; margin: 0; padding: 4px; list-style: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45);
+  max-height: 264px; overflow-y: auto;
+}
+.mention-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.mention-list li.active, .mention-list li:hover { background: var(--raised); }
+.mention-list li > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bubble .mention { color: var(--accent); font-weight: 600; text-decoration: none; }
+.bubble .mention:hover { text-decoration: underline; }
+.bubble .mention.me { background: rgba(245, 166, 35, 0.18); border-radius: 4px; padding: 0 2px; }
 
 /* Group page header */
 .group-head { margin: -24px -16px 8px; }
