@@ -200,6 +200,11 @@ export default function Thread({ conversationId, embedded = false }: { conversat
           );
         })}
       </div>
+      {info?.waiting && (
+        <p className="panel-note waiting-note">
+          @{info.other_username} has a private profile. They&apos;ll see your messages when they accept your follow request.
+        </p>
+      )}
       {info?.can_send ? (
         <Composer conversationId={conversationId} userId={user.id} people={chatPeople} onSent={(m) => {
           stick.current = true;

@@ -5,11 +5,13 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import GroupAvatar from "@/components/groups/GroupAvatar";
 import { useAuth } from "@/components/AuthProvider";
+import NewMessage from "@/components/messages/NewMessage";
 import { accountsEnabled, getSupabase, rememberReturn, timeAgo, type ConversationSummary } from "@/lib/supabase";
 
 export default function Inbox() {
   const { ready, user, profile } = useAuth();
   const [rows, setRows] = useState<ConversationSummary[] | null>(null);
+  const [composing, setComposing] = useState(false);
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -47,10 +49,20 @@ export default function Inbox() {
 
   return (
     <div className="page narrow">
-      <h1>Messages</h1>
+      <div className="inbox-title">
+        <h1>Messages</h1>
+        {!composing && (
+          <button type="button" className="new-chat-button" aria-label="New message" title="New message" onClick={() => setComposing(true)}>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+      {composing && <NewMessage onClose={() => setComposing(false)} />}
       {!rows ? <p className="fine">Loading...</p> : rows.length === 0 ? (
         <p className="fine">
-          No conversations yet. Tap Message on someone&apos;s profile, or join a <Link href="/groups">group</Link> to use its chat.
+          No conversations yet. Tap + to message someone, or join a <Link href="/groups">group</Link> to use its chat.
         </p>
       ) : (
         <ul className="inbox">
@@ -70,6 +82,7 @@ export default function Inbox() {
                     <span className="inbox-top">
                       <b>{name}</b>
                       {c.kind === "group" && <span className="tag">Group</span>}
+                      {c.waiting && <span className="tag">Waiting</span>}
                       {c.last_message_at && <span className="fine">{timeAgo(c.last_message_at)}</span>}
                     </span>
                     <span className="fine preview">{from}{preview}</span>

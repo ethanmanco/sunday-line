@@ -189,6 +189,8 @@ export interface ConversationSummary {
   last_sender_id: string | null;
   unread: number;
   can_send: boolean;
+  /** Direct chats: your messages wait until they accept your follow request (11.75). */
+  waiting: boolean;
 }
 
 export interface Message {

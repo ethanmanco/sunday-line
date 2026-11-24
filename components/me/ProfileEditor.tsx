@@ -94,7 +94,7 @@ export default function ProfileEditor({ profile }: { profile: OwnProfile }) {
               <button key={k} type="button" aria-pressed={dmPolicy === k} onClick={() => setDmPolicy(k)}>{label}</button>
             ))}
           </div>
-          <span className="fine">People you message first can always reply. Blocked people can never message you.</span>
+          <span className="fine">People you message first can always reply. Blocked people can never message you. With a private profile, messages from people you don&apos;t follow and haven&apos;t approved wait until you accept their follow request.</span>
         </fieldset>
         {profile.is_private && !isPrivate && (
           <p className="fine warn">Going public approves everyone waiting to follow you.</p>

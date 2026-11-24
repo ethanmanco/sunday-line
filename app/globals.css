@@ -487,6 +487,30 @@ button.link.danger { color: #ff8a80; }
 .mention-list li.active, .mention-list li:hover { background: var(--raised); }
 .mention-list li > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bubble .mention { color: var(--accent); font-weight: 600; text-decoration: none; }
+/* New message (11.75): the + next to the Messages title, and the people picker. */
+.inbox-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.new-chat-button {
+  display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none;
+  border-radius: 50%; border: none; background: var(--accent); color: var(--accent-ink); cursor: pointer;
+}
+.new-chat-button:hover { background: #ffc35c; }
+.new-message { background: var(--raised); border-radius: 12px; padding: 12px; margin: 0 0 16px; display: grid; gap: 10px; }
+.new-message-head { display: flex; align-items: center; justify-content: space-between; }
+.new-message-head h2 { margin: 0; font-size: 20px; }
+.new-message input {
+  width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 44px; font-size: 16px; color: var(--text);
+}
+.new-message .fine { margin: 0; }
+.new-message-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 360px; overflow-y: auto; }
+.new-message-row {
+  width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 8px; border-radius: 8px;
+  background: none; border: none; color: var(--text); text-align: left; cursor: pointer;
+}
+.new-message-row:hover:not(:disabled), .new-message-row:focus-visible { background: var(--panel); }
+.new-message-row:disabled { opacity: 0.55; cursor: default; }
+.new-message-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.new-message-text > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.waiting-note { margin-bottom: 8px; }
 /* Group invite (11.73): the same list, dropping down under the username box. */
 .invite-find { position: relative; }
 .invite-list { top: calc(100% + 6px); bottom: auto; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }

@@ -937,3 +937,13 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Your ask: group the Over time chart by hour.
 - The page-view counter kept only the day, so it now also keeps a count per hour (Central time) and kind of page. Still anonymous: nothing about who, where, or what device. Hourly counts are deleted after 90 days. About now says the hour instead of the day.
 - Group by has an Hour option for windows of 14 days or less (Today picks it on its own). Sign-ups, reviews, heads-ups, spots, messages and active members have their own times, so their past hours show too; page views and visits by the hour start when this went live (Nov 24, about 3 PM). Hours later today show as no data. Unique visitors from Vercel come by the day, so they sit out the hourly chart.
+
+### 11.75 New message button, and messages to private profiles wait for a follow (2026-11-24)
+
+- Your note: a + in Messages to start a chat with people you've never messaged; you can message people you don't follow, but they only see it when they accept your follow request; public accounts get messages from anyone. Follows don't go both ways, so recommendation taken:
+- Public profiles: a new chat lands in their inbox right away (their "Who can message me" setting still applies, as before).
+- Private profiles: a chat from someone who isn't their approved follower, and whom they don't follow, waits. Your first message also sends them a follow request (if you haven't). They don't see the chat, its messages, or a message notification until they accept; then it shows up with everything you sent and one "new messages" notification. If they decline, it never shows and nobody is told. Going public shows all waiting chats; following you (or asking to) shows yours.
+- Your side: the chat and the inbox row say Waiting, with "They'll see your messages when they accept your follow request."
+- Once a chat has shown up it stays, even if a follow ends later. Blocks still stop everything.
+- The + opens a picker: search anyone by name or @username (blocked people never show); with no search it lists people you follow and who follow you. Each row has the picture, name and @username, and says when messages would wait or when they aren't taking messages from you.
+- Database tests: supabase/tests/database/message_requests.test.sql (22 checks).
