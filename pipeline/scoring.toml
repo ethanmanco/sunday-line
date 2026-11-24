@@ -88,17 +88,18 @@ relief_radius_m = 1500
 relief_m = [60, 500]        # rise and fall within the radius: none below, full at the top
 open_relief_m = [50, 250]   # open country counts from this much rise and fall (deserts, buttes)
 above_m = [40, 300]         # road above the lowest 10% of the land around it
-big_water_share = 0.20      # a point is on big water if 20% of the land within 1 km is open water
+big_water_share = 0.20      # a point is on big water if 20% of the land within 1 km is open water...
+vast_water_share = [0.08, 0.40]  # ...counted in full when this share of the land within 3 km is water (ocean, Great Lakes)
 built_full = 0.5            # built-up share within 150 m that takes the full penalty
 w_forest = 0.45
 w_water = 0.20
-w_big_water = 0.68
+w_big_water = 0.70
 w_terrain = 0.85
-w_overlook = 0.18
+w_overlook = 0.16
 w_open = 0.60               # times the open-country relief, so flat farmland and prairie don't count
-w_protected = 0.61
-w_byway = 0.46
-w_built = 0.79
+w_protected = 0.59
+w_byway = 0.50
+w_built = 0.80
 view_built_share = 0.20     # big water and views lose only this share of the built-up penalty
 
 [flow]

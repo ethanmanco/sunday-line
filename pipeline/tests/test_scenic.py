@@ -41,7 +41,7 @@ def test_towns_take_points_but_the_ocean_stays_a_view():
 
 
 def test_parts_from_measurements():
-    raw = {"relief": [10.0, 600.0], "above": [0.0, 400.0], "water_1k": [0.0, 0.5, 0.5, 0.0], "open": 0.4, "built": 0.1}
+    raw = {"relief": [10.0, 600.0], "above": [0.0, 400.0], "water_1k": [0.0, 0.5, 0.5, 0.0], "water_3k": [0.0, 0.5, 0.5, 0.0], "open": 0.4, "built": 0.1}
     p = parts_from(raw, WT)
     assert p["terrain"] == 0.5 and p["overlook"] == 0.5 and p["big_water"] == 0.5
     assert 0 < p["rugged"] <= 1

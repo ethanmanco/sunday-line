@@ -7,8 +7,9 @@ keeps those and adds what the land around the road looks like:
 
 - Terrain: how much the land rises and falls within about 1.5 km (USGS 3DEP).
 - Overlook: how far the road sits above the land around it (views).
-- Big water: open water filling a good part of the land within 1 km (ocean,
-  Great Lakes, big lakes and wide rivers), which counts far more than a pond.
+- Big water: open water filling a good part of the land within 1 km, scaled by
+  how much of the land within 3 km is water, so the ocean, the Great Lakes and
+  big lakes count far more than a small lake, and a pond hardly at all.
 - Open country: desert, rock, grassland, shrubs, snow (ESA WorldCover), which
   counts only where the land rises and falls (canyons, buttes, hills), so flat
   farmland and prairie don't.
@@ -217,7 +218,7 @@ def measure(line: str, dem: DemTiles, land: LandTiles, wt: dict) -> dict:
     lat = float(pts[:, 1].mean())
 
     # Land cover around the road.
-    margin = 1100 / M_PER_DEG
+    margin = 3100 / M_PER_DEG
     mlon = margin / math.cos(math.radians(lat))
     w, s = pts[:, 0].min() - mlon, pts[:, 1].min() - margin
     e, n = pts[:, 0].max() + mlon, pts[:, 1].max() + margin
@@ -232,7 +233,9 @@ def measure(line: str, dem: DemTiles, land: LandTiles, wt: dict) -> dict:
         rx = max(1, int(round(m / (cell * M_PER_DEG * math.cos(math.radians(lat))))))
         return ry, rx
 
-    water_1k = box_share(grid == WATER, rows, cols, *rad(1000), valid)
+    water = grid == WATER
+    water_1k = box_share(water, rows, cols, *rad(1000), valid)
+    water_3k = box_share(water, rows, cols, *rad(3000), valid)
     open_300 = box_share(np.isin(grid, OPEN), rows, cols, *rad(300), valid)
     built_150 = box_share(grid == BUILT, rows, cols, *rad(150), valid)
     covered = bool(valid.any())
@@ -249,6 +252,7 @@ def measure(line: str, dem: DemTiles, land: LandTiles, wt: dict) -> dict:
     return {
         "relief": relief or [0.0], "above": above or [0.0],
         "water_1k": water_1k.tolist() if covered else [0.0],
+        "water_3k": water_3k.tolist() if covered else [0.0],
         "open": float(open_300.mean()) if covered else 0.0,
         "built": float(built_150.mean()) if covered else 0.0,
     }
@@ -259,12 +263,14 @@ def parts_from(raw: dict, wt: dict) -> dict:
     lo, hi = wt["relief_m"]
     alo, ahi = wt["above_m"]
     olo, ohi = wt["open_relief_m"]
+    vlo, vhi = wt["vast_water_share"]
     relief, above = np.array(raw["relief"]), np.array(raw["above"])
     return {
         "rugged": float(clamp01((relief - olo) / (ohi - olo)).mean()),
         "terrain": float(clamp01((relief - lo) / (hi - lo)).mean()),
         "overlook": float(clamp01((above - alo) / (ahi - alo)).mean()),
-        "big_water": float((np.array(raw["water_1k"]) >= wt["big_water_share"]).mean()),
+        "big_water": float(((np.array(raw["water_1k"]) >= wt["big_water_share"])
+                            * clamp01((np.array(raw["water_3k"]) - vlo) / (vhi - vlo))).mean()),
         "open": raw["open"],
         "built": raw["built"],
     }
