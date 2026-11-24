@@ -169,6 +169,9 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const onRoad = pathname.startsWith("/road/");
   // Account pages sit in the map panel (11.42); on phones they open as a full sheet.
   const accountPage = /^\/(groups|people|about|notifications|messages|me)(\/|$)/.test(pathname);
+  // Swiping these down leaves them for the home map, not a tucked-away strip:
+  // account pages, plus a group's or a person's page.
+  const leavesOnMinimize = accountPage || /^\/(g|u)\//.test(pathname);
   const lastPath = useRef<string | null>(null);
   useEffect(() => {
     // A selected spot belongs to the page it was picked on.
@@ -632,8 +635,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               onDrag={setDragPx}
               onSnap={(st) => {
                 if (adding && st === "closed") return;
-                if (accountPage && (st === "peek" || st === "closed")) {
-                  // Account pages (notifications, messages, profile...): swiping down goes back to the map.
+                if (leavesOnMinimize && (st === "peek" || st === "closed")) {
+                  // Account, group and profile pages: swiping down goes back to the home map.
                   setSheet("closed");
                   router.push("/");
                   return;

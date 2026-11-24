@@ -833,3 +833,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your note: renaming a road you'd scored cleared its score. The editor sent the road's line again on every save, and any new line clears a score. Now saving a road you didn't change (name, notes, profile) leaves its line alone, so the score stays. If you change the road itself (draw, trim, extend, pick another), the editor warns that its score will be cleared and needs scoring again.
 - Tested on the local database: renaming a scored drawn road kept the same line and its score; undoing a point showed the warning.
+
+### 11.61 Swiping down a group or profile goes home (2026-11-23)
+
+- Your note: minimizing a group or profile page should just go back to the default view. On phones (browser and installed app), swiping a group's or a person's page down to the bottom now opens the home map, like the account pages already did, instead of leaving a thin strip with the page's name. Dragging to half or full still stays on the page. Event pages and Your spots keep the strip.
