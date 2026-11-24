@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMapShell } from "@/lib/mapShell";
 import { defaultSort, SORTS, VIEWS, type SortKey, type View } from "@/lib/roads";
+import { MAP_STYLES, type MapTheme } from "@/lib/mapThemes";
 
 const DISTANCES = [null, 10, 25, 50, 100, 200];
 const LENGTHS = [0, 3, 5, 10];
@@ -103,6 +104,16 @@ export default function FilterBar() {
             <button type="button" className="chip" aria-pressed={shell.satellite} onClick={() => shell.setSatellite(!shell.satellite)}>
               Satellite map
             </button>
+          </div>
+          <div className="option-selects">
+            <label>
+              <span>Map style</span>
+              <select value={shell.mapStyle} onChange={(e) => shell.setMapStyle(e.target.value as MapTheme)}>
+                {MAP_STYLES.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="chips">
             <button type="button" className="chip" disabled={shell.locating} onClick={shell.locateMe}>

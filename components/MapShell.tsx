@@ -22,6 +22,7 @@ import HeadsUpCard, { HeadsUpForm } from "./HeadsUpCard";
 import { loadHeadsUps, type HeadsUp } from "@/lib/headsUps";
 import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
+import { DEFAULT_MAP_STYLE, saveMapStyle, savedMapStyle, type MapTheme } from "@/lib/mapThemes";
 import {
   keysIn, levelFor, loadBlock, loadCell, loadIndex, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
 } from "@/lib/roadData";
@@ -67,6 +68,13 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   selectedIdRef.current = selectedId;
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [satellite, setSatellite] = useState(false);
+  // The map style (11.63): Relief unless this device picked another.
+  const [mapStyle, setMapStyleState] = useState<MapTheme>(DEFAULT_MAP_STYLE);
+  useEffect(() => setMapStyleState(savedMapStyle()), []);
+  const setMapStyle = useCallback((t: MapTheme) => {
+    setMapStyleState(t);
+    saveMapStyle(t);
+  }, []);
   const [myLocation, setMyLocation] = useState<LL | null>(null);
   // In this page's memory only, like myLocation itself.
   const myLocationLatest = useRef<LL | null>(null);
@@ -589,7 +597,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
       }
       setFocus({ bbox, key: Date.now() });
     },
-    satellite, setSatellite,
+    satellite, setSatellite, mapStyle, setMapStyle,
     settingLocation: settingLoc,
     startSettingLocation: () => { setSettingLoc(true); startSettingLocation(); },
     addRoad: (r: RoadOnMap) => selectRoad(r.id, r),
@@ -673,6 +681,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
               selectedId={selectedId}
               hoverId={hoverId}
               satellite={satellite}
+              theme={mapStyle}
               focus={focus}
               myLocation={myLocation}
               layoutKey={`${isSheet}-${panelOpen}-${panelWide}`}

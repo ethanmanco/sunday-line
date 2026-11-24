@@ -5,6 +5,7 @@ import type { Bounds, Filters } from "./roads";
 import type { Spot, SpotKind } from "./spots";
 import type { LayerChoice } from "@/components/SpotLayers";
 import type { TracedRoad } from "./traceRoad";
+import type { MapTheme } from "./mapThemes";
 import type { LoadedRoad, RegionInfo } from "./types";
 import type { Group } from "./supabase";
 
@@ -65,6 +66,9 @@ export interface MapShell {
   bounds: Bounds | null;
   satellite: boolean;
   setSatellite: (on: boolean) => void;
+  /** The map style (11.63), kept on this device. */
+  mapStyle: MapTheme;
+  setMapStyle: (t: MapTheme) => void;
   /** Waiting for a tap on the map to set the person's location. */
   settingLocation: boolean;
   startSettingLocation: () => void;

@@ -845,3 +845,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - The person mentioned gets "<name> mentioned you in <group>" (or "mentioned you in a message" in a direct chat) instead of the usual new-messages note, so one message never makes two notifications. Reading the chat clears it.
 - Only people in the chat can be mentioned and told. Blocks hold both ways: nobody across a block is suggested or told. Email addresses and @ inside words don't count, and one message tells at most 20 people.
 - Mentions are found when a message is sent; editing a message later to add a mention doesn't notify anyone.
+
+### 11.63 Map styles (2026-11-23)
+
+- Your note: prototype map themes inspired by Forza Horizon and Burnout Paradise maps. After three rounds of prototypes you kept Relief, Golden Hour, Evergreen, Moonlight, Soft Neon, Road Atlas and Trail Map (dropped: Terrain, Night Satellite, Ink, Blueprint, Alpine, Riso Print).
+- More options now has a Map style picker with those seven plus Night (the map as it was). Relief is the default: the night map with the hills shaded in. The choice stays on the device, and the map repaints in place without reloading; spots, heads-ups and the satellite switch keep working in every style.
+- Every style except Night shades hills from the free Terrain Tiles on AWS Open Data, credited on the map and on About. Road Atlas adds green dots beside roads scoring 70 or more, the old atlas mark for a scenic route.
+- Points, badges and collectibles are a proposal for review (Rep, road-sign levels and badges, landmark stamps, barn finds); nothing is built for them yet.

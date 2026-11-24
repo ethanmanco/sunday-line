@@ -7,7 +7,8 @@ import { headsUpIcon, headsUpIconId, type HeadsUp } from "@/lib/headsUps";
 import type { PickState } from "@/lib/mapShell";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LayerSpecification, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
-import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, scoreRamp, VECTOR_BASE_LAYERS } from "@/lib/mapStyle";
+import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, scoreRamp } from "@/lib/mapStyle";
+import { applyTheme, baseVisibility, themedRoadLayers, themedStyle, type MapTheme } from "@/lib/mapThemes";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
 
@@ -42,6 +43,7 @@ interface Props {
   selectedId: string | null;
   hoverId: string | null;
   satellite: boolean;
+  theme: MapTheme;
   focus: FocusRequest | null;
   myLocation: [number, number] | null;
   /** Changes when the space around the map changes (phone full-map button). */
@@ -85,6 +87,8 @@ export default function MapView(props: Props) {
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null);
   const [ready, setReady] = useState(false);
   const cb = useRef(props);
+  // The map style the map is drawn in now (11.63); changes repaint it in place.
+  const theme = useRef<MapTheme>(props.theme);
   cb.current = props;
 
   // Create the map once.
@@ -98,7 +102,7 @@ export default function MapView(props: Props) {
       ml.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
       const map = new ml.Map({
         container: el.current,
-        style: baseStyle(),
+        style: themedStyle(baseStyle(), theme.current),
         bounds: cb.current.regionBbox,
         fitBoundsOptions: { padding: 16 },
         // Phones: the credit folds into a small (i) after the first move; OSM's
@@ -119,7 +123,7 @@ export default function MapView(props: Props) {
       map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", () => {
         map.addSource("roads", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-        for (const layer of roadLayers()) map.addLayer(layer, ROADS_BEFORE);
+        for (const layer of themedRoadLayers(roadLayers(), theme.current)) map.addLayer(layer, ROADS_BEFORE);
         // lineMetrics: road spots are drawn with a gradient along their length.
         // Spots (11.48, 11.52): whose a spot is shows as color. A road spot is
         // wrapped in one ring per owner color (yours innermost), drawn as wider
@@ -384,9 +388,12 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    map.setLayoutProperty("imagery", "visibility", props.satellite ? "visible" : "none");
-    for (const id of VECTOR_BASE_LAYERS) map.setLayoutProperty(id, "visibility", props.satellite ? "none" : "visible");
-  }, [ready, props.satellite]);
+    applyTheme(map, theme.current, props.theme);
+    theme.current = props.theme;
+    for (const [id, on] of Object.entries(baseVisibility(props.satellite))) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    }
+  }, [ready, props.satellite, props.theme]);
 
   useEffect(() => {
     const map = mapRef.current;
