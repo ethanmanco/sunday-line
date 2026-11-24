@@ -925,3 +925,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - The counts were right; the days were UTC. UTC's day turns over at 6 pm Central (7 pm in summer), and the counter went live at 11:15 pm Central on Nov 23, already Nov 24 in UTC, so every view so far was filed under Nov 24.
 - Recommendation taken (your pick): days now run on Central time. The counter files each view under the Central date, and the stats ("today", 7 days, the chart, date ranges) are built in Central time; the Vercel visitors range uses Central dates too. Views already counted stay on the day they were filed under, since the counter keeps only the day.
 - Also from your note: the Vercel token goes in Vercel's environment variables (Settings, Environment Variables, Production), not GitHub's Actions secrets, then a redeploy. The GitHub secret isn't used and can be deleted.
+
+### 11.73 Group invites show who you're inviting (2026-11-24)
+
+- Your note: in a group's Invite a member, typing the @username should drop down a list with the display name, username and profile picture, so you invite the right person.
+- Typing two or more letters (with or without the @) lists up to 8 matching people under the box, each with their picture, name and @username, using the same people search as the People page (blocked people never show). People already in the group say so.
+- Tap one (or use the arrow keys and Enter) to fill in their @username; a line under the box then shows "Inviting" with their picture and name. Typing a username by hand and pressing Invite still works as before.

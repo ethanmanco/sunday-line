@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Avatar from "@/components/Avatar";
 import PersonRow from "@/components/profile/PersonRow";
 import GroupPictures from "./GroupPictures";
 import { can, type Membership } from "./GroupView";
@@ -98,11 +99,66 @@ function Requests({ group, onChanged }: { group: Group; onChanged: () => void })
 const EXPIRY: [string, number | null][] = [["Never", null], ["1 day", 1], ["7 days", 7], ["30 days", 30]];
 const USES: [string, number | null][] = [["No limit", null], ["1 person", 1], ["10 people", 10], ["50 people", 50]];
 
-/** Invite a member by username (11.40); they get a notification to join or decline. */
+interface Candidate {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_path: string | null;
+  avatar_preset: string | null;
+}
+
+/** Invite a member by username (11.40); they get a notification to join or decline.
+ *  Typing shows matching people with their picture, name and @username, so you
+ *  invite the right person (11.73). Blocked people never show (search_people). */
 function InviteMember({ group }: { group: Group }) {
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [found, setFound] = useState<Candidate[]>([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const [picked, setPicked] = useState<Candidate | null>(null);
+  const [members, setMembers] = useState<Set<string>>(new Set());
+  const listId = `invite-people-${group.id}`;
+
+  useEffect(() => {
+    let live = true;
+    getSupabase()?.from("group_members").select("user_id").eq("group_id", group.id)
+      .then(({ data }) => { if (live && data) setMembers(new Set(data.map((r) => r.user_id as string))); });
+    return () => { live = false; };
+  }, [group.id]);
+
+  const term = username.trim().replace(/^@/, "").toLowerCase();
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || term.length < 2 || (picked && picked.username === term)) {
+      setFound([]);
+      return;
+    }
+    let live = true;
+    const t = setTimeout(async () => {
+      const { data } = await sb.rpc("search_people", { q: term });
+      if (!live) return;
+      setFound(((data as Candidate[] | null) ?? []).slice(0, 8));
+      setActive(-1);
+    }, 200);
+    return () => { live = false; clearTimeout(t); };
+  }, [term, picked]);
+
+  function pick(p: Candidate) {
+    setPicked(p);
+    setUsername(`@${p.username}`);
+    setOpen(false);
+    setFound([]);
+  }
+
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open || found.length === 0) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive((i) => (i + 1) % found.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((i) => (i <= 0 ? found.length - 1 : i - 1)); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); pick(found[active]); }
+    else if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+  }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -115,21 +171,68 @@ function InviteMember({ group }: { group: Group }) {
     if (!error) {
       setMsg({ ok: true, text: `Invited @${name}. They'll see it in their notifications.` });
       setUsername("");
+      setPicked(null);
     } else {
       setMsg({ ok: false, text: error.message || "Couldn't send the invite." });
     }
   }
 
+  const showList = open && found.length > 0;
+  const chosen = picked && picked.username === term ? picked : null;
   return (
     <section aria-labelledby="invite-member">
       <h2 id="invite-member">Invite a member</h2>
-      <form className="row" onSubmit={send}>
-        <label className="grow">
+      <form className="row invite-member" onSubmit={send}>
+        <label className="grow invite-find">
           <span className="visually-hidden">Username</span>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="@username" autoComplete="off" maxLength={21} />
+          <input
+            value={username}
+            onChange={(e) => { setUsername(e.target.value); setOpen(true); setMsg(null); }}
+            onKeyDown={onKey}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            placeholder="@username or name"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={41}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showList}
+            aria-controls={listId}
+            aria-activedescendant={showList && active >= 0 ? `${listId}-${active}` : undefined}
+          />
+          {showList && (
+            <ul className="mention-list invite-list" id={listId} role="listbox" aria-label="People">
+              {found.map((p, i) => {
+                const inGroup = members.has(p.id);
+                return (
+                  <li
+                    key={p.id}
+                    id={`${listId}-${i}`}
+                    role="option"
+                    aria-selected={i === active}
+                    className={i === active ? "active" : undefined}
+                    // Keep the focus in the box until the click lands.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pick(p)}
+                  >
+                    <Avatar person={p} size={32} />
+                    <span><b>{p.display_name}</b> <span className="fine">@{p.username}{inGroup ? ", already in the group" : ""}</span></span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </label>
         <button type="submit" className="button" disabled={busy || !username.trim()}>{busy ? "Inviting..." : "Invite"}</button>
       </form>
+      {chosen && (
+        <p className="invite-chosen">
+          <Avatar person={chosen} size={28} />
+          <span>Inviting <b>{chosen.display_name}</b> <span className="fine">@{chosen.username}</span></span>
+        </p>
+      )}
       {msg && <p className={msg.ok ? "fine" : "hint warn"} role="status">{msg.text}</p>}
     </section>
   );
