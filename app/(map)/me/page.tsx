@@ -30,7 +30,7 @@ export default function Me() {
 
   const signOutButton = (
     <>
-      <p className="fine">Signed in as {user.email}. Your email is never shown to other people.</p>
+      <p className="fine signed-in">Signed in as {user.email}. Your email is never shown to other people.</p>
       <button type="button" className="button ghost" onClick={async () => { await signOut(); router.replace("/"); }}>
         Sign out
       </button>
