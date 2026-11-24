@@ -903,3 +903,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Recent reviews: the 25 newest or most recently edited road reviews, with the road (linked), how far they'd drive for it, best around here, pavement, traffic, flags, the note, who wrote it (linked) and when. Reviews are already public with their author, so this needed nothing new in the database.
 - Road hazards: the 30 newest heads-ups, up now or ended (ended ones are deleted a day later), with the kind, the note, the nearest town (worked out on your device from the town list), whether it's up and for how long, and the still there and gone votes. Like on the map, it never says who posted one; the new database function (admin_recent_heads_ups) doesn't return the poster at all and refuses everyone but the site admin.
 - It's one self-contained piece (components/AdminActivity.tsx) so it can be removed, or grown into a stats view, without touching the rest.
+
+### 11.70 Installed iPhone app: no black strip at the bottom after coming back (2026-11-24)
+
+- Your note: the Home Screen app sometimes isn't full screen: the top is fine but the very bottom is black. It happens most when the app has been open a while and you come back to it.
+- Cause: a known iOS bug in installed web apps. After the app has been in the background, iOS can hand the page a shorter screen than it really has until the app is closed and opened again. Other apps hit the same thing (bulwarkmail/webmail#1226).
+- Fix (components/ViewportHeal.tsx, installed iPhone app only): the app remembers its tallest height at each width. When it's shown again, or a text box closes, and the screen is shorter than that, it hides and shows the page once, which makes iOS measure the screen again. Scroll positions are put back, so nothing jumps. It does nothing while you're typing, and nothing on the website or on other phones.
+- No re-adding needed: close and reopen the app once to get the update.

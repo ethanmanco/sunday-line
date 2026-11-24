@@ -13,6 +13,7 @@ import PhotoViewer from "@/components/PhotoViewer";
 import ServiceWorker from "@/components/ServiceWorker";
 import VercelAnalytics from "@/components/VercelAnalytics";
 import ViewCounter from "@/components/ViewCounter";
+import ViewportHeal from "@/components/ViewportHeal";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import "./globals.css";
 
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main id="main">{children}</main>
         <ServiceWorker />
+        <ViewportHeal />
         <ViewCounter />
         <VercelAnalytics />
         <PhotoViewer />
