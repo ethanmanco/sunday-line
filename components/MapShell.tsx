@@ -35,6 +35,8 @@ const SHEET_MEDIA = "(max-width: 899px) and (orientation: portrait), (max-width:
 
 /** The local view around a location: about 50 miles across, the drives near you, not just your street. */
 const localView = (ll: LL): Bounds => [ll[0] - 0.45, ll[1] - 0.33, ll[0] + 0.45, ll[1] + 0.33];
+const aroundMe = (ll: LL): Bounds => [ll[0] - 0.12, ll[1] - 0.09, ll[0] + 0.12, ll[1] + 0.09];
+const metersApart = (a: LL, b: LL) => haversineMi(a, b) * 1609.344;
 
 function spotIn(s: Spot, b: Bounds): boolean {
   const box = spotsBbox([s]);
@@ -471,11 +473,17 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
 
   const centerAfterLocate = useRef(false);
   const [settingLoc, setSettingLoc] = useState(false);
-  /** The round button on the map: find me, center there, north up. */
+  /** Where the map was last centered on you, so a fresh fix at the same spot doesn't move it again. */
+  const centeredOn = useRef<LL | null>(null);
+  /** The round button on the map: find me, center there, north up. It centers on
+   *  the last fix right away, then always asks the phone again (11.71): you may
+   *  have driven somewhere since, and the old fix would keep you where you left. */
   function locateAndCenter() {
     if (myLocation && locSource === "gps") {
-      setFocus({ bbox: [myLocation[0] - 0.12, myLocation[1] - 0.09, myLocation[0] + 0.12, myLocation[1] + 0.09], key: Date.now() });
-      return;
+      centeredOn.current = myLocation;
+      setFocus({ bbox: aroundMe(myLocation), key: Date.now() });
+    } else {
+      centeredOn.current = null;
     }
     centerAfterLocate.current = true;
     locateMe();
@@ -505,26 +513,54 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
     }
     setLocating(true);
     setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        // Kept in this page's memory only. Never sent anywhere or saved.
-        const ll: LL = [pos.coords.longitude, pos.coords.latitude];
-        setMyLocation(ll);
-        setLocSource("gps");
-        if (centerAfterLocate.current) {
-          centerAfterLocate.current = false;
-          setFocus({ bbox: [ll[0] - 0.12, ll[1] - 0.09, ll[0] + 0.12, ll[1] + 0.09], key: Date.now() });
-        }
-      },
-      () => {
-        setLocating(false);
+    const got = (pos: GeolocationPosition) => {
+      setLocating(false);
+      // Kept in this page's memory only. Never sent anywhere or saved.
+      const ll: LL = [pos.coords.longitude, pos.coords.latitude];
+      setMyLocation(ll);
+      setLocSource("gps");
+      if (centerAfterLocate.current) {
         centerAfterLocate.current = false;
-        setLocationError("Couldn't get your location. Check that location is allowed for this site, or set one on the map.");
+        const was = centeredOn.current;
+        centeredOn.current = null;
+        if (!was || metersApart(was, ll) > 100) setFocus({ bbox: aroundMe(ll), key: Date.now() });
+      }
+    };
+    const failed = () => {
+      setLocating(false);
+      centerAfterLocate.current = false;
+      setLocationError("Couldn't get your location. Check that location is allowed for this site, or set one on the map.");
+    };
+    // A fresh fix (11.71): a saved one can be from before a drive. If GPS is slow,
+    // settle for the phone's rough location from the last minute.
+    navigator.geolocation.getCurrentPosition(
+      got,
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) return failed();
+        navigator.geolocation.getCurrentPosition(got, failed, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
       },
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }
+
+  // Coming back to the app with your location on: update the dot and distances
+  // quietly (the map stays where it is), so they don't stay where you were.
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const onShow = () => {
+      if (document.visibilityState !== "visible" || locSourceRef.current !== "gps") return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (locSourceRef.current !== "gps") return;
+          setMyLocation([pos.coords.longitude, pos.coords.latitude]);
+        },
+        () => {},
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 },
+      );
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, []);
 
   // Opening the app on the home map (11.55): center on you. The first time the
   // phone asks for permission right away; after that it happens without asking
@@ -548,7 +584,7 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
         setFocus({ bbox: localView(ll), key: Date.now(), fly: true });
       },
       () => {},
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
     );
     const ask = () => {
       try {

@@ -910,3 +910,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Cause: a known iOS bug in installed web apps. After the app has been in the background, iOS can hand the page a shorter screen than it really has until the app is closed and opened again. Other apps hit the same thing (bulwarkmail/webmail#1226).
 - Fix (components/ViewportHeal.tsx, installed iPhone app only): the app remembers its tallest height at each width. When it's shown again, or a text box closes, and the screen is shorter than that, it hides and shows the page once, which makes iOS measure the screen again. Scroll positions are put back, so nothing jumps. It does nothing while you're typing, and nothing on the website or on other phones.
 - No re-adding needed: close and reopen the app once to get the update.
+
+### 11.71 Your location after a drive (2026-11-24)
+
+- Your note: driving to a road with the Home Screen app, your dot stayed where you left from, and the center-on-me button didn't move it.
+- Cause: once the app had your location, the button only re-centered on that saved spot and never asked the phone again. The phone was also allowed to answer with a location up to 10 minutes old.
+- Now the button centers on the last spot right away, then always asks the phone for a fresh fix (GPS, nothing saved), and moves the map if you've moved more than about 100 m. If GPS is slow it takes the phone's rough location from the last minute instead.
+- Coming back to the app with your location on updates your dot and distances quietly; the map stays where it is. Opening the app accepts a location up to a minute old (was 10).
+- Still only in the page's memory: never sent anywhere or saved. Nothing follows you continuously.
