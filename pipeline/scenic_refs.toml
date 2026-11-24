@@ -1,0 +1,237 @@
+# Check list for the Scenic score (plan 11.65, scripts/scenic_check.py).
+#
+# [[scenic]]: roads widely known as scenic drives; they should score high.
+# [[dull]]: boxes of flat farmland or suburbs; roads there should score low.
+# A road matches a [[scenic]] entry when its name contains `name` and its
+# start is inside `bbox` (west, south, east, north).
+
+[[scenic]]
+label = "Big Sur, CA 1"
+name = "CA 1"
+bbox = [-122.0, 35.6, -121.3, 36.5]
+
+[[scenic]]
+label = "Mendocino coast, CA 1"
+name = "CA 1"
+bbox = [-124.0, 38.5, -123.3, 39.9]
+
+[[scenic]]
+label = "Tioga Road, Yosemite"
+name = "Tioga Road"
+bbox = [-119.8, 37.7, -119.2, 38.0]
+
+[[scenic]]
+label = "Emerald Bay, Lake Tahoe (CA 89)"
+name = "CA 89"
+bbox = [-120.2, 38.88, -120.0, 39.0]
+
+[[scenic]]
+label = "Historic Columbia River Highway"
+name = "Historic Columbia River Highway"
+bbox = [-122.4, 45.4, -121.8, 45.7]
+
+[[scenic]]
+label = "North Cascades, WA 20"
+name = "SR 20"
+bbox = [-121.4, 48.4, -120.6, 48.75]
+
+[[scenic]]
+label = "Acadia Park Loop Road"
+name = "Park Loop"
+bbox = [-68.4, 44.2, -68.1, 44.45]
+
+[[scenic]]
+label = "Outer Banks, NC 12"
+name = "NC 12"
+bbox = [-76.1, 35.0, -75.4, 36.0]
+
+[[scenic]]
+label = "Blue Ridge Parkway"
+name = "Blue Ridge Parkway"
+bbox = [-84.0, 35.0, -78.8, 38.1]
+
+[[scenic]]
+label = "Cherohala Skyway"
+name = "Cherohala"
+bbox = [-84.3, 35.2, -83.8, 35.5]
+
+[[scenic]]
+label = "Tail of the Dragon, US 129"
+name = "US 129"
+bbox = [-84.05, 35.45, -83.9, 35.55]
+
+[[scenic]]
+label = "Hana Highway"
+name = "Hana"
+bbox = [-156.4, 20.6, -155.9, 21.0]
+
+[[scenic]]
+label = "Scenic Byway 12, Utah"
+name = "SR 12"
+bbox = [-112.3, 37.5, -111.0, 38.4]
+
+[[scenic]]
+label = "River Road, UT 128"
+name = "SR 128"
+bbox = [-109.6, 38.5, -109.0, 39.0]
+
+[[scenic]]
+label = "Zion, UT 9"
+name = "SR 9"
+bbox = [-113.1, 37.1, -112.8, 37.3]
+
+[[scenic]]
+label = "Monument Valley, US 163"
+name = "US 163"
+bbox = [-110.4, 36.8, -109.6, 37.3]
+
+[[scenic]]
+label = "Oak Creek Canyon, AZ 89A"
+name = "89A"
+bbox = [-111.9, 34.8, -111.6, 35.15]
+
+[[scenic]]
+label = "Valley of Fire, NV 169"
+name = "Valley of Fire"
+bbox = [-114.7, 36.3, -114.3, 36.6]
+
+[[scenic]]
+label = "Trail Ridge Road, US 34"
+name = "Trail Ridge"
+bbox = [-105.95, 40.2, -105.55, 40.45]
+
+[[scenic]]
+label = "Beartooth Highway, US 212"
+name = "US 212"
+bbox = [-109.95, 44.9, -109.3, 45.2]
+
+[[scenic]]
+label = "Chief Joseph Highway, WY 296"
+name = "WY 296"
+bbox = [-109.6, 44.6, -109.1, 44.95]
+
+[[scenic]]
+label = "Going-to-the-Sun Road"
+name = "Going-to-the-Sun"
+bbox = [-114.0, 48.5, -113.4, 48.8]
+
+[[scenic]]
+label = "Needles Highway, SD 87"
+name = "SD 87"
+bbox = [-103.6, 43.7, -103.4, 43.9]
+
+[[scenic]]
+label = "Iron Mountain Road, US 16A"
+name = "16A"
+bbox = [-103.5, 43.75, -103.3, 43.95]
+
+[[scenic]]
+label = "River Road, TX 170 (Big Bend)"
+name = "170"
+bbox = [-104.4, 29.2, -103.5, 29.7]
+
+[[scenic]]
+label = "Kancamagus Highway, NH 112"
+name = "NH 112"
+bbox = [-71.7, 43.95, -71.1, 44.1]
+
+[[scenic]]
+label = "Skyline Drive, Shenandoah"
+name = "Skyline Drive"
+bbox = [-78.9, 37.9, -78.1, 38.95]
+
+[[scenic]]
+label = "Talimena Drive, OK 1"
+name = "OK 1"
+bbox = [-95.2, 34.6, -94.4, 34.8]
+
+[[scenic]]
+label = "Pig Trail, AR 23"
+name = "AR 23"
+bbox = [-93.95, 35.6, -93.75, 35.95]
+
+[[scenic]]
+label = "La Sal Loop Road, Moab"
+name = "La Sal Loop"
+bbox = [-109.6, 38.4, -109.1, 38.8]
+
+[[scenic]]
+label = "Burr Trail, Utah"
+name = "Burr Trail"
+bbox = [-111.6, 37.7, -110.9, 38.0]
+
+[[scenic]]
+label = "Northshore Road, Lake Mead"
+name = "Northshore Road"
+bbox = [-114.9, 36.1, -114.3, 36.5]
+
+[[scenic]]
+label = "Foothills Parkway, TN"
+name = "Foothills Parkway"
+bbox = [-84.1, 35.5, -83.2, 35.8]
+
+[[scenic]]
+label = "Russell-Brasstown Scenic Byway, GA"
+name = "GA 348"
+bbox = [-84.0, 34.6, -83.7, 34.9]
+
+# Flat farmland and suburbs.
+[[dull]]
+label = "Champaign IL farmland"
+bbox = [-88.5, 39.9, -87.9, 40.3]
+
+[[dull]]
+label = "Garden City KS"
+bbox = [-101.2, 37.7, -100.5, 38.2]
+
+[[dull]]
+label = "Ames IA"
+bbox = [-93.9, 41.9, -93.4, 42.2]
+
+[[dull]]
+label = "Lubbock TX"
+bbox = [-102.2, 33.4, -101.6, 33.8]
+
+[[dull]]
+label = "Lima OH"
+bbox = [-84.4, 40.6, -83.8, 41.0]
+
+[[dull]]
+label = "Kokomo IN"
+bbox = [-86.4, 40.3, -85.9, 40.7]
+
+[[dull]]
+label = "Mississippi Delta, Greenville MS"
+bbox = [-91.1, 33.2, -90.6, 33.6]
+
+[[dull]]
+label = "Fargo ND farmland"
+bbox = [-97.1, 46.7, -96.6, 47.1]
+
+[[dull]]
+label = "Hastings NE"
+bbox = [-98.7, 40.4, -98.2, 40.8]
+
+[[dull]]
+label = "Fresno farmland"
+bbox = [-120.1, 36.5, -119.6, 36.9]
+
+[[dull]]
+label = "Houston suburbs"
+bbox = [-95.8, 29.6, -95.3, 30.1]
+
+[[dull]]
+label = "Dallas suburbs"
+bbox = [-97.0, 32.9, -96.6, 33.2]
+
+[[dull]]
+label = "Phoenix"
+bbox = [-112.4, 33.3, -111.8, 33.6]
+
+[[dull]]
+label = "Orlando suburbs"
+bbox = [-81.5, 28.4, -81.2, 28.7]
+
+[[dull]]
+label = "South Jersey suburbs"
+bbox = [-75.2, 39.8, -74.9, 40.1]

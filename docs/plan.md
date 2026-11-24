@@ -857,3 +857,13 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your note: profiles with no profile picture get a default grey driver avatar. Instead of the first letter of the name, they now show a grey driver in a helmet behind the wheel, everywhere a profile picture shows (profiles, chats, the @ list, people lists).
 - Groups without a picture keep their first letter.
+
+### 11.65 Scenic score v2 (2026-11-23)
+
+- Your note: roads right next to the ocean didn't score as scenic, and other things like that could make the Scenic score more accurate. The first score only counted trees, water (any pond), protected land and scenic byways, so ocean roads with no trees, deserts, red rock, and alpine passes scored low (Pacific Coast Highway at Laguna Beach 38, Monument Valley 35, Valley of Fire 12).
+- Scenic v2 is a separate pass over the finished exports (pipeline/scenic.py) and adds: Terrain (how much the land rises and falls within 1.5 km, USGS elevation), Big water (open water filling a fifth of the land within 1 km: ocean, Great Lakes, big lakes, wide rivers; counts far more than a pond), Open country (desert, rock, grassland, shrubs, snow, counted only where the land rises and falls, so flat farmland and prairie don't), Views (road above the land around it), and a Built-up penalty (buildings and pavement within 150 m; an ocean view loses less of it).
+- The parts combine so any one striking thing makes a road scenic and more of them add up without passing 100. Weights were tuned against a check list (pipeline/scenic_refs.toml) of 34 famous scenic drives and 15 flat farmland and suburb areas, and a random sample of 1,500 roads so the Scenic list grows only a little (22% of roads to about 30%). Run scripts/scenic_check.py to see the table.
+- Results on the check list: famous drives average 61 to 97 except Lake Mead's Northshore Road (24, open desert a few miles from the lake) (Big Sur 95, Valley of Fire 76, Monument Valley 70, Beartooth 92), flat farmland and suburbs 2 to 26. Suburban wooded roads drop (Cobbs Creek Parkway 61 to 17); flat pine forest with ponds drops a little (about 60 to 48).
+- Road pages list the new parts (along the coast or a big lake, mountains or hills around, open desert or range country). Overall moves at most 2 points (Scenic is 2% of it).
+- Known gap: the Natchez Trace Parkway isn't marked as park land or a byway in our data, so it stays about 44.
+- Viewpoints, cliffs and waterfalls from OpenStreetMap would need the state map files again (most were cleaned up), so they're left for later.
