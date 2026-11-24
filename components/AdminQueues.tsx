@@ -90,6 +90,7 @@ export default function AdminQueues() {
       <p className="row">
         <Link href="/admin/spots" className="button ghost small">Review spots</Link>
         <Link href="/admin/roads" className="button ghost small">Review road checks</Link>
+        <Link href="/admin/stats" className="button ghost small">Site stats</Link>
       </p>
     </details>
   );

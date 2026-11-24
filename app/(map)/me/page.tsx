@@ -11,10 +11,12 @@ import ProfileEditor from "@/components/me/ProfileEditor";
 import UsernameField, { BLOCKING, profileSaveError, type Availability } from "@/components/me/UsernameField";
 import { getSupabase, takeReturn, USERNAME_PATTERN } from "@/lib/supabase";
 import { GITHUB_URL } from "@/lib/config";
+import { useSiteAdmin } from "@/lib/useSiteAdmin";
 
 export default function Me() {
   const router = useRouter();
   const { ready, user, profile, signOut } = useAuth();
+  const admin = useSiteAdmin();
 
   if (!ready) return <div className="page narrow"><p>Loading...</p></div>;
   if (!user) {
@@ -57,6 +59,7 @@ export default function Me() {
       <GalleryEditor userId={user.id} />
       <PeopleManager userId={user.id} />
       <h2>Account</h2>
+      {admin && <p><Link href="/admin/stats">Site stats</Link> <span className="fine">(only you can see this)</span></p>}
       <p><Link href="/about">About Sunday Line, terms, and privacy</Link></p>
       {signOutButton}
       <p className="fine quiet-star">

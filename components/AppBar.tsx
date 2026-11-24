@@ -9,6 +9,7 @@ import { useAuth } from "./AuthProvider";
 import { useMapShell } from "@/lib/mapShell";
 import { accountsEnabled } from "@/lib/supabase";
 import { countLabel, useUnreadMessages, useUnreadNotifications } from "@/lib/useUnread";
+import { useSiteAdmin } from "@/lib/useSiteAdmin";
 import type { View } from "@/lib/roads";
 
 const VIEW_PILLS: { key: View; label: string }[] = [
@@ -109,6 +110,7 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
 
 function YouMenu({ signedIn, notes, onClose }: { signedIn: boolean; notes: number; onClose: () => void }) {
   const { profile } = useAuth();
+  const admin = useSiteAdmin();
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     box.current?.querySelector<HTMLElement>("a, button")?.focus();
@@ -147,6 +149,7 @@ function YouMenu({ signedIn, notes, onClose }: { signedIn: boolean; notes: numbe
             </div>
             {row("/notifications", "Notifications", svg(<><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2.2 2.2 0 0 0 4 0" /></>), notes)}
             {row("/spots", "Your spots", svg(<><path d="M12 21s-6-5.5-6-11a6 6 0 1 1 12 0c0 5.5-6 11-6 11z" /><circle cx="12" cy="10" r="2.2" /></>))}
+            {admin && row("/admin/stats", "Site stats", svg(<><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>))}
           </>
         )}
         {row("/groups", "Groups", svg(<><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="8.5" r="2.6" /><path d="M17 13.6c2.4.3 4 2.1 4 4.9" /></>))}

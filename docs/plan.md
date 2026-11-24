@@ -868,3 +868,13 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Road pages list the new parts (along the coast or a big lake, mountains or hills around, open desert or range country). Overall moves at most 2 points (Scenic is 2% of it).
 - Known gap: the Natchez Trace Parkway isn't marked as park land or a byway in our data, so it stays about 44.
 - Viewpoints, cliffs and waterfalls from OpenStreetMap would need the state map files again (most were cleaned up), so they're left for later.
+
+### 11.66 Site stats for the admin (2026-11-23)
+
+- Your note: a dashboard on your profile with stats about the website: traffic and other useful or fun things to watch. Only admins can see it.
+- Site stats lives at /admin/stats. Open it from Site stats in the You menu, under Account on Edit profile, or from the site admin box at the bottom of Notifications. Anyone else gets Not found, and the database refuses them too (admin_stats checks the site admin list).
+- Shows: visits and active members today and this week; a day by day chart (visits, page views, active members, new members, road reviews, heads-ups, spots, messages) with 7, 30 or 90 days and a table view; people (accounts, private profiles, follows, garages, photos, push notifications on); most viewed pages and roads; most reviewed roads; spots, heads-ups and road checks; groups, drives, RSVPs, messages and notifications; top contributors (public things only: reviews, heads-ups, public spots); the most common makes in garages.
+- Traffic: there was no analytics before. Instead of a third-party tracker, the app now keeps an anonymous count: each page shown adds one to (day, kind of page), and road pages also to (day, road). A visit is one browser session. Nothing about the visitor is kept: no account, IP address, device, location, cookie or referrer, and ids, usernames and invite links in the address are never kept. Browsers with Do Not Track or Global Privacy Control aren't counted, and the page has a switch to leave your own visits out on that device. Road counts are deleted after 120 days, page counts after 400.
+- Active members are counted from what the app already keeps (signed in, rated, posted, voted, saved, followed, joined, or read a chat that day). Only totals are shown; no message text, locations, private spots or group members.
+- The counter can't tell people apart, so it shows visits, not unique visitors. Vercel Web Analytics (also cookieless) could add unique visitors, countries and referrers later if wanted; it would need turning on in Vercel and a line on About.
+- Days run on UTC time.
