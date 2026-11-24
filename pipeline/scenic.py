@@ -98,9 +98,10 @@ def resample(ll: np.ndarray, step_m: float, max_pts: int) -> np.ndarray:
 class DemTiles:
     """USGS 1 arc-second tiles, a few kept in memory at a time."""
 
-    def __init__(self, tile_dir: Path, keep: int = 16):
+    def __init__(self, tile_dir: Path, keep: int = 16, fetch_missing: bool = False):
         self.dir = tile_dir
         self.keep = keep
+        self.fetch_missing = fetch_missing
         self.cache: OrderedDict[str, tuple[np.ndarray, rasterio.Affine] | None] = OrderedDict()
 
     def tile(self, lon: float, lat: float):
@@ -110,6 +111,11 @@ class DemTiles:
             self.cache.move_to_end(name)
             return self.cache[name]
         path = self.dir / f"USGS_1_{name}.tif"
+        if not path.exists() and self.fetch_missing:
+            # A state run's cleanup can remove border tiles a neighbor still needs.
+            from .fetch import USGS_1AS, _download
+
+            _download(USGS_1AS.format(name=name), path)
         val = None
         if path.exists():
             with rasterio.open(path) as ds:
@@ -146,7 +152,10 @@ class DemTiles:
 class LandTiles:
     """ESA WorldCover 10 m, read around each road at about 30 m."""
 
-    def __init__(self, tile_dir: Path):
+    def __init__(self, tile_dir: Path, fetch_missing: bool = False):
+        self.dir = tile_dir
+        self.fetch_missing = fetch_missing
+        self.tried: set[tuple[int, int]] = set()
         self.paths = {}
         for p in tile_dir.glob("ESA_WorldCover_10m_2021_v200_*_Map.tif"):
             key = p.name.split("_")[5]  # N36W123
@@ -154,6 +163,19 @@ class LandTiles:
             lon = int(key[4:7]) * (-1 if key[3] == "W" else 1)
             self.paths[(lat, lon)] = p
         self.open: OrderedDict[Path, rasterio.DatasetReader] = OrderedDict()
+
+    def _fetch(self, la: int, lo: int):
+        """Download a tile a state run's cleanup removed (ocean tiles don't exist)."""
+        from .fetch import WORLDCOVER, _download
+
+        self.tried.add((la, lo))
+        name = (f"N{la:02d}" if la >= 0 else f"S{-la:02d}") + (f"E{lo:03d}" if lo >= 0 else f"W{-lo:03d}")
+        path = self.dir / f"ESA_WorldCover_10m_2021_v200_{name}_Map.tif"
+        if _download(WORLDCOVER.format(name=name), path) == "missing" and not path.exists():
+            self.paths.pop((la, lo), None)
+            return None
+        self.paths[(la, lo)] = path
+        return path
 
     def _ds(self, p: Path):
         if p in self.open:
@@ -173,6 +195,8 @@ class LandTiles:
         for la in range(int(math.floor(s / 3) * 3), int(math.floor(n / 3) * 3) + 1, 3):
             for lo in range(int(math.floor(w / 3) * 3), int(math.floor(e / 3) * 3) + 1, 3):
                 p = self.paths.get((la, lo))
+                if (p is None or not p.exists()) and self.fetch_missing and (la, lo) not in self.tried:
+                    p = self._fetch(la, lo)
                 if p is None:
                     continue
                 ds = self._ds(p)
@@ -325,7 +349,7 @@ def new_tags(parts: dict) -> list[str]:
 
 def apply_state(path: Path, raw: Path, wt: dict, sc1: dict, overall_w: float) -> int:
     data = json.loads(path.read_text(encoding="utf-8"))
-    dem, land = DemTiles(raw / "dem"), LandTiles(raw / "landcover")
+    dem, land = DemTiles(raw / "dem", fetch_missing=True), LandTiles(raw / "landcover", fetch_missing=True)
     roads = data["roads"]
     # Nearby roads together so tiles stay in memory.
     order = sorted(range(len(roads)), key=lambda i: (math.floor(roads[i]["start"][1]), math.floor(roads[i]["start"][0])))
