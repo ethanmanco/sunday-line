@@ -29,7 +29,11 @@ export interface Road {
   surface: { text: string; paved: boolean; gravel: boolean };
   pavement: { why: string | null; maintained_by: string | null; traffic_aadt: number | null; iri: number | null };
   elevation: { climb_ft: number | null; descent_ft: number | null; min_ft: number | null; max_ft: number | null; profile_ft: number[] };
-  scenery: { forest: number; water: number; wetland: number; byway: string | null; tags: string[] };
+  scenery: {
+    forest: number; water: number; wetland: number; byway: string | null; tags: string[];
+    // Scenic v2 (11.65); missing in data scored before it.
+    big_water?: number; terrain?: number; overlook?: number; open?: number; rugged?: number; built?: number;
+  };
   stops: { junctions: number; stops: number; signals: number };
   start: [number, number];
   end: [number, number];

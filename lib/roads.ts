@@ -16,7 +16,7 @@ export const DEFAULT_FILTERS: Filters = { view: "drivers", sort: "overall", maxM
 
 export const VIEWS: { key: View; label: string; hint: string }[] = [
   { key: "drivers", label: "Driver's roads", hint: "Paved, 35 mph or more, not inside parks" },
-  { key: "scenic", label: "Scenic", hint: "Forest, water, and quiet roads at any speed, Scenic 50 and up" },
+  { key: "scenic", label: "Scenic", hint: "Mountains, coast, forest, desert, and water at any speed, Scenic 50 and up" },
   { key: "gravel", label: "Gravel", hint: "Gravel and dirt roads for rally fans" },
   { key: "all", label: "All", hint: "Every candidate, with the reason it left the main list" },
 ];

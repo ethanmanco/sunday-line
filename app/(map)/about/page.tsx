@@ -28,7 +28,7 @@ export default async function About() {
         <li><b>Speed:</b> the average legal speed through the corners. 25 mph scores 0, 65 mph scores 100.</li>
         <li><b>Pavement:</b> how likely the pavement is smooth and kept up. Public data rarely measures pavement on county roads, so it starts from who maintains the road (state highways are kept up; many county roads here are rough chip seal or gravel), then uses federal road data, traffic counts, aerial photos, and people&apos;s checks, which always win.</li>
         <li><b>Overall:</b> needs both Twisty and Speed, so a slow twisty road and a fast straight one both score low. Pavement counts next, then flow (few stops), elevation, quiet, and scenery.</li>
-        <li><b>Scenic:</b> forest, water, and wetland along the road (ESA WorldCover). It counts least in Overall and has its own list.</li>
+        <li><b>Scenic:</b> what the land around the road looks like: mountains and views (USGS elevation), coast and big lakes, forest, open desert and range, and water (ESA WorldCover), plus parks and scenic byways. Towns and built-up land count against it. It counts least in Overall and has its own list.</li>
       </ul>
       <p>
         <b>Driver&apos;s roads</b> must be paved with a good Pavement score, have a speed limit of at least 35 mph on

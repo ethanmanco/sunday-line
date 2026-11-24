@@ -31,7 +31,7 @@ export const SCORE_ROWS: { key: keyof LoadedRoad["scores"]; label: string; help:
   { key: "pavement", label: "Pavement", help: "How likely the pavement is smooth and kept up: who maintains the road, federal road data, aerial photos, and people's checks." },
   { key: "flow", label: "Flow", help: "Few stop signs, signals, and side roads." },
   { key: "elevation", label: "Elevation", help: "Climbs and dips along the road." },
-  { key: "scenic", label: "Scenic", help: "Forest, water, and wetland along the road." },
+  { key: "scenic", label: "Scenic", help: "Mountains and views, coast and big lakes, forest, open desert and range, and water along the road. Towns count against it." },
 ];
 
 function Profile({ ft }: { ft: number[] }) {
@@ -63,6 +63,10 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
   const e = r.elevation;
   const s = r.scores.overall;
   const scenery = [
+    (r.scenery.big_water ?? 0) >= 0.1 ? `${pct(r.scenery.big_water!)} along the coast or a big lake` : null,
+    (r.scenery.terrain ?? 0) >= 0.6 ? "Mountains around" : (r.scenery.terrain ?? 0) >= 0.25 ? "Hills around" : null,
+    (r.scenery.overlook ?? 0) >= 0.3 ? "Views from up high" : null,
+    (r.scenery.open ?? 0) * (r.scenery.rugged ?? 0) >= 0.3 ? "Open desert or range country" : null,
     r.scenery.forest >= 0.05 ? `${pct(r.scenery.forest)} forest` : null,
     r.scenery.water >= 0.05 ? `${pct(r.scenery.water)} near water` : null,
     r.scenery.wetland >= 0.05 ? `${pct(r.scenery.wetland)} wetland` : null,
