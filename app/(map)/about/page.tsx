@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CONTACT_EMAIL, GITHUB_URL, MORE_PROJECTS_URL } from "@/lib/config";
 import { loadIndex } from "@/lib/serverData";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata: Metadata = { title: "About", alternates: { canonical: "/about" } };
 
 export default async function About() {
   const data = await loadIndex();
