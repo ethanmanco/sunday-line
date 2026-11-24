@@ -1,4 +1,4 @@
--- Recent heads-ups for the site admin (plan 11.70).
+-- Recent heads-ups for the site admin (plan 11.69).
 --
 -- Heads-ups have no direct read access; the map reads live ones in a box
 -- through live_heads_ups. This lists the newest ones anywhere, live or ended

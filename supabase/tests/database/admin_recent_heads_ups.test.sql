@@ -1,4 +1,4 @@
--- Recent heads-ups for the site admin (plan 11.70).
+-- Recent heads-ups for the site admin (plan 11.69).
 -- Run with: npx supabase test db
 begin;
 select plan(8);

@@ -896,7 +896,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - The chart: pick what to show (unique visitors, visits, page views, active members, new members, reviews, heads-ups, spots, messages), group by day, week or month, bars or line, each period or a running total, compare with the same length of time just before (dashed line, with up or down %), an average line, or every chart at once (tap one to open it). Tap or hover a bar for its number; the table view follows the options.
 - Active members (and unique visitors) count each person once per day, week or month, so they have no running total.
 
-### 11.70 Recent reviews and road hazards for the admin (2026-11-23)
+### 11.69 Recent reviews and road hazards for the admin (2026-11-23)
 
 - Your note: as admin, a spot in the notifications you can collapse that shows when people give reviews, and one for road hazards too; it might be removed or grown into something bigger (like their stats) later.
 - At the bottom of Notifications, under the review queues, two boxes only you see: "recent reviews" (how many this week) and "road hazards (heads-ups)" (how many are up now). Each opens and closes, and stays the way you left it on that device.

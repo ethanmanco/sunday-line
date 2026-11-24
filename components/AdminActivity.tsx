@@ -12,7 +12,7 @@ import {
 import { useSiteAdmin } from "@/lib/useSiteAdmin";
 
 /**
- * Site admin only (11.70): recent reviews and recent heads-ups, each in a box
+ * Site admin only (11.69): recent reviews and recent heads-ups, each in a box
  * that opens and closes (remembered on this device), at the bottom of the
  * notifications. Self-contained so it can be removed or grown into a stats
  * view later. Heads-ups never say who posted them, here as on the map.

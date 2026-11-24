@@ -963,7 +963,7 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .admin-queues summary { cursor: pointer; color: var(--dim); font-size: 14px; min-height: 32px; display: list-item; }
 .admin-queues h3 { font-size: 16px; margin: 14px 0 6px; }
 .admin-queues ul { margin: 0; padding-left: 18px; }
-/* Recent reviews and heads-ups for the admin (11.70) */
+/* Recent reviews and heads-ups for the admin (11.69) */
 .admin-activity .admin-box { margin-top: 12px; }
 .admin-queues ul.admin-feed { list-style: none; padding: 0; margin: 8px 0 0; }
 .admin-feed li { margin: 0 !important; padding: 10px 0; border-top: 1px solid var(--line); }
