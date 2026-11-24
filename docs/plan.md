@@ -852,3 +852,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - More options now has a Map style picker with those seven plus Night (the map as it was). Relief is the default: the night map with the hills shaded in. The choice stays on the device, and the map repaints in place without reloading; spots, heads-ups and the satellite switch keep working in every style.
 - Every style except Night shades hills from the free Terrain Tiles on AWS Open Data, credited on the map and on About. Road Atlas adds green dots beside roads scoring 70 or more, the old atlas mark for a scenic route.
 - Points, badges and collectibles are a proposal for review (Rep, road-sign levels and badges, landmark stamps, barn finds); nothing is built for them yet.
+
+### 11.64 Grey driver picture for profiles without one (2026-11-23)
+
+- Your note: profiles with no profile picture get a default grey driver avatar. Instead of the first letter of the name, they now show a grey driver in a helmet behind the wheel, everywhere a profile picture shows (profiles, chats, the @ list, people lists).
+- Groups without a picture keep their first letter.

@@ -1,6 +1,6 @@
 // Profile pictures: an uploaded photo, one of the preset vehicle drawings, or
-// the first letter of the name. The drawings are original side views by body
-// style. No brand logos (those are trademarks).
+// a grey driver in a helmet for anyone without one. The drawings are original
+// side views by body style. No brand logos (those are trademarks).
 
 import { publicImageUrl } from "@/lib/supabase";
 
@@ -156,8 +156,27 @@ export default function Avatar({ person, size = 40, className = "" }: AvatarProp
     );
   }
   return (
-    <span className={`avatar letter ${className}`} style={{ ...style, fontSize: size * 0.45 }} aria-hidden="true">
-      {(person.display_name.trim()[0] ?? "?").toUpperCase()}
+    <span className={`avatar ${className}`} style={style} aria-hidden="true">
+      <DefaultDriver />
     </span>
+  );
+}
+
+/** The picture for profiles without one: a grey driver in a helmet, behind the wheel. */
+export function DefaultDriver() {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" fill="#2a2f37" />
+      {/* Shoulders and collar */}
+      <path d="M8 64 Q9 47 24 44 L40 44 Q55 47 56 64 Z" fill="#7d8590" />
+      <path d="M26 44 L32 51 L38 44 Z" fill="#2a2f37" />
+      {/* Helmet, visor and stripe */}
+      <path d="M17 30 Q17 13 32 13 Q47 13 47 30 L47 36 Q47 42 41 42 L23 42 Q17 42 17 36 Z" fill="#a3aab4" />
+      <path d="M19 26 Q32 21 45 26 L45 32 Q32 29 19 32 Z" fill="#14171c" />
+      <path d="M22 24.5 Q32 21 42 24.5" stroke="#c9ced6" strokeWidth="1" fill="none" opacity="0.6" />
+      <path d="M29.5 13.2 L34.5 13.2 L34.5 21.3 L29.5 21.6 Z" fill="#8b939e" />
+      {/* Steering wheel rim */}
+      <circle cx="32" cy="70" r="17" fill="none" stroke="#14171c" strokeWidth="4.5" />
+    </svg>
   );
 }
