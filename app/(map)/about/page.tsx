@@ -106,6 +106,11 @@ export default async function About() {
         <li>Blocking someone is private: they aren&apos;t told. You stop following each other, and they can&apos;t follow you or see your garage and photos.</li>
         <li>Notifications are yours alone. Read ones are deleted after 60 days, all of them after 120.</li>
         <li>If you turn on notifications for a device, only that device&apos;s push address is stored. Turning them off or signing out removes it.</li>
+        <li>
+          We count page views to see how the site is used: only the kind of page (and which road, on road pages) and
+          the day. Nothing about you, your device, or where you are is kept, and browsers with Do Not Track or Global
+          Privacy Control aren&apos;t counted.
+        </li>
         <li>You can change or delete anything you post at any time.</li>
       </ul>
 
