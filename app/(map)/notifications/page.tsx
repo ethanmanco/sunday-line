@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PushToggle from "@/components/PushToggle";
+import AdminActivity from "@/components/AdminActivity";
 import AdminQueues from "@/components/AdminQueues";
 import { ago } from "@/lib/headsUps";
 import { describe, loadNotifications, markAllRead, type AppNotification } from "@/lib/notifications";
@@ -114,6 +115,7 @@ export default function NotificationsPage() {
         </ul>
       )}
       <AdminQueues />
+      <AdminActivity />
     </div>
   );
 }

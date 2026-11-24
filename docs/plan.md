@@ -895,3 +895,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Time windows: Today, 7 days, 14 days, 30 days, 90 days, 6 months, 1 year, All time, or Pick dates (from and to). The headline numbers follow the window.
 - The chart: pick what to show (unique visitors, visits, page views, active members, new members, reviews, heads-ups, spots, messages), group by day, week or month, bars or line, each period or a running total, compare with the same length of time just before (dashed line, with up or down %), an average line, or every chart at once (tap one to open it). Tap or hover a bar for its number; the table view follows the options.
 - Active members (and unique visitors) count each person once per day, week or month, so they have no running total.
+
+### 11.70 Recent reviews and road hazards for the admin (2026-11-23)
+
+- Your note: as admin, a spot in the notifications you can collapse that shows when people give reviews, and one for road hazards too; it might be removed or grown into something bigger (like their stats) later.
+- At the bottom of Notifications, under the review queues, two boxes only you see: "recent reviews" (how many this week) and "road hazards (heads-ups)" (how many are up now). Each opens and closes, and stays the way you left it on that device.
+- Recent reviews: the 25 newest or most recently edited road reviews, with the road (linked), how far they'd drive for it, best around here, pavement, traffic, flags, the note, who wrote it (linked) and when. Reviews are already public with their author, so this needed nothing new in the database.
+- Road hazards: the 30 newest heads-ups, up now or ended (ended ones are deleted a day later), with the kind, the note, the nearest town (worked out on your device from the town list), whether it's up and for how long, and the still there and gone votes. Like on the map, it never says who posted one; the new database function (admin_recent_heads_ups) doesn't return the poster at all and refuses everyone but the site admin.
+- It's one self-contained piece (components/AdminActivity.tsx) so it can be removed, or grown into a stats view, without touching the rest.
