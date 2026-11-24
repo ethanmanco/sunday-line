@@ -108,7 +108,7 @@ export default async function About() {
         <li>If you turn on notifications for a device, only that device&apos;s push address is stored. Turning them off or signing out removes it.</li>
         <li>
           We count page views to see how the site is used: only the kind of page (and which road, on road pages) and
-          the day. Nothing about you, your device, or where you are is kept, and browsers with Do Not Track or Global
+          the hour. Nothing about you, your device, or where you are is kept, and browsers with Do Not Track or Global
           Privacy Control aren&apos;t counted.
         </li>
         <li>

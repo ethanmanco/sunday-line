@@ -931,3 +931,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Your note: in a group's Invite a member, typing the @username should drop down a list with the display name, username and profile picture, so you invite the right person.
 - Typing two or more letters (with or without the @) lists up to 8 matching people under the box, each with their picture, name and @username, using the same people search as the People page (blocked people never show). People already in the group say so.
 - Tap one (or use the arrow keys and Enter) to fill in their @username; a line under the box then shows "Inviting" with their picture and name. Typing a username by hand and pressing Invite still works as before.
+
+### 11.74 Site stats by the hour (2026-11-24)
+
+- Your ask: group the Over time chart by hour.
+- The page-view counter kept only the day, so it now also keeps a count per hour (Central time) and kind of page. Still anonymous: nothing about who, where, or what device. Hourly counts are deleted after 90 days. About now says the hour instead of the day.
+- Group by has an Hour option for windows of 14 days or less (Today picks it on its own). Sign-ups, reviews, heads-ups, spots, messages and active members have their own times, so their past hours show too; page views and visits by the hour start when this went live (Nov 24, about 3 PM). Hours later today show as no data. Unique visitors from Vercel come by the day, so they sit out the hourly chart.

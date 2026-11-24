@@ -17,9 +17,11 @@ interface Bucket {
   messages: number;
   views: number;
   visits: number;
+  /** By the hour: an hour later today, not yet happened (shown as no data). */
+  future?: boolean;
 }
 
-type Group = "day" | "week" | "month";
+type Group = "hour" | "day" | "week" | "month";
 
 interface Stats {
   days: number;
@@ -65,6 +67,8 @@ interface Stats {
   previous: Bucket[];
   contributors: { username: string; display_name: string; reviews: number; heads_ups: number; public_spots: number }[];
   makes: { make: string; count: number }[];
+  /** When the hourly page-view count started (11.74), "YYYY-MM-DDTHH:00" Central. */
+  hourly_since?: string | null;
 }
 
 /** Unique visitors from Vercel Web Analytics (11.68), through our admin-only route. */
@@ -81,7 +85,7 @@ interface Visitors {
   devices?: { name: string; visitors: number }[];
 }
 
-type Metric = Exclude<keyof Bucket, "day"> | "uniques";
+type Metric = Exclude<keyof Bucket, "day" | "future"> | "uniques";
 
 /** "Distinct" metrics count people, so they can't be added up across days. */
 const METRICS: { key: Metric; label: string; distinct?: boolean }[] = [
@@ -146,7 +150,17 @@ function shortDay(iso: string, withYear = false) {
   });
 }
 
+/** "2026-11-24T15:00" as "Nov 24, 3 PM" (11.74). */
+function hourLabel(iso: string) {
+  const h = Number(iso.slice(11, 13));
+  return `${shortDay(iso.slice(0, 10))}, ${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`;
+}
+
+/** The longest window that can be grouped by the hour. */
+const HOUR_MAX_DAYS = 14;
+
 function bucketLabel(iso: string, group: Group) {
+  if (group === "hour") return hourLabel(iso);
   if (group === "month") {
     return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
   }
@@ -294,7 +308,7 @@ export default function SiteStats() {
               {stats.traffic.counting_since
                 ? `Our own count started ${shortDay(stats.traffic.counting_since, true)}. `
                 : "Nothing counted yet. "}
-              Counts are anonymous: only the kind of page and the day are kept, never who, where, or what device. A visit is
+              Counts are anonymous: only the kind of page and the hour are kept, never who, where, or what device. A visit is
               one browser session. Browsers with Do Not Track or Global Privacy Control aren&apos;t counted.
             </p>
           </section>
@@ -439,9 +453,12 @@ function PeriodPicker({ req, onChange, firstDay }: { req: Request; onChange: (r:
             onClick={() => {
               // Long windows read better by month, short ones by day.
               const days = p.days ?? 0;
+              // Today reads best by the hour; the hour only goes up to 14 days.
               const group: Group = p.key === "custom" ? req.group
-                : days === 0 || days > 200 ? (req.group === "day" ? "month" : req.group)
-                : days <= 14 ? "day" : req.group;
+                : days === 1 ? "hour"
+                : days === 0 || days > 200 ? (req.group === "day" || req.group === "hour" ? "month" : req.group)
+                : days <= HOUR_MAX_DAYS ? (req.group === "hour" ? "hour" : "day")
+                : req.group === "hour" ? "day" : req.group;
               onChange({ ...req, period: p.key, group });
             }}>
             {p.label}
@@ -449,7 +466,11 @@ function PeriodPicker({ req, onChange, firstDay }: { req: Request; onChange: (r:
         ))}
       </div>
       {req.period === "custom" && (
-        <form className="stats-dates" onSubmit={(e) => { e.preventDefault(); onChange({ ...req, from, to }); }}>
+        <form className="stats-dates" onSubmit={(e) => {
+          e.preventDefault();
+          const span = (Date.parse(to) - Date.parse(from)) / 86_400_000 + 1;
+          onChange({ ...req, from, to, group: req.group === "hour" && span > HOUR_MAX_DAYS ? "day" : req.group });
+        }}>
           <label>
             <span>From</span>
             <input type="date" value={from} min={firstDay} max={to || today} required onChange={(e) => setFrom(e.target.value)} />
@@ -533,7 +554,7 @@ type Show = "each" | "total";
 
 /** One value per bucket; unique visitors are matched to our buckets by date (null before Vercel's data starts). */
 function valuesFor(metric: Metric, buckets: Bucket[], visitors: Visitors | null): (number | null)[] {
-  if (metric !== "uniques") return buckets.map((b) => b[metric] ?? 0);
+  if (metric !== "uniques") return buckets.map((b) => (b.future ? null : b[metric] ?? 0));
   const since = visitors?.since ?? "";
   const out: (number | null)[] = buckets.map((_, k) => {
     const next = buckets[k + 1]?.day;
@@ -560,7 +581,8 @@ function ChartCard({ stats, visitors, group, onGroup }: {
   const [average, setAverage] = useState(false);
   const [all, setAll] = useState(false);
 
-  const metrics = METRICS.filter((m) => m.key !== "uniques" || visitors);
+  // Vercel's unique visitors come by the day, so they sit out the hourly chart.
+  const metrics = METRICS.filter((m) => m.key !== "uniques" || (visitors && stats.group !== "hour"));
   const m = metrics.find((x) => x.key === metric) ?? metrics.find((x) => x.key === "visits")!;
   const canTotal = !m.distinct;
   const canCompare = m.key !== "uniques";
@@ -605,7 +627,7 @@ function ChartCard({ stats, visitors, group, onGroup }: {
 
       <div className="stats-options">
         <Segmented label="Group by" value={group} onChange={(v) => onGroup(v as Group)}
-          options={[["day", "Day"], ["week", "Week"], ["month", "Month"]]} />
+          options={[...(stats.days <= HOUR_MAX_DAYS ? [["hour", "Hour"] as [string, string]] : []), ["day", "Day"], ["week", "Week"], ["month", "Month"]]} />
         <Segmented label="Style" value={style} onChange={(v) => setStyle(v as Style)}
           options={[["bars", "Bars"], ["line", "Line"]]} />
         {!all && (
@@ -635,7 +657,13 @@ function ChartCard({ stats, visitors, group, onGroup }: {
           </p>
         )}
       </div>
-      <p className="fine">Days run on Central time.</p>
+      <p className="fine">
+        Days run on Central time.
+        {stats.group === "hour" && (stats.hourly_since
+          ? ` Page views and visits by the hour start ${hourLabel(stats.hourly_since)}.`
+          : " Page views and visits by the hour start with the next visit.")}
+        {stats.days > HOUR_MAX_DAYS && ` Group by hour for ${HOUR_MAX_DAYS} days or less.`}
+      </p>
     </section>
   );
 }
@@ -720,7 +748,7 @@ function Single({ label, distinct, stats, values, previous, style, total, averag
         <table>
           <thead>
             <tr>
-              <th scope="col">{stats.group === "day" ? "Day" : stats.group === "week" ? "Week of" : "Month"}</th>
+              <th scope="col">{stats.group === "hour" ? "Hour" : stats.group === "day" ? "Day" : stats.group === "week" ? "Week of" : "Month"}</th>
               <th scope="col">{total ? `${label}, running total` : label}</th>
               {prevShown && <th scope="col">Before</th>}
             </tr>
@@ -728,7 +756,7 @@ function Single({ label, distinct, stats, values, previous, style, total, averag
           <tbody>
             {stats.series.map((b, k) => ({ b, k })).reverse().map(({ b, k }) => (
               <tr key={b.day}>
-                <th scope="row">{stats.group === "month" ? bucketLabel(b.day, "month") : shortDay(b.day)}</th>
+                <th scope="row">{stats.group === "month" || stats.group === "hour" ? bucketLabel(b.day, stats.group) : shortDay(b.day)}</th>
                 <td>{shown[k] === null ? "No data" : fmt(shown[k])}</td>
                 {prevShown && <td>{prevShown[k] === null || prevShown[k] === undefined ? "" : fmt(prevShown[k])}</td>}
               </tr>
@@ -787,7 +815,7 @@ function Plot({ values, previous, buckets, group, style, average, picked, onPick
   const ticks = small ? [] : [0, top / 2, top];
   const first = buckets[0]?.day;
   const last = buckets[buckets.length - 1]?.day;
-  const tickLabel = (iso: string) => (group === "month" ? bucketLabel(iso, "month") : shortDay(iso));
+  const tickLabel = (iso: string) => (group === "month" || group === "hour" ? bucketLabel(iso, group) : shortDay(iso));
   const highest = Math.max(0, ...values.filter((v): v is number => v !== null));
 
   return (
