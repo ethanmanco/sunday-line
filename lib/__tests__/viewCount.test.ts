@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageForPath } from "../viewCount";
+import { analyticsUrl, pageForPath } from "../viewCount";
 
 describe("pageForPath", () => {
   it("counts the kind of page only", () => {
@@ -26,5 +26,24 @@ describe("pageForPath", () => {
   it("does not count the admin pages", () => {
     expect(pageForPath("/admin/stats")).toBeNull();
     expect(pageForPath("/admin/roads")).toBeNull();
+  });
+});
+
+describe("analyticsUrl", () => {
+  it("drops ids, queries and the #part", () => {
+    expect(analyticsUrl("https://sundayline.app/?spot=abc#x")).toBe("https://sundayline.app/");
+    expect(analyticsUrl("https://sundayline.app/g/xyz123")).toBe("https://sundayline.app/g/[id]");
+    expect(analyticsUrl("https://sundayline.app/messages/abc-def")).toBe("https://sundayline.app/messages");
+    expect(analyticsUrl("https://sundayline.app/u/someone")).toBe("https://sundayline.app/u/[username]");
+    expect(analyticsUrl("https://sundayline.app/j/secret-token-value?x=1")).toBe("https://sundayline.app/j/[invite]");
+  });
+
+  it("keeps public road ids", () => {
+    expect(analyticsUrl("https://sundayline.app/road/0123456789ab?from=share")).toBe("https://sundayline.app/road/0123456789ab");
+  });
+
+  it("sends nothing for the admin pages or bad addresses", () => {
+    expect(analyticsUrl("https://sundayline.app/admin/stats")).toBeNull();
+    expect(analyticsUrl("not a url")).toBeNull();
   });
 });

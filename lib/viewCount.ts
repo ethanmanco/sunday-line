@@ -65,3 +65,38 @@ export function countingAllowed(): boolean {
     return false;
   }
 }
+
+// What Vercel Analytics is told about each page (11.68): the same kinds as the
+// counter above. Group, drive, chat, profile and invite ids are swapped for a
+// placeholder, and the query and #part are dropped (they can hold spot ids).
+const ANALYTICS_PATH: Record<PageKind, string> = {
+  map: "/",
+  road: "/road/[id]",
+  group: "/g/[id]",
+  groups: "/groups",
+  event: "/e/[id]",
+  profile: "/u/[username]",
+  people: "/people",
+  messages: "/messages",
+  notifications: "/notifications",
+  spots: "/spots",
+  about: "/about",
+  me: "/me",
+  join: "/j/[invite]",
+  signin: "/signin",
+  other: "/other",
+};
+
+/** The address to send to Vercel Analytics, or null to send nothing. Road pages keep the road (roads are public). */
+export function analyticsUrl(raw: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  const counted = pageForPath(url.pathname);
+  if (!counted) return null;
+  const path = counted.road ? `/road/${counted.road}` : ANALYTICS_PATH[counted.page];
+  return `${url.origin}${path}`;
+}
