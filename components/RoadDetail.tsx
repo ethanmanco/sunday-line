@@ -14,6 +14,7 @@ import { decodePolyline } from "@/lib/polyline";
 import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
 import { useMapShell } from "@/lib/mapShell";
+import { bountyPoints, isBounty } from "@/lib/bounties";
 
 interface Props {
   road: LoadedRoad;
@@ -133,6 +134,21 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         </div>
       </header>
 
+      {isBounty(r) && (
+        <section className="bounty" aria-labelledby="bounty-title">
+          <h2 id="bounty-title">Bounty: +{bountyPoints(r)} rep</h2>
+          <p>
+            This road&apos;s surface needs a check ({(r.excluded[0] ?? "surface unclear").replace(/ \(needs a check\)$/, "")}).
+            Seen it? Review it below with what you found: paved, gravel or dirt, private or gated, or closed. When three
+            members say the same and the site admin confirms it, everyone who answered earns the rep.
+          </p>
+          <p className="fine">
+            A locked gate or a &ldquo;No trespassing&rdquo; sign is a full answer: never go past one. Answer after your
+            drive, not while driving. Wrong answers cost rep. Accounts earn rep once they&apos;re a week old.
+          </p>
+        </section>
+      )}
+
       {r.category !== "drivers" && r.excluded.length > 0 && (
         <p className="note warn">Not on the Driver&apos;s roads list: {r.excluded.join("; ")}.</p>
       )}
@@ -190,7 +206,7 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         )}
       </section>
 
-      <Community roadId={r.id} units={r.speed.units} />
+      <Community roadId={r.id} units={r.speed.units} needsCheck={isBounty(r)} />
 
       <section className="go" aria-label="Directions">
         <h2>Get directions</h2>

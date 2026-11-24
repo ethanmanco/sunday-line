@@ -56,12 +56,13 @@ export const decode = (roads: Road[]): RoadOnMap[] => roads.map((r) => ({ ...r, 
 
 // ---- Road checks (11.38): what members flagged and the site admin accepted ----
 
-export type CheckKind = "gravel" | "private" | "closed" | "rough";
+export type CheckKind = "gravel" | "private" | "closed" | "rough" | "paved";
 export const CHECK_REASON: Record<CheckKind, string> = {
   gravel: "gravel or dirt (members flagged it, checked)",
   private: "private or no entry (members flagged it, checked)",
   closed: "closed or doesn't go through (members flagged it, checked)",
   rough: "poor pavement (members flagged it, checked)",
+  paved: "paved (members checked it)",
 };
 
 let checksP: Promise<Map<string, CheckKind[]>> | null = null;
@@ -81,12 +82,21 @@ export function loadRoadChecks(): Promise<Map<string, CheckKind[]>> {
   return checksP;
 }
 
-/** A road with its accepted checks applied: gravel moves to Gravel; private, closed, or rough leave Driver's roads. */
+/**
+ * A road with its accepted checks applied: gravel moves to Gravel; private,
+ * closed, or rough leave Driver's roads; paved brings a road whose surface
+ * needed a check onto Driver's roads (11.78), unless another check says otherwise.
+ */
 export function withChecks<T extends Road>(r: T, kinds: CheckKind[] | undefined): T {
   if (!kinds?.length) return r;
-  const excluded = [...r.excluded, ...kinds.map((k) => CHECK_REASON[k])];
-  const blocked = kinds.includes("private") || kinds.includes("closed");
-  const category = blocked ? "other" : kinds.includes("gravel") ? "gravel" : r.category === "drivers" ? "other" : r.category;
+  const against = kinds.filter((k) => k !== "paved");
+  if (!against.length) {
+    if (r.category !== "unsure") return r;
+    return { ...r, category: "drivers", excluded: r.excluded.filter((e) => !e.includes("needs a check")) };
+  }
+  const excluded = [...r.excluded, ...against.map((k) => CHECK_REASON[k])];
+  const blocked = against.includes("private") || against.includes("closed");
+  const category = blocked ? "other" : against.includes("gravel") ? "gravel" : r.category === "drivers" ? "other" : r.category;
   return { ...r, category, excluded };
 }
 

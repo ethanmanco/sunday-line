@@ -16,6 +16,7 @@ const VIEW_PILLS: { key: View; label: string }[] = [
   { key: "drivers", label: "Driver's roads" },
   { key: "scenic", label: "Scenic" },
   { key: "gravel", label: "Gravel" },
+  { key: "bounties", label: "Bounties" },
 ];
 
 /**

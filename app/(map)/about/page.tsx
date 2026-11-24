@@ -72,6 +72,28 @@ export default async function About() {
         </li>
       </ul>
 
+      <h2 id="bounties">Bounties and rep</h2>
+      <ul>
+        <li>
+          <b>Bounties</b> are roads whose surface or access needs a check, like a county road nobody has confirmed is
+          paved. Seen one? Review it with what you found: paved, gravel or dirt, private or gated, or closed.
+        </li>
+        <li>
+          <b>Rep</b> is paid only for answers that turn out right. When three members flag a road the same way, the site
+          admin checks it; if it&apos;s confirmed, everyone who flagged it earns rep (a bounty pays a fifth of the
+          road&apos;s Overall score, other checks 5). A flag that&apos;s turned down costs 3. Agreeing alone earns nothing.
+        </li>
+        <li>
+          Accounts earn rep once they&apos;re a week old, up to 50 a day. Profiles show rep next to how often that
+          member&apos;s checks were right, and members with 5 or more confirmed checks and at least 80% right are marked
+          Trusted checker.
+        </li>
+        <li>
+          A locked gate or a &ldquo;No trespassing&rdquo; sign is a complete answer: never go past one. Answer after your
+          drive, not while driving.
+        </li>
+      </ul>
+
       <h2>Data and credits</h2>
       <ul>
         <li>

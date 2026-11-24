@@ -960,3 +960,15 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your go-ahead on the gap found in 11.76: pushes were written on the server in UTC, so a 9 AM Central drive could read 3 PM.
 - Event pushes now use the event's own time zone and name it: "Coming up: Sun, Nov 29, 9:00 AM CST". The list in the app already showed the right time and is unchanged.
+
+### 11.78 Bounties and rep (2026-11-24)
+
+- Your note: a Bounties section listing the nearest roads that need a check for the most rep (Moon Lake Road near Bossier scores 55 but sits in Needs a check), with rep that adds to the app's credibility and doesn't invite fake accounts or misinformation. Recommendation taken: rep is paid for being right, never for agreeing.
+- Rep: flags still need three members to reach the site admin's road check queue, and nobody earns anything until the admin accepts the check. Accepting pays everyone whose review flags it: a bounty pays a fifth of the road's Overall score (Moon Lake Road 11), other checks 5. A check that's turned down (or an accepted one undone) costs each flagger 3; poor pavement, being opinion, costs nothing. Flags made after a check is settled earn nothing, and nothing is paid twice.
+- Against farming: accounts earn only for flags made once they're a week old, at most 50 points a day; their flags still count toward the queue. Extra accounts can't confirm their own flags (only the admin accepts), and wrong answers lose rep. No public leaderboard.
+- Trusted checker: 5 or more confirmed checks and at least 80% right. Shown on profiles (next to rep and how often their checks were right) and next to their reviews on road pages.
+- Bounties: a new list view (Bounties chip and app pill) of roads whose surface needs a check, best first, each with its rep. A road page that needs a check has a Bounty box saying what to check, and that a locked gate or No trespassing sign is a full answer (never go past one), answered after the drive.
+- New flag "Paved, I checked it", offered only on roads that need a check: accepted, it moves the road onto Driver's roads. Before this a check could only take a road off a list.
+- The admin queue shows what each check pays and charges. The "your flag helped" notification (and push) adds the rep.
+- Also fixed: a road page opened from a link showed the road as the data files have it, without members' accepted checks (private, gravel and so on); it now applies them like the map does.
+- Local: supabase/seed.sql adds two test members (tester, dupper) after a local reset. Database tests: supabase/tests/database/rep.test.sql (21 checks).

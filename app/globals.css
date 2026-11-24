@@ -511,6 +511,16 @@ button.link.danger { color: #ff8a80; }
 .new-message-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .new-message-text > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .waiting-note { margin-bottom: 8px; }
+/* Bounties and rep (11.78). */
+.bounty { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: rgba(245, 165, 36, 0.08); }
+.bounty h2 { margin: 0 0 6px; font-size: 20px; color: var(--accent); }
+.bounty p { margin: 0 0 8px; }
+.bounty .fine { margin: 0; }
+.rep-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0 0; }
+.trusted-badge {
+  display: inline-flex; align-items: center; margin-left: 6px; padding: 1px 8px; border-radius: 999px;
+  border: 1px solid var(--accent); color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap;
+}
 /* Group invite (11.73): the same list, dropping down under the username box. */
 .invite-find { position: relative; }
 .invite-list { top: calc(100% + 6px); bottom: auto; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }

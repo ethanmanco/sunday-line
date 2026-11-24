@@ -11,6 +11,7 @@ import type { Spot } from "@/lib/spots";
 import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
+import RepLine from "./RepLine";
 import {
   accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, sortPhotos,
   type FollowStatus, type Media, type Profile, type Vehicle, type VehiclePhoto,
@@ -194,6 +195,7 @@ export default function ProfileView({ username }: { username: string }) {
   return (
     <div className="page profile">
       <ProfileHeader profile={profile} counts={counts}>{action}</ProfileHeader>
+      {!blocked && <RepLine userId={profile.id} isMe={isMe} />}
       {error && <p className="hint warn" role="alert">{error}</p>}
       {follow === "accepted" && !blocked && (
         <p className="fine">Tap Following to unfollow.</p>

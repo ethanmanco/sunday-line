@@ -259,7 +259,7 @@ export async function signedMediaUrls(paths: string[]): Promise<Record<string, s
 
 /** How far you'd drive for a road (11.37): 1 skip it ... 4 worth a road trip. */
 export type Worth = 1 | 2 | 3 | 4;
-export type RoadFlag = "gravel" | "private" | "closed" | "police";
+export type RoadFlag = "gravel" | "private" | "closed" | "police" | "paved";
 
 export interface RoadRating {
   road_id: string;
@@ -300,6 +300,7 @@ export interface RoadCommunity {
   flag_police: number;
   reported_limit: number | null;
   reported_limit_count: number;
+  flag_paved: number;
 }
 
 export const PAVEMENT_LABEL: Record<PavementCondition, string> = {
@@ -328,6 +329,8 @@ export const FLAG_LABEL: Record<RoadFlag, string> = {
   private: "Private, gated, or no entry",
   closed: "Closed or doesn't go through",
   police: "Police often here",
+  // Only offered on roads whose surface needs a check (11.78).
+  paved: "Paved, I checked it",
 };
 
 export const TRAFFIC_LABEL: Record<TrafficLevel, string> = {

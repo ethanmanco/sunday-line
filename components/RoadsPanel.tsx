@@ -8,6 +8,7 @@ import SpotDetail from "./spots/SpotDetail";
 import { useMapShell } from "@/lib/mapShell";
 import { badgeKey } from "@/lib/roads";
 import { decodePolyline } from "@/lib/polyline";
+import { loadRoadChecks, withChecks } from "@/lib/roadData";
 import type { Road } from "@/lib/types";
 
 function roadIdFromPath(path: string): string | null {
@@ -24,8 +25,14 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
   useEffect(() => {
     if (opened.current || !initialRoadId) return;
     opened.current = true;
-    if (initialRoad) shell.addRoad({ ...initialRoad, coords: decodePolyline(initialRoad.line) });
-    else shell.selectRoad(initialRoadId);
+    if (initialRoad) {
+      // The page comes from the data files; members' accepted checks (private,
+      // gravel, paved...) are applied first, as on the map (11.78). The checks
+      // load once per visit, and an empty set if they can't.
+      loadRoadChecks().then((checks) => {
+        shell.addRoad({ ...withChecks(initialRoad, checks.get(initialRoad.id)), coords: decodePolyline(initialRoad.line) });
+      });
+    } else shell.selectRoad(initialRoadId);
   }, [initialRoadId, initialRoad, shell]);
 
   // A link like /?spot=<id> opens the map on that spot.

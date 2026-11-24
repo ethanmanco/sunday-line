@@ -17,7 +17,7 @@ interface PendingCheck {
   flagged_at: string;
 }
 
-const CHECK_WORD: Record<CheckKind, string> = { gravel: "gravel or dirt", private: "private", closed: "closed", rough: "poor pavement" };
+const CHECK_WORD: Record<CheckKind, string> = { gravel: "gravel or dirt", private: "private", closed: "closed", rough: "poor pavement", paved: "paved" };
 
 /**
  * Site admin only (11.45): what's waiting for review, tucked at the bottom of

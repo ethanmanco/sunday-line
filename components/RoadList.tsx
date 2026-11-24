@@ -5,6 +5,7 @@ import { lengthText, milesText, scoreColor, scoreInk, speedShort, STATUS_LABEL, 
 import { useMapShell, type ListItem } from "@/lib/mapShell";
 import { spotColors, spotColorsCss, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
+import { bountyPoints } from "@/lib/bounties";
 import type { LoadedRoad } from "@/lib/types";
 
 interface Props {
@@ -23,7 +24,10 @@ const PAGE = 60;
 
 function warning(r: LoadedRoad, view: View): string | null {
   if (r.category === "gravel" && view !== "gravel") return "Gravel or dirt";
-  if (r.category === "unsure") return `Needs a check: ${(r.excluded[0] ?? "surface unclear").replace(/ \(needs a check\)$/, "")}`;
+  if (r.category === "unsure") {
+    const what = `Needs a check: ${(r.excluded[0] ?? "surface unclear").replace(/ \(needs a check\)$/, "")}`;
+    return view === "bounties" ? `Bounty +${bountyPoints(r)} rep. ${what}` : what;
+  }
   if (r.category === "other" && view === "all") return `Left out: ${r.excluded[0] ?? ""}`;
   return null;
 }

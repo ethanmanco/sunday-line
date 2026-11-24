@@ -1,6 +1,6 @@
 import type { LoadedRoad, Road } from "./types";
 
-export type View = "drivers" | "scenic" | "gravel" | "all";
+export type View = "drivers" | "scenic" | "gravel" | "bounties" | "all";
 export type SortKey = "overall" | "twisty" | "speed" | "pavement" | "scenic" | "elevation" | "length" | "distance";
 export type Bounds = [number, number, number, number]; // west, south, east, north
 
@@ -18,6 +18,7 @@ export const VIEWS: { key: View; label: string; hint: string }[] = [
   { key: "drivers", label: "Driver's roads", hint: "Paved, 35 mph or more, not inside parks" },
   { key: "scenic", label: "Scenic", hint: "Mountains, coast, forest, desert, and water at any speed, Scenic 50 and up" },
   { key: "gravel", label: "Gravel", hint: "Gravel and dirt roads for rally fans" },
+  { key: "bounties", label: "Bounties", hint: "Roads that need a check. A confirmed answer earns rep" },
   { key: "all", label: "All", hint: "Every candidate, with the reason it left the main list" },
 ];
 
@@ -53,6 +54,8 @@ export function inView(r: Road, view: View): boolean {
       return r.category === "drivers";
     case "gravel":
       return r.category === "gravel";
+    case "bounties":
+      return r.category === "unsure";
     case "scenic":
       return r.category !== "gravel" && r.category !== "unsure" && r.scores.scenic >= MIN_SCENIC && !r.excluded.some((e) => NOT_SCENIC.test(e));
     default:

@@ -9,6 +9,7 @@ import {
 } from "@/lib/supabase";
 
 interface Note {
+  user_id: string;
   worth: Worth | null;
   local_best: boolean;
   flags: RoadFlag[];
@@ -33,8 +34,11 @@ function worthLine(c: RoadCommunity): string | null {
 }
 
 function flagLines(c: RoadCommunity): string[] {
-  const n: [RoadFlag, number][] = [["gravel", c.flag_gravel], ["private", c.flag_private], ["closed", c.flag_closed], ["police", c.flag_police]];
-  return n.filter(([, k]) => k > 0).map(([f, k]) => `${FLAG_LABEL[f]}: ${k} ${k === 1 ? "member says" : "members say"} so`);
+  const n: [RoadFlag, number][] = [
+    ["gravel", c.flag_gravel], ["private", c.flag_private], ["closed", c.flag_closed], ["police", c.flag_police], ["paved", c.flag_paved ?? 0],
+  ];
+  return n.filter(([, k]) => k > 0).map(([f, k]) =>
+    f === "paved" ? `Paved: ${k} ${k === 1 ? "member checked" : "members checked"}` : `${FLAG_LABEL[f]}: ${k} ${k === 1 ? "member says" : "members say"} so`);
 }
 
 function summaryLines(c: RoadCommunity): string[] {
@@ -62,7 +66,8 @@ function summaryLines(c: RoadCommunity): string[] {
   return out;
 }
 
-export default function Community({ roadId, units }: { roadId: string; units: string }) {
+/** needsCheck: the road's surface needs a check (a bounty), so the form offers "Paved, I checked it" (11.78). */
+export default function Community({ roadId, units, needsCheck = false }: { roadId: string; units: string; needsCheck?: boolean }) {
   const { ready, user, profile } = useAuth();
   const [summary, setSummary] = useState<RoadCommunity | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -71,6 +76,8 @@ export default function Community({ roadId, units }: { roadId: string; units: st
   const [editing, setEditing] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Reviewers whose checks have held up (11.78).
+  const [trusted, setTrusted] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -78,7 +85,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
     const [s, n] = await Promise.all([
       sb.from("road_community").select("*").eq("road_id", roadId).maybeSingle(),
       sb.from("road_ratings")
-        .select("worth, local_best, flags, pavement, vehicle, note, updated_at, profiles(display_name, username)")
+        .select("user_id, worth, local_best, flags, pavement, vehicle, note, updated_at, profiles(display_name, username)")
         .eq("road_id", roadId).not("note", "is", null).neq("note", "")
         .order("updated_at", { ascending: false }).limit(10),
     ]);
@@ -88,7 +95,12 @@ export default function Community({ roadId, units }: { roadId: string; units: st
     }
     setFailed(false);
     setSummary((s.data as RoadCommunity | null) ?? null);
-    setNotes((n.data as unknown as Note[]) ?? []);
+    const ns = (n.data as unknown as Note[]) ?? [];
+    setNotes(ns);
+    if (ns.length) {
+      const { data: t } = await sb.rpc("trusted_checkers", { p_ids: [...new Set(ns.map((x) => x.user_id))] });
+      setTrusted(new Set(((t as string[] | null) ?? [])));
+    }
     if (user) {
       const [r, l] = await Promise.all([
         sb.from("road_ratings").select("*").eq("road_id", roadId).eq("user_id", user.id).maybeSingle(),
@@ -155,6 +167,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
           units={units}
           mine={mine}
           myLimit={myLimit}
+          needsCheck={needsCheck}
           onDone={async () => { setEditing(false); await load(); }}
           onCancel={() => setEditing(false)}
         />
@@ -171,6 +184,7 @@ export default function Community({ roadId, units }: { roadId: string; units: st
               <p>{n.note}</p>
               <p className="fine">
                 {n.profiles ? <Link href={`/u/${n.profiles.username}`}>{n.profiles.display_name}</Link> : "A member"}
+                {trusted.has(n.user_id) && <span className="trusted-badge" title="Their road checks have held up">Trusted checker</span>}
                 {n.vehicle ? `, ${n.vehicle === "car" ? "car" : "motorcycle"}` : ""}
                 {n.worth ? `, ${WORTH_LABEL[n.worth].toLowerCase()}` : ""}
                 {n.local_best ? ", one of the best around here" : ""}
@@ -186,8 +200,9 @@ export default function Community({ roadId, units }: { roadId: string; units: st
   );
 }
 
-function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
+function RateForm({ roadId, units, mine, myLimit, needsCheck, onDone, onCancel }: {
   roadId: string;
+  needsCheck: boolean;
   units: string;
   mine: RoadRating | null;
   myLimit: number | null;
@@ -291,7 +306,7 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
       </fieldset>
       <fieldset>
         <legend>Anything to flag?</legend>
-        {FLAGS.map((f) => (
+        {FLAGS.filter((f) => f !== "paved" || needsCheck || flags.includes("paved")).map((f) => (
           <label key={f} className="check">
             <input type="checkbox" checked={flags.includes(f)}
               onChange={(e) => setFlags(e.target.checked ? [...flags, f] : flags.filter((x) => x !== f))} />
@@ -299,8 +314,9 @@ function RateForm({ roadId, units, mine, myLimit, onDone, onCancel }: {
           </label>
         ))}
         <span className="fine">
-          When three members flag the same thing (or say the pavement is poor), the road gets a check and can move off
-          the Driver&apos;s roads list.
+          When three members flag the same thing (or say the pavement is poor), the road gets a check. If the site admin
+          confirms it, the road moves lists and everyone who flagged it earns rep. Wrong flags cost rep, so only flag what
+          you saw.
         </span>
       </fieldset>
       <label className="check">

@@ -20,7 +20,7 @@ export interface AppNotification {
   conversation_id: string | null;
   road_id: string | null;
   title: string | null;
-  detail: { count?: number; starts_at?: string; status?: string; note?: string | null; kind?: string; spot?: string };
+  detail: { count?: number; starts_at?: string; status?: string; note?: string | null; kind?: string; spot?: string; points?: number };
   created_at: string;
   read_at: string | null;
   actor: { username: string; display_name: string } | null;
@@ -32,6 +32,7 @@ const CHECK_WORDS: Record<string, string> = {
   private: "private or no entry",
   closed: "closed",
   rough: "poor pavement",
+  paved: "paved",
 };
 
 function when(iso?: string, tz?: string): string {
@@ -89,7 +90,7 @@ export function describe(n: AppNotification, roadName: (id: string) => string): 
     case "group_spot_proposed": return { text: `${who} suggested ${n.detail.spot ?? "a spot"} for ${title}`, href: `${group}?tab=spots` };
     case "group_spot_accepted": return { text: `${n.detail.spot ?? "Your spot"} was added to ${title}`, href: `${group}?tab=spots` };
     case "road_check_helped":
-      return { text: `Your flag helped mark ${road} as ${CHECK_WORDS[n.detail.kind ?? ""] ?? "checked"}. Thanks!`, href: `/road/${n.road_id}` };
+      return { text: `Your flag helped mark ${road} as ${CHECK_WORDS[n.detail.kind ?? ""] ?? "checked"}.${n.detail.points ? ` +${n.detail.points} rep.` : ""} Thanks!`, href: `/road/${n.road_id}` };
     case "admin_road_check":
       return { text: `Road check waiting: ${road} (${CHECK_WORDS[n.detail.kind ?? ""] ?? n.detail.kind})`, href: "/admin/roads" };
     case "admin_spot_review": return { text: `Spot waiting for review: ${title}`, href: "/admin/spots" };
@@ -141,7 +142,7 @@ export function pushText(
     case "group_spot_proposed": return { title, body: `${who} suggested ${n.detail.spot ?? "a spot"}` };
     case "group_spot_accepted": return { title, body: `${n.detail.spot ?? "Your spot"} was added` };
     case "road_check_helped":
-      return { title: road, body: `Your flag helped mark it as ${CHECK_WORDS[n.detail.kind ?? ""] ?? "checked"}. Thanks!` };
+      return { title: road, body: `Your flag helped mark it as ${CHECK_WORDS[n.detail.kind ?? ""] ?? "checked"}.${n.detail.points ? ` +${n.detail.points} rep.` : ""} Thanks!` };
     case "admin_road_check":
       return { title: "Road check waiting", body: `${road} (${CHECK_WORDS[n.detail.kind ?? ""] ?? n.detail.kind})` };
     case "admin_spot_review": return { title: "Spot waiting for review", body: title };

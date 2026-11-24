@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { roadsById, type CheckKind, type RoadOnMap } from "@/lib/roadData";
 import { FLAG_LABEL, getSupabase } from "@/lib/supabase";
+import { bountyPoints, isBounty } from "@/lib/bounties";
 
 interface Check {
   road_id: string;
@@ -27,6 +28,7 @@ const KIND_LABEL: Record<CheckKind, string> = {
   private: FLAG_LABEL.private,
   closed: FLAG_LABEL.closed,
   rough: "Poor pavement",
+  paved: "Paved (surface needed a check)",
 };
 
 /** Site admin only (11.38): roads members flagged three times, plus what's been accepted. */
@@ -63,9 +65,15 @@ export default function RoadChecks() {
     else if (ready) setAdmin(false);
   }, [ready, user, load]);
 
+  // Rep paid to each flagger when accepted (11.78): the bounty for a road that
+  // needed a check, the base amount otherwise.
+  const pointsFor = (c: Check) => (roads[c.road_id] ? bountyPoints(roads[c.road_id]) : 5);
+
   async function decide(c: Check, accept: boolean) {
     setBusy(`${c.road_id}:${c.kind}`);
-    await getSupabase()?.rpc("review_road_check", { p_road: c.road_id, p_kind: c.kind, p_accept: accept });
+    await getSupabase()?.rpc("review_road_check", {
+      p_road: c.road_id, p_kind: c.kind, p_accept: accept, ...(accept ? { p_points: pointsFor(c) } : {}),
+    });
     setBusy(null);
     load();
   }
@@ -90,6 +98,7 @@ export default function RoadChecks() {
             return `${n} ${n === 1 ? "flag" : "flags"}`;
           })()}
           {" · "}{new Date(c.decided_at ?? c.flagged_at).toLocaleDateString()}
+          {accept && <>{" · "}{r && isBounty(r) ? "bounty, " : ""}pays +{pointsFor(c)} rep each</>}
         </p>
         {notes.slice(0, 3).map((v, i) => <p key={i} className="fine">&ldquo;{v.note}&rdquo;</p>)}
         <div className="row">
@@ -111,7 +120,13 @@ export default function RoadChecks() {
       <h1>Road checks</h1>
       <p className="lead">
         Roads three members flagged the same way. Accepting one moves the road off Driver&apos;s roads (gravel goes to
-        the Gravel list) right away. Your own flags are accepted as soon as you save them.
+        the Gravel list; paved brings a road that needed a check onto Driver&apos;s roads) right away. Your own flags are
+        accepted as soon as you save them.
+      </p>
+      <p className="fine">
+        Accepting pays rep to each member whose review flags it (accounts a week old, at most 50 a day): a bounty pays a
+        fifth of the road&apos;s Overall score, other checks 5. &ldquo;It&apos;s fine&rdquo; and Undo cost each flagger 3
+        (poor pavement costs nothing). Check before you accept: rep only means something if it&apos;s right.
       </p>
       <h2>Waiting ({pending.length})</h2>
       {pending.length === 0 ? <p className="fine">Nothing waiting.</p> : <ul className="check-list">{pending.map((c) => row(c, true))}</ul>}
