@@ -22,9 +22,11 @@ import HeadsUpCard, { HeadsUpForm } from "./HeadsUpCard";
 import { loadHeadsUps, type HeadsUp } from "@/lib/headsUps";
 import { findSpotRoad } from "@/lib/spotRoad";
 import type { RegionInfo } from "@/lib/types";
+import type { HomeSeed } from "@/lib/serverData";
+import pre from "./MapShell.module.css";
 import { DEFAULT_MAP_STYLE, saveMapStyle, savedMapStyle, type MapTheme } from "@/lib/mapThemes";
 import {
-  keysIn, levelFor, loadBlock, loadCell, loadIndex, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
+  decode, keysIn, levelFor, loadBlock, loadCell, loadIndex, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
 } from "@/lib/roadData";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => <div className="map map-loading" /> });
@@ -45,13 +47,14 @@ function spotIn(s: Spot, b: Bounds): boolean {
  * profile, a group, and an event. Pages render in the panel: a side panel on
  * wide screens and in phone landscape, a sheet from the bottom on phones.
  */
-export default function MapShell({ children }: { children: React.ReactNode }) {
+export default function MapShell({ children, seed }: { children: React.ReactNode; seed?: HomeSeed | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile } = useAuth();
-  const [index, setIndex] = useState<DataIndex | null>(null);
+  // Seeded from the page (11.67) so the list shows before the data files load.
+  const [index, setIndex] = useState<DataIndex | null>(seed?.index ?? null);
   // Roads loaded so far, by level: top (whole country), 5-degree blocks, 1-degree squares.
-  const [topRoads, setTopRoads] = useState<RoadOnMap[]>([]);
+  const [topRoads, setTopRoads] = useState<RoadOnMap[]>(() => (seed ? decode(seed.top) : []));
   const [blockRoads, setBlockRoads] = useState<Record<string, RoadOnMap[]>>({});
   const [cellRoads, setCellRoads] = useState<Record<string, RoadOnMap[]>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -115,6 +118,8 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<SheetState>("closed");
   const [panelWide, setPanelWide] = useState(false);
   const [isSheet, setIsSheet] = useState(false);
+  // False until the scripts know the screen (11.67); until then CSS picks the layout.
+  const [mounted, setMounted] = useState(false);
   const [dragPx, setDragPx] = useState<number | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const layers = useSpotLayers();
@@ -168,6 +173,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
     const mq = window.matchMedia(SHEET_MEDIA);
     const update = () => setIsSheet(mq.matches);
     update();
+    setMounted(true);
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
@@ -611,10 +617,12 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
   };
 
   // The phone road cards, only when there are roads to show (else the buttons sit at the bottom).
-  const showCards = isSheet && home && !adding && (sheet === "closed" || sheet === "peek") && items.length > 0;
+  // Home map, before the scripts know the screen: the cards are in the page and CSS shows them only on phones.
+  const phoneOrUnknown = isSheet || !mounted;
+  const showCards = phoneOrUnknown && home && !adding && (sheet === "closed" || sheet === "peek") && items.length > 0;
   const sheetClass = isSheet ? ` sheet-${panelOpen}` : "";
-  const listChip = isSheet && home && !adding && (
-    <button type="button" className="map-chip" onClick={() => setSheet(sheet === "closed" || sheet === "peek" ? "full" : "closed")}>
+  const listChip = phoneOrUnknown && home && !adding && (
+    <button type="button" className="map-chip list-chip" onClick={() => setSheet(sheet === "closed" || sheet === "peek" ? "full" : "closed")}>
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
       List
     </button>
@@ -627,7 +635,7 @@ export default function MapShell({ children }: { children: React.ReactNode }) {
 
   return (
     <MapShellContext.Provider value={ctx}>
-      <div className={`shell${panelWide ? " wide" : ""}${isSheet ? " is-sheet" : ""}`}>
+      <div className={`shell${panelWide ? " wide" : ""}${isSheet ? " is-sheet" : ""}${mounted || !home ? "" : ` ${pre.pre}`}`}>
         <section
           ref={panelRef}
           className={`shell-panel${sheetClass}${dragPx !== null ? " dragging" : ""}`}

@@ -878,3 +878,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Active members are counted from what the app already keeps (signed in, rated, posted, voted, saved, followed, joined, or read a chat that day). Only totals are shown; no message text, locations, private spots or group members.
 - The counter can't tell people apart, so it shows visits, not unique visitors. Vercel Web Analytics (also cookieless) could add unique visitors, countries and referrers later if wanted; it would need turning on in Vercel and a line on About.
 - Days run on UTC time.
+
+### 11.67 Google listing and a faster phone load (2026-11-23)
+
+- Your note: Google listed the site with an http address and no icon, and PageSpeed scored phones 34 for performance (main content after 6.9 seconds, the page frozen about 4 seconds while it loads).
+- Listing: the site already sends http to https; nothing told Google the official address. Now every page names its https address (canonical), robots.txt points to a sitemap of the main pages and the top-rated roads, and private pages (account, messages, invite links, admin) stay out of search. A favicon.ico (16, 32 and 48 px from the app icon) sits where Google looks for one. Google picks these up on its next crawl; Search Console can ask for it sooner.
+- Phone load: the road cards waited for the page's scripts, the road data file (900 KB) and a database call before showing, and phones first drew the desktop layout. Now the data index and the top 24 roads are in the page itself, and the home map has the phone layout from the first paint (CSS decides before the scripts run). In a phone test (slow 4G, 4x slower processor) the first road card shows at about 1.3 seconds instead of 6.1. The full list and the map load after, as before.
+- Pages opened on request (a road, a profile) don't carry the seed; they load as before.

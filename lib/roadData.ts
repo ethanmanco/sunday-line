@@ -52,7 +52,7 @@ const json = <T,>(url: string) =>
     return r.json() as Promise<T>;
   });
 
-const decode = (roads: Road[]): RoadOnMap[] => roads.map((r) => ({ ...r, coords: decodePolyline(r.line) }));
+export const decode = (roads: Road[]): RoadOnMap[] => roads.map((r) => ({ ...r, coords: decodePolyline(r.line) }));
 
 // ---- Road checks (11.38): what members flagged and the site admin accepted ----
 

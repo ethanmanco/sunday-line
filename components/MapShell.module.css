@@ -1,0 +1,15 @@
+/*
+ * Before the page's scripts run (11.67): the layout this screen will get, from
+ * the first paint, so a phone never flashes the desktop list. The scripts then
+ * take over with the same layout. The phone rule matches SHEET_MEDIA in MapShell.
+ */
+@media (max-width: 899px) and (orientation: portrait), (max-width: 599px) {
+  .pre:global(.shell) { display: block; }
+  .pre :global(.shell-map) { position: absolute; inset: 0; }
+  .pre :global(.shell-panel), .pre :global(.legend) { display: none; }
+}
+/* Larger screens: the phone-only List button stays hidden (the cards already are). */
+@media (min-width: 900px), (min-width: 600px) and (orientation: landscape) {
+  .pre :global(.list-chip) { display: none; }
+  .pre :global(.map-actions.above-cards) { bottom: calc(34px + var(--safe-bottom, 0px)); }
+}
