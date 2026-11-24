@@ -103,7 +103,7 @@ export default async function About() {
           <a href="https://github.com/ethanmanco/sunday-line-data" target="_blank" rel="noopener noreferrer">the road data repository</a>).
         </li>
         <li>Base map: <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, &copy; OpenMapTiles. Satellite view: USGS The National Map. Hill shading: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener noreferrer">Terrain Tiles</a> on AWS Open Data (Mapzen, from USGS and other sources).</li>
-        <li>Town search: US Census Bureau 2024 Gazetteer and American Community Survey (public domain). Searches run on your device.</li>
+        <li>Town search: US Census Bureau 2024 Gazetteer and American Community Survey (public domain). Town and road searches run on your device.</li>
         <li>Elevation: USGS 3DEP. Aerial photos: USDA NAIP. Land cover: ESA WorldCover 2021 (CC BY 4.0).</li>
         <li>Road owner, surface, posted limits, traffic counts, and roughness: FHWA Highway Performance Monitoring System, 2024 (public domain).</li>
         <li>Buildings and places: Overture Maps Foundation.</li>

@@ -972,3 +972,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - The admin queue shows what each check pays and charges. The "your flag helped" notification (and push) adds the rep.
 - Also fixed: a road page opened from a link showed the road as the data files have it, without members' accepted checks (private, gravel and so on); it now applies them like the map does.
 - Local: supabase/seed.sql adds two test members (tester, dupper) after a local reset. Database tests: supabase/tests/database/rep.test.sql (21 checks).
+
+### 11.79 Find a road (2026-11-24)
+
+- Your note: "Find a place" only searched towns. Search roads too; an address should open the road it's on, if we have it; towns stay on top ("dallas" is Dallas, TX before roads starting with Dallas); still no autofill.
+- The tile step now writes each state's road names to a small file next to the road squares on GitHub Pages (names-XX.json: name, nearest town, position, score, square; 16 MB for all states, Texas about 380 KB compressed). The search box loads only the states in view, or the state typed ("Moon Lake Rd, LA"), and searches on the device like the town search; nothing typed leaves it.
+- Results: towns and states first, then up to five roads (every word typed matches the start of a word in the name, in any order; "Rd" and "Road", "Hwy" and "Highway", "CR" and "County Road" match each other), nearest first.
+- A street address ("1234 Moon Lake Rd, Bossier City, LA") lists the road with that name within 25 miles of the town first, marked "The road at this address", then the town. Most homes are on streets we don't score, so then only the town shows.
+- No "address", "street", "city" or "town" in the box's label or placeholder ("Find a place or road"), so iOS doesn't offer to autofill.

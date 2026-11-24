@@ -131,6 +131,7 @@ def tiles() -> None:
     if not exports:
         raise SystemExit("No data/out/<region>/export.json files yet. Run export for a region first.")
     best: dict[str, dict] = {}
+    region_of: dict[str, str] = {}
     regions, scoring, licenses = [], set(), set()
     for f in exports:
         data = json.loads(f.read_text(encoding="utf-8"))
@@ -146,6 +147,7 @@ def tiles() -> None:
             old = best.get(r["id"])
             if old is None or r["scores"]["overall"] > old["scores"]["overall"]:
                 best[r["id"]] = r
+                region_of[r["id"]] = f.parent.name
 
     cells: dict[str, list[dict]] = {}
     for r in best.values():
@@ -190,6 +192,7 @@ def tiles() -> None:
     if old_overview.exists():
         old_overview.unlink()
     (DEST / "road-cells.json").write_text(json.dumps(road_cells, separators=(",", ":")), encoding="utf-8")
+    _names(best, region_of, road_cells)
     index = {
         "version": 1,
         "generated": date.today().isoformat(),
@@ -206,6 +209,22 @@ def tiles() -> None:
     (DEST / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
     size = sum(p.stat().st_size for p in DEST.rglob("*.json")) / 1e6
     print(f"{len(best)} roads in {len(cells)} squares from {len(regions)} region(s); top {len(top)}, blocks {len(blocks)}; {size:.1f} MB")
+
+
+def _names(best: dict[str, dict], region_of: dict[str, str], road_cells: dict[str, str]) -> None:
+    """Road names for the search box (11.79), one file per state next to the
+    squares (published with them to GitHub Pages): [id, name, near, lng, lat,
+    overall, square]. The app loads only the states it needs and searches on
+    the device."""
+    by: dict[str, list] = {}
+    for rid, r in best.items():
+        lng, lat = r["start"]
+        by.setdefault(region_of[rid].upper(), []).append(
+            [rid, r["name"], r.get("near") or "", round(lng, 4), round(lat, 4), r["scores"]["overall"], road_cells[rid]]
+        )
+    for st, rows in by.items():
+        rows.sort(key=lambda x: -x[5])
+        (DEST / "cells" / f"names-{st}.json").write_text(json.dumps({"roads": rows}, separators=(",", ":")), encoding="utf-8")
 
 
 if __name__ == "__main__":

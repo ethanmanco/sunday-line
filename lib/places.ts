@@ -10,7 +10,7 @@ type LL = [number, number];
 /** [name, state abbr, lng, lat, population], biggest first. */
 type PlaceRow = [string, string, number, number, number];
 /** [name, abbr, west, south, east, north]. */
-type StateRow = [string, string, number, number, number, number];
+export type StateRow = [string, string, number, number, number, number];
 
 export interface PlaceHit {
   key: string;
@@ -21,7 +21,7 @@ export interface PlaceHit {
   bbox: Bounds;
 }
 
-interface Places {
+export interface Places {
   places: PlaceRow[];
   norm: string[];
   states: StateRow[];
