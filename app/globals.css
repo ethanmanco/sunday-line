@@ -126,7 +126,8 @@ h1, h2, h3 { font-family: var(--font-display), var(--font-body), sans-serif; let
 .maplibregl-ctrl-bottom-right:has(.maplibregl-compact:not(.maplibregl-compact-show)) { justify-content: flex-end; padding-right: 6px; }
 /* No focus ring on the (i) when it's tapped. */
 .maplibregl-ctrl-attrib-button:focus, .maplibregl-ctrl-attrib-button:focus-visible { outline: none !important; box-shadow: none !important; }
-.maplibregl-ctrl-attrib a { color: var(--dim) !important; }
+/* Plain-text credits (Terrain, Imagery) match the links; MapLibre makes the compact box's text black. */
+.maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib a { color: var(--dim) !important; }
 .maplibregl-ctrl-attrib-button { filter: invert(1); }
 
 /* Filters */
