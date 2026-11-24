@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageForPath } from "@/lib/viewCount";
+import { pageForPath } from "../viewCount";
 
 describe("pageForPath", () => {
   it("counts the kind of page only", () => {
