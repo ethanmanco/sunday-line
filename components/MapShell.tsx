@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import PlaceSearch from "./PlaceSearch";
+import RouteChip from "./RouteChip";
 import AppBar from "./AppBar";
 import type { FocusRequest } from "./MapView";
 import { useAuth } from "./AuthProvider";
@@ -769,12 +770,14 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
           <div className="map-top-left">
             {home && !adding && !pick && <PlaceSearch />}
             {listChip}
+            {home && !adding && !pick && <RouteChip />}
             {overlayChip}
           </div>
           {/* The installed phone app's floating top (11.51); CSS shows one or the other. */}
           {isSheet && !adding && !pick && (
             <AppBar home={home}>
               {listChip}
+              {home && <RouteChip />}
               {overlayChip}
             </AppBar>
           )}

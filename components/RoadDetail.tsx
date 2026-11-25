@@ -11,6 +11,7 @@ import type { LoadedRoad } from "@/lib/types";
 import SpotFacts from "./spots/SpotFacts";
 import SaveRoad from "./SaveRoad";
 import KeepOffline from "./KeepOffline";
+import AddToRoute from "./AddToRoute";
 import { decodePolyline } from "@/lib/polyline";
 import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
@@ -240,6 +241,7 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
             </span>
           </div>
         ))}
+        <AddToRoute road={r} />
         <p className="go-extra">
           <a href={streetViewLink(mid)} target="_blank" rel="noopener noreferrer">Street View near the middle</a>
           {r.osm_way_ids[0] && (
