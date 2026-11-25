@@ -12,18 +12,21 @@ import { useAuth } from "@/components/AuthProvider";
 import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
 import RepLine from "./RepLine";
+import DrivenRoads, { type Driven } from "./DrivenRoads";
 import {
   accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, sortPhotos,
   type FollowStatus, type Media, type Profile, type Vehicle, type VehiclePhoto,
 } from "@/lib/supabase";
 
-type Tab = "garage" | "photos" | "spots" | "followers" | "following";
+type Tab = "garage" | "photos" | "spots" | "driven" | "followers" | "following";
 
 export default function ProfileView({ username }: { username: string }) {
   const { ready, user, profile: me } = useAuth();
   const router = useRouter();
   const [vehiclePhotos, setVehiclePhotos] = useState<VehiclePhoto[]>([]);
   const [spots, setSpots] = useState<Spot[] | null>(null);
+  // Roads their reviews say they drove (11.88).
+  const [driven, setDriven] = useState<Driven[]>([]);
   // Public groups each profile spot is in (11.29).
   const [spotGroups, setSpotGroups] = useState<Record<string, { name: string; short_id: string }[]>>({});
   const [title, setTitle] = useState<string | null>(null);
@@ -74,11 +77,13 @@ export default function ProfileView({ username }: { username: string }) {
     setBlocked(Boolean(b.data));
     setUrls(await signedMediaUrls([...vps.map((x) => x.path), ...ms.map((x) => x.path)]));
     // Public spots plus the ones the owner chose to show (the database decides).
-    const [{ data: sp }, { data: pg }] = await Promise.all([
+    const [{ data: sp }, { data: pg }, { data: dr }] = await Promise.all([
       sb.rpc("profile_spots", { p_user: person.id }),
       sb.rpc("profile_spot_public_groups", { p_user: person.id }),
+      sb.rpc("roads_driven", { p_user: person.id }),
     ]);
     setSpots((sp as Spot[] | null) ?? []);
+    setDriven((dr as Driven[] | null) ?? []);
     const byId: Record<string, { name: string; short_id: string }[]> = {};
     for (const r of (pg as { spot_id: string; group_name: string; short_id: string }[] | null) ?? []) {
       (byId[r.spot_id] ??= []).push({ name: r.group_name, short_id: r.short_id });
@@ -220,6 +225,7 @@ export default function ProfileView({ username }: { username: string }) {
               ["garage", `Garage (${vehicles.length})`],
               ["photos", `Photos (${media.length})`],
               ["spots", `Spots (${spots?.length ?? 0})`],
+              ["driven", `Driven (${driven.length})`],
               ["followers", "Followers"],
               ["following", "Following"],
             ] as [Tab, string][]).map(([k, label]) => (
@@ -230,6 +236,7 @@ export default function ProfileView({ username }: { username: string }) {
             {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
             {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
             {tab === "spots" && <ProfileSpots spots={spots} groups={spotGroups} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
+            {tab === "driven" && <DrivenRoads driven={driven} isMe={isMe} name={profile.display_name} />}
             {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
             {tab === "following" && <FollowList personId={profile.id} direction="following" />}
           </div>
