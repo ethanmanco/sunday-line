@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import PlaceSearch from "./PlaceSearch";
 import Avatar from "./Avatar";
 import { useAuth } from "./AuthProvider";
@@ -89,11 +90,7 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
           className="app-round app-you"
           aria-expanded={menu}
           aria-label={signedIn ? (notes ? `You, ${notes} new notifications` : "You") : "Menu"}
-          onClick={() => {
-            // The road list tucks away so the menu isn't on top of it (11.89).
-            if (!menu && home && shell?.isSheet && shell.sheet !== "closed") shell.setSheet("closed");
-            setMenu(!menu);
-          }}
+          onClick={() => setMenu(!menu)}
         >
           {signedIn ? (
             <Avatar person={profile!} size={40} />
@@ -120,7 +117,9 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
         ))}
         {children}
       </div>
-      {menu && <YouMenu signedIn={signedIn} notes={notes} onClose={closeMenu} />}
+      {/* The menu goes on the page itself, so it opens over whatever sheet is up
+          (a list, road, spot, or group); closing it leaves that sheet as it was (11.91). */}
+      {menu && createPortal(<YouMenu signedIn={signedIn} notes={notes} onClose={closeMenu} />, document.body)}
     </div>
   );
 }

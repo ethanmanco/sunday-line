@@ -1058,3 +1058,9 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your ask: double tapping Driver's roads, Scenic, Gravel, or Bounties (installed app) opens the list, and a long press too.
 - A single tap still just picks the list, with no wait. A second tap on the same pill within 0.35 s, or holding a pill for half a second, also opens the road list full. Moving your finger (scrolling the pills) cancels a hold, and the pills no longer bring up the phone's copy menu or zoom on a double tap.
+
+### 11.91 Your menu opens on top of any sheet (2026-11-25)
+
+- Your report: on the iPhone app, tapping your picture with a list (or a road, group, and so on) half open put the menu behind it.
+- Why: the menu was inside the floating top bar, which sits below the sheet, so no sheet but the home list (closed by 11.89) ever got out of the way.
+- Now the menu opens on the page itself, over everything, with the rest dimmed. Closing it leaves whatever was open exactly as it was. The 11.89 step that closed the list is gone, so it works the same everywhere.
