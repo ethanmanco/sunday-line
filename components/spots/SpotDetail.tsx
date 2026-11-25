@@ -23,7 +23,7 @@ export default function SpotDetail({ spot, road, units, origin, originName, onCl
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  if (road) {
+  if (road && !road.light) {
     return <RoadDetail road={road} units={units} origin={origin} originName={originName} onClose={onClose} spot={spot} />;
   }
   const miles = spot.kind === "road" && spot.line ? lineMiles(decodePolyline(spot.line)) : null;

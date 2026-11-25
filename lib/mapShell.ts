@@ -36,7 +36,7 @@ export type ListItem =
 export interface MapShell {
   region: RegionInfo | null;
   roads: LoadedRoad[];
-  byId: Map<string, LoadedRoad>;
+  byId: Map<string, import("./roadData").RoadOnMap>;
   loadError: string | null;
   // What shows in the list, the cards, and on the map.
   filters: Filters;

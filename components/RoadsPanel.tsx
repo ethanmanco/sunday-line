@@ -89,6 +89,18 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
     );
   }
   const selected = shell.selectedId ? shell.byId.get(shell.selectedId) ?? null : null;
+  if (selected?.light) {
+    // Its full square didn't load (weak signal): say so rather than show half a road (11.81).
+    return (
+      <div className="empty" role="alert">
+        <p>Couldn&apos;t load {selected.name}. Check your connection and try again.</p>
+        <p>
+          <button type="button" className="chip" onClick={() => shell.selectRoad(selected.id)}>Try again</button>{" "}
+          <button type="button" className="chip" onClick={shell.showAllRoads}>All roads</button>
+        </p>
+      </div>
+    );
+  }
   if (selected) {
     return <RoadDetail road={selected} units={shell.region.units} origin={shell.origin} originName={shell.originName} onClose={shell.showAllRoads} />;
   }
