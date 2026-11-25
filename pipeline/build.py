@@ -492,6 +492,7 @@ def build(region: Region) -> list[dict]:
         speed_by_val = Counter()
         untagged_len = 0.0
         seg_limit = np.zeros(len(seg_len))
+        seg_posted = np.zeros(len(seg_len), dtype=bool)
         src_len = Counter()
         class_len = Counter()
         names, refs_c = Counter(), Counter()
@@ -524,9 +525,11 @@ def build(region: Region) -> list[dict]:
                 for v in speeds:
                     speed_by_val[v] += L
                 seg_limit[i] = min(speeds)
+                seg_posted[i] = True
             elif imperial and hp is not None and hp.get("speed_limit") and 10 <= hp["speed_limit"] <= 85:
                 # Posted limit the state DOT reported to FHWA.
                 seg_limit[i] = float(hp["speed_limit"])
+                seg_posted[i] = True
                 fhwa_posted_len += L
             else:
                 untagged_len += L
@@ -585,14 +588,20 @@ def build(region: Region) -> list[dict]:
         )
 
         # Speed limits: posted (OpenStreetMap or FHWA) first, then estimates.
+        # "Posted" only when nearly all of it is posted (11.81: it was up to a quarter
+        # estimated), and then the range shown is from the posted stretches only, so
+        # an estimate never reads as a posted limit.
         share_untagged = untagged_len / total_len
+        posted_only = share_untagged <= 0.05
         by_val = Counter()
-        for v, L in zip(seg_limit, seg_len):
-            by_val[int(v)] += L
-        shown = [v for v, L in by_val.items() if L >= min(200, 0.1 * total_len)] or [int(seg_limit[0])]
+        for v, L, is_posted in zip(seg_limit, seg_len, seg_posted):
+            if is_posted or not posted_only:
+                by_val[int(v)] += L
+        counted = sum(by_val.values())
+        shown = [v for v, L in by_val.items() if L >= min(200, 0.1 * counted)] or [int(max(by_val, key=by_val.get))]
         speed_min, speed_max = min(shown), max(shown)
         main_src = src_len.most_common(1)[0][0] if src_len else "posted"
-        if share_untagged <= 0.25:
+        if posted_only:
             speed_source = "posted"
         elif share_untagged < 0.75:
             speed_source = "partly_default" if main_src == "state_default" else "partly_estimated"
@@ -851,9 +860,10 @@ def build(region: Region) -> list[dict]:
             "speed_max": speed_max,
             "speed_units": "mph" if imperial else "km/h",
             "speed_source": speed_source,
-            "speed_default_note": (sd.get("source") if sd and speed_source != "posted"
+            # The state's default-speed law only explains defaults; the FHWA line only posted limits.
+            "speed_default_note": (sd.get("source") if sd and speed_source in ("state_default", "partly_default")
                                    else "Posted limit reported by the state DOT to FHWA (HPMS 2024)."
-                                   if fhwa_posted_len >= 0.5 * total_len else None),
+                                   if speed_source == "posted" and fhwa_posted_len >= 0.5 * total_len else None),
             "state": state,
             "osm_way_ids": sorted({int(x) for x in seg_way}),
             "mid": [round(mid_lon, 5), round(mid_lat, 5)],
