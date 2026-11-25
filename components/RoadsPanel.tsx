@@ -109,6 +109,7 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
       <FilterBar />
       <RoadList
         items={shell.items}
+        resetKey={JSON.stringify(shell.filters)}
         view={shell.filters.view}
         scoreKey={badgeKey(shell.filters.view)}
         units={shell.region.units}

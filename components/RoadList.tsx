@@ -18,6 +18,8 @@ interface Props {
   onSelect: (id: string) => void;
   onSpot: (id: string) => void;
   onHover: (id: string | null) => void;
+  /** "Show more" starts over when this changes (the filters), not when the map moves (11.82). */
+  resetKey: string;
 }
 
 const PAGE = 60;
@@ -33,9 +35,9 @@ function warning(r: LoadedRoad, view: View): string | null {
 }
 
 /** Roads and spots in one list, in the order the filters chose. */
-export default function RoadList({ items, view, scoreKey, units, originName, onSelect, onSpot, onHover }: Props) {
+export default function RoadList({ items, view, scoreKey, units, originName, onSelect, onSpot, onHover, resetKey }: Props) {
   const [shown, setShown] = useState(PAGE);
-  useEffect(() => setShown(PAGE), [items]);
+  useEffect(() => setShown(PAGE), [resetKey]);
   const roads = items;
 
   if (!roads.length) {

@@ -26,7 +26,7 @@ import type { HomeSeed } from "@/lib/serverData";
 import pre from "./MapShell.module.css";
 import { DEFAULT_MAP_STYLE, saveMapStyle, savedMapStyle, type MapTheme } from "@/lib/mapThemes";
 import {
-  decode, keysIn, levelFor, loadBlock, loadCell, loadIndex, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
+  decode, keysIn, levelFor, loadBlock, loadCell, loadIndex, trimCells, loadTop, roadCell, US_BBOX, type DataIndex, type RoadOnMap,
 } from "@/lib/roadData";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => <div className="map map-loading" /> });
@@ -143,33 +143,48 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
         loadBlock(key).then((r) => setBlockRoads((m) => ({ ...m, [key]: r }))).catch(() => {});
       }
     } else if (level === "cells") {
-      for (const key of keysIn(bounds, 1).slice(0, 48)) {
-        if (!index.cells[key] || cellRoads[key]) continue;
-        loadCell(key).then((r) => setCellRoads((m) => ({ ...m, [key]: r }))).catch(() => {});
+      // Nearest the center first (11.82), so a tall view fills from the middle out.
+      const [cx, cy] = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2];
+      const away = (k: string) => {
+        const [la, lo] = k.split("_").map(Number);
+        return Math.hypot(la + 0.5 - cy, lo + 0.5 - cx);
+      };
+      const want = keysIn(bounds, 1).filter((k) => index.cells[k]).sort((a, b) => away(a) - away(b)).slice(0, 48);
+      for (const key of want) {
+        if (cellRoads[key]) continue;
+        loadCell(key).then((r) => setCellRoads((m) => trimCells({ ...m, [key]: r }, want, away, selectedIdRef.current))).catch(() => {});
       }
     }
     // Loaded sets only grow; they're checked to skip repeat loads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, bounds]);
 
+  // Which squares or blocks the view covers. Panning within them changes
+  // nothing, so the roads below aren't rebuilt on every move (11.82).
+  const viewKeys = useMemo(() => {
+    const level = bounds ? levelFor(bounds) : "top";
+    return `${level}:${level === "cells" && bounds ? keysIn(bounds, 1).join(",") : level === "blocks" && bounds ? keysIn(bounds, 5).join(",") : ""}`;
+  }, [bounds]);
+
   // The roads for this view: full squares when zoomed in, lighter sets further out.
   const roads = useMemo((): RoadOnMap[] => {
-    const level = bounds ? levelFor(bounds) : "top";
+    const [level, list] = viewKeys.split(":");
+    const keys = list ? list.split(",") : [];
     const seen = new Map<string, RoadOnMap>();
     const add = (list: RoadOnMap[] | undefined) => list?.forEach((r) => {
       const had = seen.get(r.id);
       if (!had || (had.light && !r.light)) seen.set(r.id, r);
     });
-    if (level === "cells" && bounds) {
-      for (const k of keysIn(bounds, 1)) add(cellRoads[k] ?? blockRoads[`${Math.floor(Number(k.split("_")[0]) / 5) * 5}_${Math.floor(Number(k.split("_")[1]) / 5) * 5}`]?.filter((r) => r.cell === k));
-    } else if (level === "blocks" && bounds) {
-      for (const k of keysIn(bounds, 5)) add(blockRoads[k]);
+    if (level === "cells") {
+      for (const k of keys) add(cellRoads[k] ?? blockRoads[`${Math.floor(Number(k.split("_")[0]) / 5) * 5}_${Math.floor(Number(k.split("_")[1]) / 5) * 5}`]?.filter((r) => r.cell === k));
+    } else if (level === "blocks") {
+      for (const k of keys) add(blockRoads[k]);
     }
     if (level === "top" || seen.size === 0) add(topRoads);
     // Keep the open road even when its square isn't in view.
     for (const list of Object.values(cellRoads)) for (const r of list) if (r.id === selectedIdRef.current) add([r]);
     return [...seen.values()];
-  }, [bounds, topRoads, blockRoads, cellRoads]);
+  }, [viewKeys, topRoads, blockRoads, cellRoads]);
 
   useEffect(() => {
     const mq = window.matchMedia(SHEET_MEDIA);
@@ -677,6 +692,8 @@ export default function MapShell({ children, seed }: { children: React.ReactNode
           className={`shell-panel${sheetClass}${dragPx !== null ? " dragging" : ""}`}
           style={isSheet && dragPx !== null ? { height: dragPx } : undefined}
           aria-label="Page"
+          // A closed sheet is out of sight; screen readers and Tab skip it too (11.82).
+          inert={isSheet && panelOpen === "closed"}
         >
           {isSheet && panelOpen !== "closed" && (
             <SheetGrip

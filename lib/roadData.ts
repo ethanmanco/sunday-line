@@ -126,6 +126,31 @@ function load(path: string): Promise<RoadOnMap[]> {
 export const loadTop = () => load("top.json");
 export const loadBlock = (key: string) => load(`blocks/${key}.json`);
 export const loadCell = (key: string) => load(`cells/${key}.json`);
+/** Let go of a square the map no longer needs (11.82): a later visit downloads it again. */
+export const forgetCell = (key: string) => void cache.delete(`cells/${key}.json`);
+
+/** Squares held at most (11.82): a dense one is about 2 MB, and phones run out of memory. */
+const MAX_CELLS = 64;
+
+/**
+ * Loaded squares, trimmed to MAX_CELLS: the ones the view wants stay, and so
+ * does the open road's; the rest go, farthest from the view first.
+ */
+export function trimCells(m: Record<string, RoadOnMap[]>, want: string[], away: (k: string) => number, openId: string | null): Record<string, RoadOnMap[]> {
+  const keys = Object.keys(m);
+  if (keys.length <= MAX_CELLS) return m;
+  const keep = new Set(want);
+  if (openId) for (const k of keys) if (m[k].some((r) => r.id === openId)) keep.add(k);
+  const drop = keys.filter((k) => !keep.has(k)).sort((a, b) => away(b) - away(a)).slice(0, keys.length - MAX_CELLS);
+  if (!drop.length) return m;
+  const out = { ...m };
+  for (const k of drop) {
+    delete out[k];
+    forgetCell(k);
+  }
+  return out;
+}
+
 
 export function cellKey(lat: number, lon: number): string {
   return `${Math.floor(lat)}_${Math.floor(lon)}`;
@@ -182,3 +207,10 @@ export async function roadsById(ids: string[]): Promise<Record<string, RoadOnMap
   return found;
 }
 let movedP: Promise<Record<string, string>> | null = null;
+
+/** Road names by ID from the site (11.82): a few bytes, where roadsById loads whole squares. */
+export async function roadNames(ids: string[]): Promise<Record<string, string>> {
+  if (!ids.length) return {};
+  const res = await fetch(`/api/road-names?ids=${ids.slice(0, 60).sort().join(",")}`).catch(() => null);
+  return res?.ok ? ((await res.json()) as Record<string, string>) : {};
+}
