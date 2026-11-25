@@ -15,6 +15,8 @@ const PAGES = "sl-pages-v1";
 const DATA = "sl-data-v1";
 const OFFLINE = "sl-offline-v1";
 const KEEP = new Set([STATIC, PAGES, DATA, OFFLINE]);
+// Registered with ?dev=1 by the development server: no saved copies of the app's files.
+const DEV = new URL(self.location.href).searchParams.has("dev");
 // How long to wait for the network before using a saved copy (weak signal).
 const WAIT_MS = 6000;
 
@@ -82,7 +84,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (here && (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/maplibre/") || url.pathname.startsWith("/icons/"))) {
-    event.respondWith(cacheFirst(req, STATIC, true));
+    event.respondWith(DEV ? networkFirst(req, STATIC, true) : cacheFirst(req, STATIC, true));
     return;
   }
   if (here && /^\/data\/us\/(index|top|road-cells|moved)\.json$/.test(url.pathname)) {

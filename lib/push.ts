@@ -14,7 +14,9 @@ export type PushState =
 /** Register the service worker (installable app, push). Safe to call more than once. */
 export function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return Promise.resolve(null);
-  return navigator.serviceWorker.register("/sw.js").catch(() => null);
+  // In development the app's file names stay the same as they change, so the
+  // worker keeps no copies there (11.83).
+  return navigator.serviceWorker.register(process.env.NODE_ENV === "production" ? "/sw.js" : "/sw.js?dev=1").catch(() => null);
 }
 
 function isIos(): boolean {
