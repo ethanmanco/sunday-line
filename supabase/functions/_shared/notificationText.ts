@@ -8,7 +8,8 @@ export type NotificationKind =
   | "event_new" | "event_changed" | "event_cancelled" | "event_soon" | "event_location"
   | "message" | "mention"
   | "road_scored" | "spot_reviewed" | "group_spot_proposed" | "group_spot_accepted"
-  | "road_check_helped" | "admin_road_check" | "admin_spot_review";
+  | "road_check_helped" | "admin_road_check" | "admin_spot_review"
+  | "heads_up_on_road";
 
 export interface AppNotification {
   id: string;
@@ -26,6 +27,18 @@ export interface AppNotification {
   actor: { username: string; display_name: string } | null;
   group: { short_id: string } | null;
 }
+
+// Heads-up kinds (lib/headsUps.ts), in a sentence (11.86).
+const HEADS_UP_WORDS: Record<string, string> = {
+  police: "Police reported",
+  crash: "A crash reported",
+  stalled: "A stalled car reported",
+  debris: "Something on the road reported",
+  spill: "Oil or a spill reported",
+  animal: "An animal reported",
+  work: "Road work reported",
+  flooding: "Flooding reported",
+};
 
 const CHECK_WORDS: Record<string, string> = {
   gravel: "gravel or dirt",
@@ -94,6 +107,8 @@ export function describe(n: AppNotification, roadName: (id: string) => string): 
     case "admin_road_check":
       return { text: `Road check waiting: ${road} (${CHECK_WORDS[n.detail.kind ?? ""] ?? n.detail.kind})`, href: "/admin/roads" };
     case "admin_spot_review": return { text: `Spot waiting for review: ${title}`, href: "/admin/spots" };
+    case "heads_up_on_road":
+      return { text: `${HEADS_UP_WORDS[n.detail.kind ?? ""] ?? "A heads-up posted"} on ${title || "a road you saved"}`, href: `/?spot=${n.spot_id}` };
   }
 }
 
@@ -146,6 +161,7 @@ export function pushText(
     case "admin_road_check":
       return { title: "Road check waiting", body: `${road} (${CHECK_WORDS[n.detail.kind ?? ""] ?? n.detail.kind})` };
     case "admin_spot_review": return { title: "Spot waiting for review", body: title };
+    case "heads_up_on_road": return { title: title || "A road you saved", body: `${HEADS_UP_WORDS[n.detail.kind ?? ""] ?? "A heads-up posted"} on this road` };
   }
   return { title: "Sunday Line", body: describe(n, roadName).text };
 }
