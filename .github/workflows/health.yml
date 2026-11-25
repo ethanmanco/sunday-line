@@ -1,0 +1,38 @@
+# Checks the live site every three hours (11.82). If anything is down, this
+# run fails and GitHub emails the repository owner. Needs no secrets.
+#   - the site and its road data load
+#   - the road squares on GitHub Pages load
+#   - the push sender answers and can reach the database (an unknown
+#     notification gets "nothing to send", which means it asked the database)
+name: Site health
+
+on:
+  schedule:
+    - cron: "41 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the site, data and push sender
+        run: |
+          set -u
+          fail=0
+          check() {
+            local name="$1" want="$2"; shift 2
+            local body
+            body=$(curl -sS --max-time 30 --retry 2 --retry-delay 20 "$@") || { echo "FAIL $name: no answer"; fail=1; return; }
+            if printf '%s' "$body" | grep -q -- "$want"; then echo "ok   $name"; else echo "FAIL $name: expected \"$want\""; printf '%s\n' "$body" | head -c 300; echo; fail=1; fi
+          }
+          check "home page" "Sunday Line" https://sundayline.app/
+          check "road data index" '"roads"' https://sundayline.app/data/us/index.json
+          key=$(curl -sS --max-time 30 https://sundayline.app/data/us/index.json | grep -o '"cells":{"[^"]*"' | sed 's/.*{"//; s/"$//')
+          check "a road square on GitHub Pages" '"roads"' "https://ethanmanco.github.io/sunday-line-data/cells/${key}.json"
+          check "push sender and database" "nothing to send" -X POST -H "Content-Type: application/json" \
+            -d '{"id":"00000000-0000-0000-0000-000000000000"}' https://ggbdcdkzvubcgzkdkrwn.supabase.co/functions/v1/push
+          exit $fail
