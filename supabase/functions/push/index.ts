@@ -37,26 +37,12 @@ Deno.serve(async (req) => {
   const note = n as AppNotification & { user_id: string };
   const { href } = describe(note, () => "a road");
 
-  // Messages and mentions show the start of the latest message (11.76). The
-  // notification exists only if the member may read that chat.
-  let said: { body: string | null; photo: boolean } | null = null;
-  if ((note.kind === "message" || note.kind === "mention") && note.conversation_id && note.actor_id) {
-    const { data: m } = await sb.from("messages").select("body, media_path")
-      .eq("conversation_id", note.conversation_id).eq("sender_id", note.actor_id)
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (m) said = { body: m.body, photo: Boolean(m.media_path) };
-  }
-  // Event times are written in the event's own time zone (11.77).
-  let timeZone: string | undefined;
-  if (note.event_id && note.kind.startsWith("event_")) {
-    const { data: ev } = await sb.from("events").select("timezone").eq("id", note.event_id).maybeSingle();
-    timeZone = ev?.timezone ?? "America/Chicago";
-  }
+  // Message text, the event's time zone, and the unread count come with the
+  // claim (11.76, 11.77, 11.81): this function can't read those tables itself.
+  const said = (n.said ?? null) as { body: string | null; photo: boolean } | null;
+  const timeZone = note.event_id && note.kind.startsWith("event_") ? (n.timezone ?? "America/Chicago") : undefined;
   const { title, body: text } = pushText(note, () => "A road", said, timeZone);
-
-  // The number on the app icon: unread notifications, like the bell.
-  const { count } = await sb.from("notifications").select("id", { count: "exact", head: true })
-    .eq("user_id", note.user_id).is("read_at", null);
+  const count = typeof n.unread === "number" ? n.unread : null;
 
   const payload = JSON.stringify({
     title: title || "Sunday Line",

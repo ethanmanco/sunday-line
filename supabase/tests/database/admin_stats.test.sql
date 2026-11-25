@@ -81,7 +81,8 @@ reset role;
 insert into public.speed_reports (road_id, user_id, posted_limit, reported_at) values
   ('bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 45, '2026-11-03 15:00+00'),
   ('cccccccccccc', '11111111-1111-1111-1111-111111111111', 45, '2026-11-05 15:00+00');
-insert into private.page_views (day, page, views) values ('2026-11-03', 'map', 5), ('2026-10-28', 'map', 2);
+insert into private.page_views (day, page, views) values ('2026-11-03', 'map', 5), ('2026-10-28', 'map', 2),
+  ('2026-01-05', 'about', 1);
 
 select pg_temp.act_as('44444444-4444-4444-4444-444444444444');
 select is(public.admin_stats(null, '2026-11-02', '2026-11-08') ->> 'since', '2026-11-02', 'a date range starts where asked');
@@ -95,7 +96,7 @@ select is((public.admin_stats(null, '2026-11-02', '2026-11-08', 'week') -> 'seri
   'by week, Alice counts once');
 select is((public.admin_stats(null, '2026-11-02', '2026-11-08', 'week') -> 'previous' -> 0 ->> 'views')::int, 2,
   'the week before comes back for comparing');
-select is(public.admin_stats(0) ->> 'since', '2026-10-28', 'all time starts on the first day anything was counted');
+select is(public.admin_stats(0) ->> 'since', '2026-01-05', 'all time starts on the first day anything was counted');
 
 select * from finish();
 rollback;
