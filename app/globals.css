@@ -186,6 +186,13 @@ button.link:disabled { color: var(--faint); }
 .detail-bar .share.save-road { background: var(--raised); border: 1px solid var(--line); color: var(--text); }
 .detail-bar a.save-road { display: inline-flex; align-items: center; border-radius: 8px; padding: 8px 14px; min-height: 44px; font-weight: 600; text-decoration: none; }
 .save-road-box { position: relative; }
+/* Keep offline (11.83): an icon button next to Save. */
+.detail-bar .keep-offline { padding: 8px 10px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.detail-bar .keep-offline.kept { color: var(--accent); border-color: var(--accent); }
+.keep-pct { font-size: 13px; font-variant-numeric: tabular-nums; }
+.offline-roads { margin: 12px 16px; padding: 12px; border: 1px solid var(--accent); border-radius: var(--radius); }
+.offline-roads h2 { font-size: 15px; margin: 0 0 6px; }
+.offline-roads ul { list-style: none; margin: 0; padding: 0; }
 .save-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; list-style: none; margin: 0; padding: 6px; min-width: 210px; max-width: 80vw; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
 .detail-bar .save-menu button { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; background: none; border: 0; border-radius: 6px; padding: 8px 10px; font-weight: 600; }
 .detail-bar .save-menu button:hover:not(:disabled) { background: var(--panel); }

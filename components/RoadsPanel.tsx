@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import FilterBar from "./FilterBar";
+import OfflineRoads from "./OfflineRoads";
 import RoadDetail from "./RoadDetail";
 import RoadList from "./RoadList";
 import SpotDetail from "./spots/SpotDetail";
@@ -106,6 +107,7 @@ export default function RoadsPanel({ initialRoadId, initialRoad }: { initialRoad
   }
   return (
     <>
+      <OfflineRoads />
       <FilterBar />
       <RoadList
         items={shell.items}

@@ -10,6 +10,7 @@ import {
 import type { LoadedRoad } from "@/lib/types";
 import SpotFacts from "./spots/SpotFacts";
 import SaveRoad from "./SaveRoad";
+import KeepOffline from "./KeepOffline";
 import { decodePolyline } from "@/lib/polyline";
 import { lineMiles, spotLabel, type Spot } from "@/lib/spots";
 import { spotStretch } from "@/lib/stretch";
@@ -111,6 +112,7 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
         </button>
         <div className="detail-actions">
           <SaveRoad road={r} />
+          <KeepOffline road={r} />
           <button type="button" className="share" onClick={share}>
             {copied ? "Link copied" : "Share"}
           </button>
