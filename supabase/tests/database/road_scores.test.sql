@@ -1,6 +1,6 @@
 -- Security tests for the road score queue (docs/plan.md 11.27).
 begin;
-select plan(16);
+select plan(17);
 
 insert into auth.users (id, email) values
   ('9a000000-0000-0000-0000-000000000001', 'rs_owner@example.test'),
@@ -67,6 +67,16 @@ insert into public.road_scores (spot_id, status, requested_by, requested_at)
 select id, 'done', '9a000000-0000-0000-0000-000000000001', now() from s;
 select pg_temp.act_as('9a000000-0000-0000-0000-000000000001');
 select throws_ok($$ select public.request_road_score(pg_temp.id('road')) $$, '23514', null, 'twenty requests a day at most');
+
+-- A job that died on its last try is marked failed, not left "scoring" (11.82).
+select set_config('role', 'postgres', true);
+update public.road_scores set status = 'scoring', attempts = 3, started_at = now() - interval '2 hours'
+where spot_id = (select id from public.spots where name = 'Road 1');
+select set_config('role', 'service_role', true);
+select count(*) from public.claim_score_jobs(5);
+select set_config('role', 'postgres', true);
+select is((select status::text from public.road_scores where spot_id = (select id from public.spots where name = 'Road 1')), 'failed',
+  'a job that died on its last try is marked failed');
 
 select * from finish();
 rollback;

@@ -51,13 +51,15 @@ def main() -> int:
             result = score_line(job["line"])
             rpc(base, key, "finish_score_job", {"p_spot": job["spot_id"], "p_scores": result["scores"], "p_details": result["details"]})
             print(f"  scored in {time.time() - t0:.0f}s: overall {result['scores']['overall']}", flush=True)
-        except (ValueError, RuntimeError, KeyError, urllib.error.URLError) as e:
+        except Exception as e:  # noqa: BLE001 - one bad road must not stop the rest (11.82)
             failed += 1
-            note = str(e) if isinstance(e, ValueError) else "Couldn't reach the map data. It'll try again."
-            print(f"  failed: {e}", flush=True)
+            note = (str(e) if isinstance(e, ValueError)
+                    else "Couldn't reach the map data. It'll try again." if isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError))
+                    else "Scoring hit a problem. It'll try again.")
+            print(f"  failed: {type(e).__name__}: {e}", flush=True)
             try:
                 rpc(base, key, "fail_score_job", {"p_spot": job["spot_id"], "p_note": note})
-            except urllib.error.URLError:
+            except Exception:  # noqa: BLE001 - the claim times out and it's retried
                 pass
         time.sleep(2)  # be polite to the public map servers
     return 1 if failed and failed == len(jobs) else 0
