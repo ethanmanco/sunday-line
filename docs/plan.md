@@ -1048,3 +1048,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your ask: roads I've driven.
 - A Driven tab on profiles: the roads someone's reviews say "I drove it" on, newest first, with dates, and "Show on the map" (the 40 most recent). Private profiles show it only to approved followers, like the garage and photos (roads_driven()).
+
+### 11.89 The profile menu closes the list (2026-11-25)
+
+- Your note: in the installed app, tapping your picture (the menu with notifications, groups and people) should close the road list if it's open.
+- It does now, on the home map: the list tucks away and the menu opens over the map. Checked in the installed-app layout (?app=1) on a phone-sized screen.
