@@ -1244,3 +1244,23 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .stats-bars-track { height: 10px; }
 .stats-bars-fill { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; opacity: 0.85; }
 .stats-bars b { font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+
+/* Day route (11.85). After the general button styles, so these win. */
+.day-route .route-stops { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 0; }
+.day-route .route-stops li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.day-route .route-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+.day-route button.route-name { background: none; border: 0; border-radius: 0; padding: 0; text-align: left; color: var(--text); font: inherit; cursor: pointer; display: grid; gap: 2px; min-height: 44px; text-decoration: none; }
+.day-route .route-name .fine { margin: 0; }
+.day-route .route-tools { display: flex; gap: 4px; }
+.day-route .route-tools button.link { min-width: 36px; min-height: 36px; padding: 0; justify-content: center; text-decoration: none; }
+.day-route .route-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.day-route .route-go { flex-wrap: wrap; }
+.route-add { align-items: center; }
+a.map-chip.route-chip { text-decoration: none; }
+.day-route a.route-name { display: grid; gap: 2px; min-height: 44px; align-content: center; color: var(--text); text-decoration: none; }
+.event-route-edit { margin: 0 0 6px; padding-left: 22px; }
+.event-route-edit li { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0; }
+/* Driven roads on profiles (11.88). */
+.driven-roads { list-style: none; margin: 8px 0; padding: 0; }
+.driven-roads li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 8px 0; margin: 0; border-bottom: 1px solid var(--line); }
+.driven-roads .fine { margin: 0; white-space: nowrap; }

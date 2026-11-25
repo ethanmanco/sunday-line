@@ -1019,3 +1019,32 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - With no signal, the home list shows "Roads kept on this device" at the top (raised on phones). Phones often report being online with no data getting through, so the app asks the site itself whether it can be reached.
 - Kept roads are listed in this browser's storage only; nothing about them is sent anywhere.
 - Checked in Chromium with the network fully off: the app opened, listed the kept road, and opened it with the street map, labels and terrain. Not yet checked on an iPhone.
+
+### 11.84 Private members' reviews: public, but anonymous (2026-11-25)
+
+- Your decision: private members' reviews stay public but anonymous.
+- A review's row (with its author) is readable only by people who can see that member's profile (public members, approved followers, themselves) and the site admin. Everyone still reads every review's text through road_reviews(), which leaves the author off when you can't see their profile, and every review still counts in a road's summary (road_community now runs as its owner; it has no authors in it). Speed reports follow the same rule.
+- Before this, anyone could list a private member's reviews through the database, which showed where they drive.
+
+### 11.85 Day route builder (2026-11-25)
+
+- Your ask: a day route builder.
+- On a road's page, "Add to day route" (in Get directions). /route lists the roads, up to 20, with up and down, drive it the other way, remove, "Shortest order" (from your location if it's set; each next road is the one with an end nearest where the last one finished), "Keep all offline", and Clear. A "Route (N)" chip on the home map opens it, and the route's roads show on the map.
+- Directions: one Google Maps link with each road's two ends as stops, from wherever the phone is. A link holds 9 stops plus the destination, so longer routes come in parts of five roads. Apple Maps and Waze can't take several stops from a link; each road keeps its own directions for them.
+- The route stays in this browser's storage; nothing about it is sent anywhere.
+
+### 11.86 Heads-ups on your saved roads (2026-11-25)
+
+- Your ask: heads-up alerts on saved roads.
+- When someone posts a heads-up within about 250 m of a road in your spots, you get a notification (and a push, if they're on): "Something on the road reported on Lake Loop". It says nothing about who posted it, and your own heads-ups don't notify you. The database measures from the heads-up to the saved road's line (private.decode_line, private.meters_to_line).
+
+### 11.87 Meets with a route (2026-11-25)
+
+- Your ask: meets with a route.
+- An event can hold the roads the group will drive, in order (event_roads, set with set_event_route by event managers, up to 20). In the event form: "Use my day route", remove roads, or clear. Members see the route at the same time as the location (event_location_visible); people outside the group never do.
+- The event page lists the route, draws it on the map, opens it in Google Maps starting from the meet spot, and can copy it to your own day route.
+
+### 11.88 Roads I've driven (2026-11-25)
+
+- Your ask: roads I've driven.
+- A Driven tab on profiles: the roads someone's reviews say "I drove it" on, newest first, with dates, and "Show on the map" (the 40 most recent). Private profiles show it only to approved followers, like the garage and photos (roads_driven()).

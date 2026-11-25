@@ -68,7 +68,23 @@ export default async function About() {
         </li>
         <li>
           <b>Heads-ups</b> mark something on a road right now, like a crash or something in the lane. They end by
-          themselves (1 to 12 hours, by kind), and they show without the poster&apos;s name.
+          themselves (1 to 12 hours, by kind), and they show without the poster&apos;s name. If one is posted on a road
+          you saved to your spots, you get a notification.
+        </li>
+        <li>
+          <b>Driven:</b> roads you review with &quot;I drove it&quot; ticked show on your profile&apos;s Driven tab.
+        </li>
+      </ul>
+
+      <h2 id="day-route">Day routes and meets</h2>
+      <ul>
+        <li>
+          <b>Day route:</b> on any road, tap &quot;Add to day route&quot;. Your roads line up in a short order, and one
+          link opens them all in Google Maps as stops. Plan it before you go. The route stays on this device.
+        </li>
+        <li>
+          <b>Meets with a route:</b> an event can list the roads the group will drive. Members see the route when they
+          see the location.
         </li>
       </ul>
 
@@ -130,8 +146,9 @@ export default async function About() {
           taken.
         </li>
         <li>
-          A private profile shows your garage, photos, and follow lists only to followers you approve. Your name,
-          picture, bio, and road reviews stay public. Heads-ups never show who posted them.
+          A private profile shows your garage, photos, follow lists, and driven roads only to followers you approve.
+          Your name, picture, and bio stay public. Your road reviews still show and count, but without your name to
+          anyone you haven&apos;t approved. Heads-ups never show who posted them.
         </li>
         <li>Blocking someone is private: they aren&apos;t told. You stop following each other, and they can&apos;t follow you or see your garage and photos.</li>
         <li>Notifications are yours alone. Read ones are deleted after 60 days, all of them after 120.</li>
