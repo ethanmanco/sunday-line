@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
     "/opengraph-image": ["./public/data/us/index.json", "./assets/fonts/*.ttf"],
     "/about": ["./public/data/us/index.json"],
   },
+  // OpenFreeMap's street tiles through this site, for browsers whose blocker
+  // blocks them (11.80, lib/mapStyle.ts). Used only when they're blocked.
+  async rewrites() {
+    return [
+      { source: "/streets", destination: "https://tiles.openfreemap.org/planet" },
+      { source: "/streets/:path*", destination: "https://tiles.openfreemap.org/planet/:path*" },
+    ];
+  },
   async headers() {
     return [
       {

@@ -46,6 +46,33 @@ export const scoreRamp: ExpressionSpecification = [
   ...RAMP.flatMap(([v, c]) => [v, c]),
 ] as unknown as ExpressionSpecification;
 
+// ---- Street tiles when a blocker blocks OpenFreeMap (11.80) ----
+// On 2026-11-24 the EasyPrivacy filter list (on by default in uBlock Origin,
+// and used by Brave) started blocking tiles.openfreemap.org/planet, which left
+// the street map blank. A blocked request fails at once, so the map checks
+// first; if it's blocked, the same tiles come through this site instead
+// (/streets, rewritten to OpenFreeMap in next.config.ts).
+const OMT = "https://tiles.openfreemap.org/planet";
+const STREETS_HERE = "/streets";
+let streetsP: Promise<void> | null = null;
+let streetsHere = false;
+
+/** Finds out whether OpenFreeMap's tiles are blocked here. Call before making a map. */
+export function checkStreets(): Promise<void> {
+  streetsP ??= Promise.race([
+    fetch(OMT).then(() => false, () => true),
+    new Promise<boolean>((r) => setTimeout(() => r(false), 4000)),
+  ]).then((blocked) => {
+    streetsHere = blocked;
+  });
+  return streetsP;
+}
+
+/** The map's transformRequest: OpenFreeMap tile requests go through this site when blocked. */
+export function streetsRequest(url: string): { url: string } {
+  return streetsHere && url.startsWith(OMT) ? { url: location.origin + STREETS_HERE + url.slice(OMT.length) } : { url };
+}
+
 export function baseStyle(): StyleSpecification {
   const t = THEME;
   const name: ExpressionSpecification = ["coalesce", ["get", "name:en"], ["get", "name"]];

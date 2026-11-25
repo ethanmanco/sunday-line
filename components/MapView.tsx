@@ -7,7 +7,7 @@ import { headsUpIcon, headsUpIconId, type HeadsUp } from "@/lib/headsUps";
 import type { PickState } from "@/lib/mapShell";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LayerSpecification, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
-import { baseStyle, landmarkIcon, roadLayers, ROADS_BEFORE, scoreRamp } from "@/lib/mapStyle";
+import { baseStyle, checkStreets, landmarkIcon, roadLayers, ROADS_BEFORE, scoreRamp, streetsRequest } from "@/lib/mapStyle";
 import { applyTheme, baseVisibility, themedRoadLayers, themedStyle, type MapTheme } from "@/lib/mapThemes";
 import type { Bounds } from "@/lib/roads";
 import type { LoadedRoad } from "@/lib/types";
@@ -96,13 +96,16 @@ export default function MapView(props: Props) {
     let cancelled = false;
     let resize: ResizeObserver | null = null;
     (async () => {
+      const streets = checkStreets();
       const ml = await import("maplibre-gl");
+      await streets;
       if (cancelled || !el.current) return;
       mlRef.current = ml;
       ml.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
       const map = new ml.Map({
         container: el.current,
         style: themedStyle(baseStyle(), theme.current),
+        transformRequest: streetsRequest,
         bounds: cb.current.regionBbox,
         fitBoundsOptions: { padding: 16 },
         // Phones: the credit folds into a small (i) after the first move; OSM's

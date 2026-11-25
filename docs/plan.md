@@ -980,3 +980,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Results: towns and states first, then up to five roads (every word typed matches the start of a word in the name, in any order; "Rd" and "Road", "Hwy" and "Highway", "CR" and "County Road" match each other), nearest first.
 - A street address ("1234 Moon Lake Rd, Bossier City, LA") lists the road with that name within 25 miles of the town first, marked "The road at this address", then the town. Most homes are on streets we don't score, so then only the town shows.
 - No "address", "street", "city" or "town" in the box's label or placeholder ("Find a place or road"), so iOS doesn't offer to autofill.
+
+### 11.80 Street map when a blocker blocks it (2026-11-24)
+
+- Your note: on desktop Firefox the street map was gone; only the road lines and hill shading showed.
+- Cause: on 2026-11-24 the EasyPrivacy filter list (on by default in uBlock Origin, and used by Brave) added a rule blocking tiles.openfreemap.org/planet, where every street tile comes from. It blanks every site that uses OpenFreeMap; it's reported upstream (easylist/easylist issue 26522).
+- Fix: before a map is made, the app asks OpenFreeMap for its tile list. A blocked request fails at once; then the map loads the same tiles through this site (/streets, a rewrite to OpenFreeMap in next.config.ts). Browsers that aren't blocked still get the tiles straight from OpenFreeMap, so the site's bandwidth only carries blocked visitors.
+- Checked in Firefox with uBlock Origin: blank before, full street map after.

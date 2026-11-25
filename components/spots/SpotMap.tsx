@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { baseStyle } from "@/lib/mapStyle";
+import { baseStyle, checkStreets, streetsRequest } from "@/lib/mapStyle";
 import { spotFeatures, spotsBbox, type Spot } from "@/lib/spots";
 import { extendOnMap, traceRoadAt, type RoadExtender, type TracedRoad } from "@/lib/traceRoad";
 import type { LoadedRoad } from "@/lib/types";
@@ -51,7 +51,9 @@ export default function SpotMap(props: Props) {
     let cancelled = false;
     let resize: ResizeObserver | null = null;
     (async () => {
+      const streets = checkStreets();
       const ml = await import("maplibre-gl");
+      await streets;
       if (cancelled || !el.current) return;
       mlRef.current = ml;
       ml.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -59,6 +61,7 @@ export default function SpotMap(props: Props) {
       const map = new ml.Map({
         container: el.current,
         style: baseStyle(),
+        transformRequest: streetsRequest,
         bounds: fitBox(p) ?? p.fallbackBbox,
         fitBoundsOptions: { padding: 40, maxZoom: 14 },
         attributionControl: { compact: true },
