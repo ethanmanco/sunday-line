@@ -54,9 +54,14 @@ function Profile({ ft }: { ft: number[] }) {
 export default function RoadDetail({ road: r, units, origin, originName, onClose, spot = null }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [copied, setCopied] = useState(false);
+  // Which explanation is open: a score's, or the status chip's. Tapped open,
+  // since phones can't show hover text (11.82).
+  const [help, setHelp] = useState<string | null>(null);
+  const toggle = (k: string) => setHelp((h) => (h === k ? null : k));
   useEffect(() => {
     heading.current?.focus();
     setCopied(false);
+    setHelp(null);
   }, [r.id]);
 
   const [startName, endName] = endNames(r);
@@ -127,10 +132,17 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
               .join(" · ")}
           </p>
           <p className="chips">
-            <span className="chip" title="Found from map data. Members haven't verified it yet.">{STATUS_LABEL[r.status]}</span>
+            {r.status === "candidate" ? (
+              <button type="button" className="chip chip-help" aria-expanded={help === "status"} onClick={() => toggle("status")}>
+                {STATUS_LABEL[r.status]} <span aria-hidden="true">?</span>
+              </button>
+            ) : (
+              <span className="chip">{STATUS_LABEL[r.status]}</span>
+            )}
             {r.category === "gravel" && <span className="chip warn">Gravel or dirt</span>}
             {r.category === "unsure" && <span className="chip warn">Surface needs a check</span>}
           </p>
+          {help === "status" && <p className="fine">Found from map data. Members haven&apos;t verified it yet.</p>}
         </div>
       </header>
 
@@ -155,14 +167,19 @@ export default function RoadDetail({ road: r, units, origin, originName, onClose
 
       <dl className="scores">
         {SCORE_ROWS.map((row) => (
-          <div key={row.key} className="score-row" title={row.help}>
-            <dt>{row.label}</dt>
+          <div key={row.key} className="score-row">
+            <dt>
+              <button type="button" className="score-help" aria-expanded={help === row.key} onClick={() => toggle(row.key)} title={row.help}>
+                {row.label}
+              </button>
+            </dt>
             <dd>
               <span className="bar" aria-hidden="true">
                 <span style={{ width: `${r.scores[row.key]}%`, background: scoreColor(r.scores[row.key]) }} />
               </span>
               <b>{r.scores[row.key]}</b>
             </dd>
+            {help === row.key && <dd className="score-why fine">{row.help}</dd>}
           </div>
         ))}
       </dl>

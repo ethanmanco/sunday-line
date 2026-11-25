@@ -5,7 +5,7 @@
   --line: #272d37;
   --text: #e8ebef;
   --dim: #9aa3ae;
-  --faint: #6f7884;
+  --faint: #858e99; /* 4.5:1 or better on every panel color (11.82) */
   --accent: #f5a524;
   --accent-ink: #1a1306;
   --warn: #f0b35a;
@@ -124,8 +124,9 @@ h1, h2, h3 { font-family: var(--font-display), var(--font-body), sans-serif; let
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl { pointer-events: auto; margin: 0; float: none; }
 /* Folded into the (i): it sits at the right, not the middle. */
 .maplibregl-ctrl-bottom-right:has(.maplibregl-compact:not(.maplibregl-compact-show)) { justify-content: flex-end; padding-right: 6px; }
-/* No focus ring on the (i) when it's tapped. */
-.maplibregl-ctrl-attrib-button:focus, .maplibregl-ctrl-attrib-button:focus-visible { outline: none !important; box-shadow: none !important; }
+/* No focus ring on the (i) when it's tapped; keyboard focus still shows one (11.82). */
+.maplibregl-ctrl-attrib-button:focus:not(:focus-visible) { outline: none !important; box-shadow: none !important; }
+.maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--focus) !important; outline-offset: 2px; }
 /* Plain-text credits (Terrain, Imagery) match the links; MapLibre makes the compact box's text black. */
 .maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib a { color: var(--dim) !important; }
 .maplibregl-ctrl-attrib-button { filter: invert(1); }
@@ -203,6 +204,15 @@ button.link:disabled { color: var(--faint); }
 .scores { margin: 18px 0 0; display: grid; gap: 8px; }
 .score-row { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 10px; }
 .score-row dt { color: var(--dim); font-size: 14px; }
+/* Tap a score's name for what it means (11.82). */
+.score-help { background: none; border: 0; padding: 0; min-height: 32px; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 3px; }
+.score-row .score-why { grid-column: 1 / -1; margin: 0 0 6px; }
+button.chip-help { background: none; font: inherit; font-size: 12px; cursor: pointer; }
+/* Phones zoom into any text box under 16px when it's tapped (11.82). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: max(16px, 1em); }
+}
 .score-row dd { margin: 0; display: grid; grid-template-columns: 1fr 32px; align-items: center; gap: 10px; }
 .score-row b { font-family: var(--font-display), sans-serif; font-size: 20px; text-align: right; }
 .bar { height: 8px; background: var(--raised); border-radius: 4px; overflow: hidden; }
@@ -220,7 +230,7 @@ button.link:disabled { color: var(--faint); }
 .go { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
 .go-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .go-links { display: flex; gap: 14px; }
-.go-links a, .go-extra a { min-height: 32px; display: inline-flex; align-items: center; }
+.go-links a, .go-extra a { min-height: 44px; display: inline-flex; align-items: center; }
 .go-extra { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0 0; font-size: 14px; }
 .credit { margin-top: 20px; }
 
@@ -336,7 +346,7 @@ button.button.ghost { background: none; color: var(--text); border: 1px solid va
 .garage img, .garage-blank { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: var(--raised); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 14px; }
 .garage p { margin: 6px 0 0; }
 .gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--raised); }
-.gallery.editable input { width: 100%; margin-top: 6px; background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 14px; color: var(--text); }
+.gallery.editable input { width: 100%; margin-top: 6px; background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 16px; color: var(--text); }
 .people { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; }
 .people li.person { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; }
 .person-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); min-height: 52px; min-width: 0; }
@@ -751,7 +761,7 @@ button.link {
 button.link:hover { border-color: #3a4250; }
 button.link:disabled { opacity: 0.6; color: var(--text); }
 button.link.danger { color: #ff8a80; }
-.msg-meta button.link { min-height: 26px; padding: 0 8px; font-size: 12px; }
+.msg-meta button.link { min-height: 32px; padding: 0 10px; font-size: 12px; }
 .form button.link { justify-self: start; }
 
 /* Spot cards: tap the card for the map; actions are buttons */

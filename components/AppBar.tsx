@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import PlaceSearch from "./PlaceSearch";
@@ -34,6 +34,13 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
   const messages = useUnreadMessages();
   const notes = useUnreadNotifications();
   const [menu, setMenu] = useState(false);
+  const youButton = useRef<HTMLButtonElement>(null);
+  // Stable, so the open menu doesn't re-grab focus on every map move; focus
+  // goes back to the button that opened it (11.82).
+  const closeMenu = useCallback(() => {
+    setMenu(false);
+    youButton.current?.focus();
+  }, []);
   const signedIn = accountsEnabled && ready && !!user && !!profile;
 
   // A new page closes the menu.
@@ -70,6 +77,7 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
           </Link>
         )}
         <button
+          ref={youButton}
           type="button"
           className="app-round app-you"
           aria-expanded={menu}
@@ -104,7 +112,7 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
         ))}
         {children}
       </div>
-      {menu && <YouMenu signedIn={signedIn} notes={notes} onClose={() => setMenu(false)} />}
+      {menu && <YouMenu signedIn={signedIn} notes={notes} onClose={closeMenu} />}
     </div>
   );
 }
