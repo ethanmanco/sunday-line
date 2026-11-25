@@ -29,6 +29,12 @@ export default function Thread({ conversationId, embedded = false }: { conversat
   const [shown, setShown] = useState<Set<string>>(new Set());
   const [more, setMore] = useState(false);
   const [missing, setMissing] = useState(false);
+  // Couldn't reach the server (offline); a retry or coming back tries again (11.82).
+  const [failed, setFailed] = useState(false);
+  // Bumped when the app comes back to the screen: reconnects live updates.
+  const [resumed, setResumed] = useState(0);
+  const messagesRef = useRef<Message[] | null>(null);
+  messagesRef.current = messages;
   const list = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const peopleRef = useRef(people);
@@ -69,6 +75,11 @@ export default function Thread({ conversationId, embedded = false }: { conversat
         sb.rpc("chat_people", { p_conversation: conversationId }),
       ]);
       if (gone) return;
+      if (m.error || convs.error) {
+        setFailed(true);
+        return;
+      }
+      setFailed(false);
       const row = ((convs.data as ConversationSummary[] | null) ?? []).find((c) => c.id === conversationId) ?? null;
       if (!row) {
         setMissing(true);
@@ -85,6 +96,49 @@ export default function Thread({ conversationId, embedded = false }: { conversat
     })();
     return () => {
       gone = true;
+    };
+  }, [conversationId, user, addPeople, addUrls, markRead, failed && resumed]);
+
+  // Back from the background (11.82): phones pause the live connection, so
+  // fetch what came in or changed meanwhile, then reconnect.
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !user) return;
+    let busy = false;
+    const catchUp = async () => {
+      if (document.visibilityState !== "visible" || busy) return;
+      busy = true;
+      setResumed((n) => n + 1);
+      const have = messagesRef.current;
+      if (have) {
+        const { data, error } = await sb.from("messages").select("*").eq("conversation_id", conversationId)
+          .order("created_at", { ascending: false }).limit(PAGE);
+        if (!error && data) {
+          const latest = (data as Message[]).reverse();
+          await Promise.all([addPeople(latest.flatMap((x) => (x.sender_id ? [x.sender_id] : []))), addUrls(latest)]);
+          setMessages((list) => {
+            if (!list) return list;
+            const last = list[list.length - 1];
+            // More came in than one page: start from the newest page.
+            if (latest.length === PAGE && last && latest[0].created_at > last.created_at) {
+              setMore(true);
+              return latest;
+            }
+            const byId = new Map(latest.map((x) => [x.id, x]));
+            const kept = list.map((x) => byId.get(x.id) ?? x);
+            const seen = new Set(kept.map((x) => x.id));
+            return [...kept, ...latest.filter((x) => !seen.has(x.id))];
+          });
+          if (latest.some((x) => x.sender_id !== user.id)) markRead();
+        }
+      }
+      busy = false;
+    };
+    document.addEventListener("visibilitychange", catchUp);
+    window.addEventListener("online", catchUp);
+    return () => {
+      document.removeEventListener("visibilitychange", catchUp);
+      window.removeEventListener("online", catchUp);
     };
   }, [conversationId, user, addPeople, addUrls, markRead]);
 
@@ -116,7 +170,7 @@ export default function Thread({ conversationId, embedded = false }: { conversat
     return () => {
       sb.removeChannel(channel);
     };
-  }, [conversationId, user, addPeople, addUrls, markRead]);
+  }, [conversationId, user, addPeople, addUrls, markRead, resumed]);
 
   // Stay at the bottom when new messages arrive, unless reading older ones.
   useLayoutEffect(() => {
@@ -136,6 +190,14 @@ export default function Thread({ conversationId, embedded = false }: { conversat
     setMessages((list) => [...older, ...(list ?? [])]);
   }
 
+  if (failed && !messages) {
+    return (
+      <div className={embedded ? "" : "page narrow"} role="alert">
+        <p>Couldn&apos;t load this chat. Check your connection.</p>
+        <p><button type="button" className="chip" onClick={() => setResumed((n) => n + 1)}>Try again</button></p>
+      </div>
+    );
+  }
   if (missing) {
     return (
       <div className={embedded ? "" : "page narrow"}>
