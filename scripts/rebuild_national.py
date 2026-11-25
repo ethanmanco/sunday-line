@@ -1,13 +1,17 @@
-"""Rebuild every state, three at a time, then the Shreveport region, then tiles.
+"""Rebuild every state, three at a time, then Scenic v2, then tiles.
 
     python scripts/rebuild_national.py
 
-Used for the 11.33 rebuild. Each group runs scripts/run_states.py on its own
-(states already exported are skipped, so it can be restarted). Shared elevation
-and land cover tiles are kept until the end (SUNDAY_LINE_KEEP_TILES=1) so two
-neighboring states never delete each other's files; delete raw/dem and
-raw/landcover by hand afterwards. Keeps Windows awake while it runs.
-Set SUNDAY_LINE_DATA first.
+Each group runs scripts/run_states.py on its own (states already exported are
+skipped, so it can be restarted). Shared elevation and land cover tiles are
+kept until the end (SUNDAY_LINE_KEEP_TILES=1) so two neighboring states never
+delete each other's files; delete raw/dem and raw/landcover by hand afterwards.
+Keeps Windows awake while it runs. Set SUNDAY_LINE_DATA first.
+
+It stops at the first thing that fails (11.82): a state that didn't export,
+the Scenic pass, a missing state, or tiles. Exits 1 then, and the log says
+what to look at. Then publish by hand: scripts/publish_cells.py, and commit
+the small files in public/data/us.
 """
 from __future__ import annotations
 
@@ -48,19 +52,30 @@ def main() -> int:
                                       cwd=REPO, env=env, stdout=out, stderr=subprocess.STDOUT))
         log(f"group {i + 1} started: {g}", logf)
         time.sleep(60)
-    for i, p in enumerate(procs):
-        log(f"group {i + 1} exited {p.wait()}", logf)
+    codes = [p.wait() for p in procs]
+    for i, code in enumerate(codes):
+        log(f"group {i + 1} exited {code}", logf)
 
-    if not (data / "out" / "shreveport" / "export.json").exists():
-        with (data / "run_shreveport.log").open("a", encoding="utf-8") as out:
-            for step in ("hpms", "overture", "fetch", "score", "export"):
-                code = subprocess.call([py, "-m", "pipeline", step, "--region", "shreveport"],
-                                       cwd=REPO, env=env, stdout=out, stderr=subprocess.STDOUT)
-                log(f"shreveport {step}: exit {code}", logf)
-                if code:
-                    break
+    states = [st for g in GROUPS for st in g.split(",")]
+    missing = [st for st in states if not (data / "out" / st / "export.json").exists()]
+    if any(codes) or missing:
+        log(f"FAILED: states not exported: {', '.join(missing) or 'none'} (see run_states.log and run_<state>.log). "
+            "Fix and run this again; finished states are skipped. Nothing was published.", logf)
+        return 1
+
+    # Scenic v2 over the new exports (states already at the current version are skipped).
+    code = subprocess.call([py, "-m", "pipeline.scenic", "apply"], cwd=REPO, env=env)
+    log(f"scenic: exit {code}", logf)
+    if code:
+        log("FAILED at the Scenic pass. Nothing was published.", logf)
+        return 1
+
     code = subprocess.call([py, "-m", "pipeline", "tiles"], cwd=REPO, env=env)
     log(f"tiles: exit {code}", logf)
+    if code:
+        log("FAILED at tiles. Nothing was published.", logf)
+        return 1
+    log("all done. Next: python scripts/publish_cells.py, then commit public/data/us.", logf)
     return 0
 
 

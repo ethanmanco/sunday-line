@@ -347,8 +347,10 @@ def new_tags(parts: dict) -> list[str]:
         ("byway", parts["byway"] > 0)) if v]
 
 
-def apply_state(path: Path, raw: Path, wt: dict, sc1: dict, overall_w: float) -> int:
+def apply_state(path: Path, raw: Path, wt: dict, sc1: dict, overall_w: float, force: bool = False) -> int:
     data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("scenic_version") == wt["version"] and not force:
+        return -1  # done already (11.82)
     dem, land = DemTiles(raw / "dem", fetch_missing=True), LandTiles(raw / "landcover", fetch_missing=True)
     roads = data["roads"]
     # Nearby roads together so tiles stay in memory.
@@ -379,6 +381,7 @@ def main() -> int:
     a.add_argument("--out", type=Path, default=DATA_DIR / "out")
     a.add_argument("--raw", type=Path, default=DATA_DIR / "raw")
     a.add_argument("--states", default="")
+    a.add_argument("--force", action="store_true", help="redo states already at this version")
     r = sub.add_parser("road")
     r.add_argument("line")
     r.add_argument("--raw", type=Path, default=DATA_DIR / "raw")
@@ -393,8 +396,8 @@ def main() -> int:
     states = [s for s in args.states.split(",") if s] or sorted(p.name for p in args.out.iterdir() if (p / "export.json").exists())
     for st in states:
         t0 = time.time()
-        n = apply_state(args.out / st / "export.json", args.raw, wt, cfg["scenery"], cfg["overall"]["scenic"])
-        print(f"{st}: {n} roads, {time.time() - t0:.0f}s", flush=True)
+        n = apply_state(args.out / st / "export.json", args.raw, wt, cfg["scenery"], cfg["overall"]["scenic"], args.force)
+        print(f"{st}: " + ("done already" if n < 0 else f"{n} roads, {time.time() - t0:.0f}s"), flush=True)
     return 0
 
 
