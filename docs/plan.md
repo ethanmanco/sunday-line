@@ -1053,3 +1053,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Your note: in the installed app, tapping your picture (the menu with notifications, groups and people) should close the road list if it's open.
 - It does now, on the home map: the list tucks away and the menu opens over the map. Checked in the installed-app layout (?app=1) on a phone-sized screen.
+
+### 11.90 Road list pills: double tap or hold opens the list (2026-11-25)
+
+- Your ask: double tapping Driver's roads, Scenic, Gravel, or Bounties (installed app) opens the list, and a long press too.
+- A single tap still just picks the list, with no wait. A second tap on the same pill within 0.35 s, or holding a pill for half a second, also opens the road list full. Moving your finger (scrolling the pills) cancels a hold, and the pills no longer bring up the phone's copy menu or zoom on a double tap.

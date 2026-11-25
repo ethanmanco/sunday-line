@@ -1146,7 +1146,7 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .app-pills { display: flex; gap: 8px; margin: 8px -12px 0; padding: 0 12px 4px; overflow-x: auto; scrollbar-width: none; }
 .app-pills::-webkit-scrollbar { display: none; }
 .app-pills:empty { display: none; }
-.app-pills .map-chip { flex: none; min-height: 36px; }
+.app-pills .map-chip { flex: none; min-height: 36px; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .you-scrim { position: fixed; inset: 0; z-index: 30; border: 0; padding: 0; background: rgba(5, 7, 10, 0.55); cursor: default; }
 .you-menu {
   position: fixed; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--app-edge, 0px) + 8px); z-index: 31;

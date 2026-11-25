@@ -47,6 +47,13 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
   useEffect(() => setMenu(false), [pathname]);
 
   const view = shell?.filters.view;
+  const pill = usePillGestures((key) => {
+    if (!shell) return;
+    shell.setShowRoads(true);
+    shell.setFilters({ ...shell.filters, view: key });
+  }, () => {
+    if (shell?.isSheet) shell.setSheet("full");
+  });
   return (
     <div className="app-bar">
       <div className="app-bar-row">
@@ -106,10 +113,7 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
             type="button"
             className="map-chip"
             aria-pressed={shell.showRoads && view === p.key}
-            onClick={() => {
-              shell.setShowRoads(true);
-              shell.setFilters({ ...shell.filters, view: p.key });
-            }}
+            {...pill(p.key)}
           >
             {p.label}
           </button>
@@ -119,6 +123,59 @@ export default function AppBar({ home, children }: { home: boolean; children?: R
       {menu && <YouMenu signedIn={signedIn} notes={notes} onClose={closeMenu} />}
     </div>
   );
+}
+
+/**
+ * The road list pills (11.90): a tap picks the list, as before, with no wait.
+ * A second tap on the same pill soon after, or holding it for half a second,
+ * also opens the list. Moving the finger (scrolling the pills) cancels a hold.
+ */
+function usePillGestures(pick: (key: View) => void, openList: () => void) {
+  const lastTap = useRef<{ key: View; at: number } | null>(null);
+  const hold = useRef<{ timer: number; x: number; y: number; fired: boolean } | null>(null);
+  const stopHold = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer);
+  };
+  useEffect(() => stopHold, []);
+
+  return (key: View) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      stopHold();
+      const h = { x: e.clientX, y: e.clientY, fired: false, timer: 0 };
+      h.timer = window.setTimeout(() => {
+        h.fired = true;
+        pick(key);
+        openList();
+      }, 500);
+      hold.current = h;
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const h = hold.current;
+      if (h && !h.fired && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 10) stopHold();
+    },
+    onPointerUp: stopHold,
+    onPointerCancel: stopHold,
+    onPointerLeave: stopHold,
+    // A long press on a phone would otherwise bring up the copy menu.
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onClick: () => {
+      if (hold.current?.fired) {
+        hold.current = null;
+        lastTap.current = null;
+        return;
+      }
+      const now = Date.now();
+      const again = lastTap.current?.key === key && now - lastTap.current.at < 350;
+      pick(key);
+      if (again) {
+        openList();
+        lastTap.current = null;
+      } else {
+        lastTap.current = { key, at: now };
+      }
+    },
+  });
 }
 
 function YouMenu({ signedIn, notes, onClose }: { signedIn: boolean; notes: number; onClose: () => void }) {
