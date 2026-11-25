@@ -164,10 +164,21 @@ export async function roadsById(ids: string[]): Promise<Record<string, RoadOnMap
     throw e;
   });
   const cells = await roadCellsP.catch(() => ({} as Record<string, string>));
-  const want = new Set(ids);
+  // Old IDs a rebuild changed (11.81) are looked up as the road they became.
+  let now: Record<string, string> = {};
+  if (ids.some((id) => !cells[id])) {
+    movedP ??= json<Record<string, string>>(`${DATA_BASE}/moved.json`).catch(() => ({}));
+    now = await movedP;
+  }
+  const asked = new Map<string, string[]>();
+  for (const id of ids) {
+    const real = cells[id] ? id : now[id];
+    if (real && cells[real]) asked.set(real, [...(asked.get(real) ?? []), id]);
+  }
   const found: Record<string, RoadOnMap> = {};
-  for (const key of new Set(ids.map((id) => cells[id]).filter(Boolean))) {
-    for (const r of await loadCell(key).catch(() => [] as RoadOnMap[])) if (want.has(r.id)) found[r.id] = r;
+  for (const key of new Set([...asked.keys()].map((id) => cells[id]))) {
+    for (const r of await loadCell(key).catch(() => [] as RoadOnMap[])) for (const id of asked.get(r.id) ?? []) found[id] = r;
   }
   return found;
 }
+let movedP: Promise<Record<string, string>> | null = null;

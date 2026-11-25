@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import RoadsPanel from "@/components/RoadsPanel";
 import { lengthText } from "@/lib/roads";
-import { findRoad } from "@/lib/serverData";
+import { findRoad, movedRoad } from "@/lib/serverData";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,6 +24,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function RoadPage({ params }: Params) {
   const { id } = await params;
   const road = await findRoad(id);
-  if (!road) notFound();
+  if (!road) {
+    // A road a rebuild gave a new ID: send old links to it (11.81).
+    const now = await movedRoad(id);
+    if (now) permanentRedirect(`/road/${now}`);
+    notFound();
+  }
   return <RoadsPanel initialRoadId={id} initialRoad={road} />;
 }

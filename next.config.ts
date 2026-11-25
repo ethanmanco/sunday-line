@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   // Road pages and preview images read the data file and fonts on the server.
   outputFileTracingIncludes: {
     // Only the small files: road squares are fetched from the site's static files.
-    "/road/[id]": ["./public/data/us/index.json", "./public/data/us/road-cells.json"],
+    "/road/[id]": ["./public/data/us/index.json", "./public/data/us/road-cells.json", "./public/data/us/moved.json"],
     "/road/[id]/opengraph-image": ["./public/data/us/index.json", "./public/data/us/road-cells.json", "./assets/fonts/*.ttf"],
     "/opengraph-image": ["./public/data/us/index.json", "./assets/fonts/*.ttf"],
     "/about": ["./public/data/us/index.json"],

@@ -39,6 +39,17 @@ const loadCell = cache(async (key: string): Promise<{ roads: Road[] }> => {
   return res.json() as Promise<{ roads: Road[] }>;
 });
 
+const loadMoved = cache(() => read<Record<string, string>>("moved.json").catch(() => ({} as Record<string, string>)));
+
+/**
+ * The road an old road ID became, when a rebuild changed it (11.81; written by
+ * pipeline/tiles.py). Null if it isn't a moved road.
+ */
+export async function movedRoad(id: string): Promise<string | null> {
+  if (!/^[a-f0-9]{12}$/.test(id)) return null;
+  return (await loadMoved())[id] ?? null;
+}
+
 /** A road by ID, from its square's file. */
 export async function findRoad(id: string): Promise<Road | null> {
   if (!/^[a-f0-9]{12}$/.test(id)) return null;

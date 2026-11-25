@@ -10,6 +10,7 @@ public/data/us/:
   blocks/<lat>_<lon>.json  the top roads per square in each 5-degree block, light (region view)
   cells/<lat>_<lon>.json   every road in that square, in full (zoomed in)
   road-cells.json   road ID -> square, so a shared road link finds its file
+  moved.json        old road ID -> the road it became, after a rebuild changed it (11.81)
 
 The app loads only the squares in view, so the whole country never has to
 download at once. A road belongs to the square holding the middle of its
@@ -154,6 +155,14 @@ def tiles() -> None:
         cells.setdefault(cell_key(r), []).append(r)
 
     (DEST / "cells").mkdir(parents=True, exist_ok=True)
+    # Roads in the last release that aren't in this one: find where they went (11.81).
+    from .moves import find_moves, merge_moves, ways_of
+    gone = ways_of(sorted((DEST / "cells").glob("*.json")), skip=set(best))
+    moved_file = DEST / "moved.json"
+    earlier = json.loads(moved_file.read_text(encoding="utf-8")) if moved_file.exists() else {}
+    found = find_moves(gone, {i: r.get("osm_way_ids") or [] for i, r in best.items()})
+    moved = merge_moves(earlier, found, set(best))
+    print(f"{len(gone)} roads left since the last release; {len(found)} matched to a new road; {len(moved)} old IDs redirect")
     for old in (DEST / "cells").glob("*.json"):
         old.unlink()
     blocks: dict[str, list[dict]] = {}
@@ -192,6 +201,7 @@ def tiles() -> None:
     if old_overview.exists():
         old_overview.unlink()
     (DEST / "road-cells.json").write_text(json.dumps(road_cells, separators=(",", ":")), encoding="utf-8")
+    moved_file.write_text(json.dumps(dict(sorted(moved.items())), separators=(",", ":")), encoding="utf-8")
     _names(best, region_of, road_cells)
     index = {
         "version": 1,
