@@ -8,7 +8,7 @@ import AdminActivity from "@/components/AdminActivity";
 import AdminQueues from "@/components/AdminQueues";
 import { ago } from "@/lib/headsUps";
 import { describe, loadNotifications, markAllRead, type AppNotification } from "@/lib/notifications";
-import { roadsById, type RoadOnMap } from "@/lib/roadData";
+import { roadNames } from "@/lib/roadData";
 import { getSupabase, rememberReturn } from "@/lib/supabase";
 
 /** Everything that happened that concerns you (11.40). Opening the page marks it all read. */
@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   const { ready, user, profile } = useAuth();
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [roads, setRoads] = useState<Record<string, RoadOnMap>>({});
+  const [roads, setRoads] = useState<Record<string, string>>({});
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [answered, setAnswered] = useState<Record<string, string>>({});
   // Still open, whatever the read mark says: follow requests (by who asked) and group invites (by group).
@@ -40,7 +40,7 @@ export default function NotificationsPage() {
       setOpenInvites(new Set(((i.data as { group_id: string }[] | null) ?? []).map((r) => r.group_id)));
     }
     const ids = [...new Set(list.map((n) => n.road_id).filter((x): x is string => !!x))];
-    if (ids.length) setRoads(await roadsById(ids));
+    if (ids.length) setRoads(await roadNames(ids));
   }, [user]);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function NotificationsPage() {
     );
   }
 
-  const roadName = (id: string) => roads[id]?.name ?? "a road";
+  const roadName = (id: string) => roads[id] ?? "a road";
   return (
     <div className="page narrow">
       <h1>Notifications</h1>
