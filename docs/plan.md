@@ -1010,3 +1010,12 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - National rebuild (scripts/rebuild_national.py): stops at the first failure (a state that didn't export, Scenic, a missing state, tiles) and says so; runs the Scenic v2 pass itself (states already at the current version are skipped); no longer tries Shreveport.
 - Backups: scripts/backup_db.ps1 saves the live database (structure, all app tables, accounts, roles) to E:\sunday-line-backups\<date>, keeping the newest 8. A Windows task runs it Sundays at 3 AM (or when the PC is next on). Photos in Storage aren't included.
 - Tests run on GitHub on every push (types, app tests, pipeline tests, database tests). A health check runs every three hours (the site, its road data, the road squares on GitHub Pages, the push sender and database); if anything fails, GitHub emails you.
+
+### 11.83 Keep a road for no signal (2026-11-25)
+
+- Your note: save a road for offline use, since good roads often have no signal.
+- A download button next to Save on each road's page keeps that road on the device: its square (all its details), the street map, labels and terrain shading along it (zoomed in, a ring of tiles around the road; zoomed out, just the road's own tiles), and the app's own files. Tap again to remove it; files another kept road still uses stay. A short 2-mile road in Texas takes about 6 MB, half of it the road square, which holds every road nearby.
+- The service worker (public/sw.js) now answers when the network doesn't: pages and data still come from the network first (within 6 seconds), so the site stays current; offline it opens the saved home page, and the map uses the kept tiles.
+- With no signal, the home list shows "Roads kept on this device" at the top (raised on phones). Phones often report being online with no data getting through, so the app asks the site itself whether it can be reached.
+- Kept roads are listed in this browser's storage only; nothing about them is sent anywhere.
+- Checked in Chromium with the network fully off: the app opened, listed the kept road, and opened it with the street map, labels and terrain. Not yet checked on an iPhone.

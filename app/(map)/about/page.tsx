@@ -94,6 +94,14 @@ export default async function About() {
         </li>
       </ul>
 
+      <h2 id="offline">Roads with no signal</h2>
+      <p>
+        Good roads often have no signal. On a road&apos;s page, tap the download button next to Save to keep that road on
+        your phone: its details and the map along it. With no signal, open Sunday Line and your kept roads are at the top
+        of the list. Tap the button again to remove one. Kept roads stay on this device only. Look them up before you go;
+        directions still open in your own maps app, which needs its own offline maps.
+      </p>
+
       <h2>Data and credits</h2>
       <ul>
         <li>
