@@ -8,8 +8,11 @@ import {
   type PavementCondition, type RoadCommunity, type RoadFlag, type RoadRating, type TrafficLevel, type VehicleKind, type Worth,
 } from "@/lib/supabase";
 
+/** A written review; the author is left off when you can't see their profile (11.84). */
 interface Note {
-  user_id: string;
+  user_id: string | null;
+  display_name: string | null;
+  username: string | null;
   worth: Worth | null;
   local_best: boolean;
   flags: RoadFlag[];
@@ -17,7 +20,6 @@ interface Note {
   vehicle: VehicleKind | null;
   note: string;
   updated_at: string;
-  profiles: { display_name: string; username: string } | null;
 }
 
 const LIMITS = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75];
@@ -84,10 +86,7 @@ export default function Community({ roadId, units, needsCheck = false }: { roadI
     if (!sb) return;
     const [s, n] = await Promise.all([
       sb.from("road_community").select("*").eq("road_id", roadId).maybeSingle(),
-      sb.from("road_ratings")
-        .select("user_id, worth, local_best, flags, pavement, vehicle, note, updated_at, profiles(display_name, username)")
-        .eq("road_id", roadId).not("note", "is", null).neq("note", "")
-        .order("updated_at", { ascending: false }).limit(10),
+      sb.rpc("road_reviews", { p_road: roadId, p_limit: 10 }),
     ]);
     if (s.error || n.error) {
       setFailed(true);
@@ -97,8 +96,9 @@ export default function Community({ roadId, units, needsCheck = false }: { roadI
     setSummary((s.data as RoadCommunity | null) ?? null);
     const ns = (n.data as unknown as Note[]) ?? [];
     setNotes(ns);
-    if (ns.length) {
-      const { data: t } = await sb.rpc("trusted_checkers", { p_ids: [...new Set(ns.map((x) => x.user_id))] });
+    const ids = [...new Set(ns.flatMap((x) => (x.user_id ? [x.user_id] : [])))];
+    if (ids.length) {
+      const { data: t } = await sb.rpc("trusted_checkers", { p_ids: ids });
       setTrusted(new Set(((t as string[] | null) ?? [])));
     }
     if (user) {
@@ -183,8 +183,8 @@ export default function Community({ roadId, units, needsCheck = false }: { roadI
             <li key={i}>
               <p>{n.note}</p>
               <p className="fine">
-                {n.profiles ? <Link href={`/u/${n.profiles.username}`}>{n.profiles.display_name}</Link> : "A member"}
-                {trusted.has(n.user_id) && <span className="trusted-badge" title="Their road checks have held up">Trusted checker</span>}
+                {n.username ? <Link href={`/u/${n.username}`}>{n.display_name}</Link> : "A member"}
+                {n.user_id && trusted.has(n.user_id) && <span className="trusted-badge" title="Their road checks have held up">Trusted checker</span>}
                 {n.vehicle ? `, ${n.vehicle === "car" ? "car" : "motorcycle"}` : ""}
                 {n.worth ? `, ${WORTH_LABEL[n.worth].toLowerCase()}` : ""}
                 {n.local_best ? ", one of the best around here" : ""}
