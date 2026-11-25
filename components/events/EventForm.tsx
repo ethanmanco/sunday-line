@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { linkedSpots, spotLabel, type Spot } from "@/lib/spots";
+import { getRoute, type RouteStop } from "@/lib/dayRoute";
 import {
-  browserTimeZone, RELEASE_PRESETS, REMINDER_PRESETS, toLocalInput, type GroupEvent,
+  browserTimeZone, RELEASE_PRESETS, REMINDER_PRESETS, routePayload, routeStops, toLocalInput, type EventRoad, type GroupEvent,
 } from "@/lib/events";
 
 /** Create or edit a group event: when, where (a spot), when the location is shared, and chat posts. */
@@ -32,6 +33,23 @@ export default function EventForm({ groupId, userId, event, currentSpotId, onSav
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The roads the group will drive (11.87), and whether they changed.
+  const [route, setRouteStops] = useState<RouteStop[]>([]);
+  const [routeChanged, setRouteChanged] = useState(false);
+  const [dayRouteCount, setDayRouteCount] = useState(0);
+
+  useEffect(() => {
+    setDayRouteCount(getRoute().length);
+    const sb = getSupabase();
+    if (!sb || !event) return;
+    sb.from("event_roads").select("*").eq("event_id", event.id).then(({ data }) => {
+      setRouteStops(routeStops((data as EventRoad[] | null) ?? []));
+    });
+  }, [event]);
+  const changeRoute = (r: RouteStop[]) => {
+    setRouteStops(r);
+    setRouteChanged(true);
+  };
 
   useEffect(() => {
     const sb = getSupabase();
@@ -114,6 +132,13 @@ export default function EventForm({ groupId, userId, event, currentSpotId, onSav
         return setError("Saved, but the location couldn't be set. Pick another spot.");
       }
     }
+    if (id && routeChanged) {
+      const { error } = await sb.rpc("set_event_route", { p_event: id, p_roads: routePayload(route) });
+      if (error) {
+        setBusy(false);
+        return setError("Saved, but the route couldn't be set. Try again.");
+      }
+    }
     setBusy(false);
     if (id) onSaved(id);
   }
@@ -152,6 +177,32 @@ export default function EventForm({ groupId, userId, event, currentSpotId, onSav
         </select>
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search public spots by name" aria-label="Search public spots" />
         <span className="fine">Add new places on the group&apos;s Spots tab or in your spots first.</span>
+      </fieldset>
+
+      <fieldset>
+        <legend>Route (optional)</legend>
+        {route.length > 0 ? (
+          <ol className="event-route-edit">
+            {route.map((s) => (
+              <li key={s.id}>
+                <span>{s.name}</span>
+                <button type="button" className="link danger" aria-label={`Take ${s.name} off the route`}
+                  onClick={() => changeRoute(route.filter((x) => x.id !== s.id))}>Remove</button>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <span className="fine">The roads you&apos;ll drive, in order. Build a day route first (on any road, &ldquo;Add to day route&rdquo;), then add it here.</span>
+        )}
+        <div className="row">
+          {dayRouteCount > 0 && (
+            <button type="button" className="link" onClick={() => changeRoute(getRoute())}>
+              {route.length ? "Replace with" : "Use"} my day route ({dayRouteCount} {dayRouteCount === 1 ? "road" : "roads"})
+            </button>
+          )}
+          {route.length > 0 && <button type="button" className="link danger" onClick={() => changeRoute([])}>Clear the route</button>}
+        </div>
+        <span className="fine">Members see the route when they see the location.</span>
       </fieldset>
 
       <fieldset>

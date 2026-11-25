@@ -11,8 +11,9 @@ import { directionsLinks } from "@/lib/roads";
 import { getSupabase, PROFILE_COLUMNS, rememberReturn, type Group, type Profile } from "@/lib/supabase";
 import { spotLabel, type Spot } from "@/lib/spots";
 import { usePageOnMap } from "@/lib/usePageOnMap";
+import { googleParts, routeMiles, routeOnMap, setRoute, getRoute } from "@/lib/dayRoute";
 import {
-  eventWhen, minutesText, releaseAt, RSVP_LABEL, type EventLocation, type GroupEvent, type RsvpStatus,
+  eventWhen, minutesText, releaseAt, routeStops, RSVP_LABEL, type EventLocation, type EventRoad, type GroupEvent, type RsvpStatus,
 } from "@/lib/events";
 
 
@@ -31,18 +32,21 @@ export default function EventView({ eventId }: { eventId: string }) {
   const [me, setMe] = useState<Membership | null>(null);
   const [location, setLocation] = useState<EventLocation | null>(null);
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
+  const [roads, setRoads] = useState<EventRoad[]>([]);
+  const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const stops = routeStops(roads);
   const shell = usePageOnMap(
     event?.title ?? null,
     event && location
-      ? [{
+      ? [...routeOnMap(stops), {
         id: `event-${event.id}`, owner_id: "", kind: location.kind, name: location.name, description: location.notes, category: location.category,
         lat: location.lat, lng: location.lng, road_id: null, road_region: null, start_frac: null, end_frac: null, line: location.line,
         show_on_profile: false, public_status: "none", public_note: null,
         submitted_at: null, reviewed_at: null, created_at: "",
       } satisfies Spot]
-      : event ? [] : null,
+      : event ? routeOnMap(stops) : null,
   );
 
   const load = useCallback(async () => {
@@ -58,12 +62,14 @@ export default function EventView({ eventId }: { eventId: string }) {
     }
     const ev = data as GroupEvent;
     setEvent(ev);
-    const [g, m, l, r] = await Promise.all([
+    const [g, m, l, r, rd] = await Promise.all([
       sb.from("groups").select("*").eq("id", ev.group_id).single(),
       sb.from("group_members").select("role, permissions").eq("group_id", ev.group_id).eq("user_id", user.id).maybeSingle(),
       sb.from("event_locations").select("*").eq("event_id", ev.id).maybeSingle(),
       sb.from("event_rsvps").select(`user_id, status, person:profiles!event_rsvps_user_id_fkey(${PROFILE_COLUMNS})`).eq("event_id", ev.id),
+      sb.from("event_roads").select("*").eq("event_id", ev.id).order("position"),
     ]);
+    setRoads((rd.data as EventRoad[] | null) ?? []);
     setGroup((g.data as Group | null) ?? null);
     setMe((m.data as Membership | null) ?? null);
     setLocation((l.data as EventLocation | null) ?? null);
@@ -73,6 +79,17 @@ export default function EventView({ eventId }: { eventId: string }) {
   useEffect(() => {
     if (ready) load();
   }, [ready, load]);
+
+  // A route road tapped on the map opens that road (11.87).
+  useEffect(() => {
+    const id = shell?.selectedSpotId;
+    if (id && roads.some((r) => r.road_id === id)) {
+      shell!.closeSpot();
+      shell!.selectRoad(id);
+    }
+    // When the tapped item changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shell?.selectedSpotId]);
 
   // Check again when the location is due, so it appears without a reload.
   useEffect(() => {
@@ -184,6 +201,36 @@ export default function EventView({ eventId }: { eventId: string }) {
           <p className="fine">No location yet.</p>
         )}
       </section>
+
+      {stops.length > 0 && (
+        <section aria-labelledby="route" className="day-route">
+          <h2 id="route">Route</h2>
+          <p className="fine">
+            {stops.length} {stops.length === 1 ? "road" : "roads"}, {Math.round(routeMiles(stops).roads)} mi on them. Plan it before you go.
+          </p>
+          <ol className="route-stops">
+            {stops.map((s, i) => (
+              <li key={s.id}>
+                <span className="route-num" aria-hidden="true">{i + 1}</span>
+                <Link href={`/road/${s.id}`} className="route-name"><b>{s.name}</b><span className="fine">{s.miles.toFixed(1)} mi</span></Link>
+                <span />
+              </li>
+            ))}
+          </ol>
+          <p className="go-links route-go">
+            {googleParts(stops, location ? [location.lng, location.lat] : null).map((p) => (
+              <a key={p.href} href={p.href} target="_blank" rel="noopener noreferrer">Google Maps: {p.label}{location ? ", from the meet spot" : ""}</a>
+            ))}
+          </p>
+          <p>
+            <button type="button" className="link" onClick={() => {
+              if (getRoute().length && !window.confirm("Replace your day route with this one?")) return;
+              setRoute(stops);
+              setCopied(true);
+            }}>{copied ? "Copied to your day route" : "Copy to my day route"}</button>
+          </p>
+        </section>
+      )}
 
       {ev.status === "scheduled" && !past && me && (
         <section aria-labelledby="rsvp">

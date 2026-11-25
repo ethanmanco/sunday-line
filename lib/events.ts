@@ -28,6 +28,36 @@ export interface EventLocation {
   notes: string | null;
 }
 
+/** A road on a meet's route (11.87), in driving order. */
+export interface EventRoad {
+  event_id: string;
+  position: number;
+  road_id: string;
+  name: string;
+  from_lng: number;
+  from_lat: number;
+  to_lng: number;
+  to_lat: number;
+  line: string | null;
+  miles: number | null;
+}
+
+/** An event route as day-route stops (driven from -> to), for directions and the map. */
+export function routeStops(roads: EventRoad[]): import("./dayRoute").RouteStop[] {
+  return [...roads].sort((a, b) => a.position - b.position).map((r) => ({
+    id: r.road_id, name: r.name, near: null, state: null, cell: null,
+    start: [r.from_lng, r.from_lat], end: [r.to_lng, r.to_lat], line: r.line ?? "", miles: r.miles ?? 0,
+  }));
+}
+
+/** Day-route stops as what set_event_route takes. */
+export function routePayload(stops: import("./dayRoute").RouteStop[]) {
+  return stops.map((s) => ({
+    road_id: s.id, name: s.name, line: s.line, miles: Math.round(s.miles * 10) / 10,
+    from: s.reversed ? s.end : s.start, to: s.reversed ? s.start : s.end,
+  }));
+}
+
 export type RsvpStatus = "going" | "maybe" | "no";
 
 export const RSVP_LABEL: Record<RsvpStatus, string> = { going: "Going", maybe: "Maybe", no: "Can't make it" };
