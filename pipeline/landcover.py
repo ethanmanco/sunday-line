@@ -62,7 +62,8 @@ class Landcover:
         for target, mask in (
             (self.tree, arr == TREE),
             (self.water, arr == WATER),
-            (self.wetland, np.isin(arr, WETLAND)),
+            # Not np.isin: numpy 2.4 mis-indexes uint8 pixels with it (IndexError).
+            (self.wetland, (arr == WETLAND[0]) | (arr == WETLAND[1])),
             (self.built, arr == BUILT),
         ):
             f = frac(mask)
