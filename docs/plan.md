@@ -1064,3 +1064,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Your report: on the iPhone app, tapping your picture with a list (or a road, group, and so on) half open put the menu behind it.
 - Why: the menu was inside the floating top bar, which sits below the sheet, so no sheet but the home list (closed by 11.89) ever got out of the way.
 - Now the menu opens on the page itself, over everything, with the rest dimmed. Closing it leaves whatever was open exactly as it was. The 11.89 step that closed the list is gone, so it works the same everywhere.
+
+### 11.92 No slurs in usernames (2026-11-26)
+
+- Your ask: you can't create a username with slurs; curse words are okay.
+- The database refuses them (private.username_has_slur, check username_not_allowed), so no app or script can get around it. The profile form says "That username isn't allowed." as you type and won't save (lib/usernameWords.ts, the same lists).
+- Covered: racial and ethnic slurs, anti-gay and anti-trans slurs, and "retard". Number swaps count as letters (n1gg3r), repeated letters still match, and underscores don't split a word. Short ones that turn up inside ordinary words ("spicy", "raccoon", "Montenegro", "Japan") only count on their own or set off by underscores, so a few run-together forms get through; that's the trade for not blocking ordinary names.
+- Curse words stay allowed. Display names, bios, and everything else people write are still not checked.
+- Every live username passed the rule before it went on (13 checked).

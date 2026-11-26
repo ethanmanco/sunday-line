@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { cleanUsername, getSupabase, RESERVED_USERNAMES, USERNAME_PATTERN } from "@/lib/supabase";
+import { usernameHasSlur } from "@/lib/usernameWords";
 
-export type Availability = "idle" | "checking" | "available" | "taken" | "reserved" | "invalid";
+export type Availability = "idle" | "checking" | "available" | "taken" | "reserved" | "not_allowed" | "invalid";
 
-export const BLOCKING: Availability[] = ["taken", "reserved", "invalid", "checking"];
+export const BLOCKING: Availability[] = ["taken", "reserved", "not_allowed", "invalid", "checking"];
 
 /** Username input that checks availability as it's typed. */
 export default function UsernameField({ value, current, onChange, onAvailability }: {
@@ -21,6 +22,7 @@ export default function UsernameField({ value, current, onChange, onAvailability
     if (!value || value === current) next = "idle";
     else if (!USERNAME_PATTERN.test(value)) next = "invalid";
     else if (RESERVED_USERNAMES.has(value)) next = "reserved";
+    else if (usernameHasSlur(value)) next = "not_allowed";
     if (next) {
       setAvailability(next);
       onAvailability(next);
@@ -52,9 +54,10 @@ export default function UsernameField({ value, current, onChange, onAvailability
     available: `@${value} is available.`,
     taken: `@${value} is taken.`,
     reserved: `@${value} is reserved.`,
+    not_allowed: "That username isn't allowed.",
     invalid: "3 to 20 letters, numbers, or underscores.",
   };
-  const bad = ["taken", "reserved", "invalid"].includes(availability);
+  const bad = ["taken", "reserved", "not_allowed", "invalid"].includes(availability);
 
   return (
     <label>
@@ -82,6 +85,7 @@ export function profileSaveError(code: string | undefined, message: string): str
   if (code === "23505") return "That username is taken. Try another.";
   if (code === "23514") {
     if (message.includes("reserved")) return "That username is reserved. Try another.";
+    if (message.includes("not_allowed")) return "That username isn't allowed. Try another.";
     if (message.includes("bio")) return "Keep the bio to 300 characters.";
     return "Usernames are 3 to 20 letters, numbers, or underscores. Display names are 2 to 40 characters.";
   }

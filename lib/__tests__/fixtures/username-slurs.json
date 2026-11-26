@@ -1,0 +1,16 @@
+{
+  "_note": "Shared by lib/__tests__/usernameWords.test.ts and supabase/tests/database/username_slurs.test.sql (11.92). The TS test checks the SQL test lists every name here.",
+  "blocked": [
+    "nigger", "n1gg3r", "niiigga", "big_nigga_7", "n_i_g_g_e_r", "nigguh", "nig",
+    "faggot", "f4gg0t", "fag", "big_fag", "fag69", "fagget",
+    "spic", "spics", "kike", "coon", "gook", "chink", "dyke",
+    "tranny", "trannie", "retard", "retarded", "wetback", "beaner",
+    "towelhead", "raghead", "paki", "jap", "wop", "negro"
+  ],
+  "allowed": [
+    "fuck_yeah", "shitbox_racer", "damn_fast", "asshole", "bitchin_rides", "dick_miata",
+    "spicy_miata", "raccoon", "coonhound", "cocoon", "montenegro", "niger_river", "nigeria",
+    "japan", "japanese", "pakistan", "chinook", "scunthorpe", "fire_retardant", "transport",
+    "fagan", "spock", "bigfoot", "driver_123"
+  ]
+}
