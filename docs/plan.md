@@ -1102,3 +1102,11 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Nothing more than a signed-out visitor sees: the cards read with the public key only. A private profile's card shows its name, picture and banner (all public already) with "Private profile", and no cars or bio. A private group, or a link to nothing, gets a plain "A group on Sunday Line" card with no name.
 - Cards are JPEGs of 20 to 60 KB (some apps skip preview images over about 300 KB). Uploaded pictures are WebP, which the card maker can't draw, so they're redrawn as JPEG first; if that ever fails the card shows the first letter instead.
 - X shows these as large cards. Cards refresh within the hour after a change; apps that already fetched one may keep their own copy longer.
+
+### 11.96 A fuller public group page for visitors (2026-11-27)
+
+- Your ask: the visitor-view suggestion from the profile and group review.
+- Someone who isn't in a public group (signed in or not) now sees an "about" box under the description: who the organizer is (tap through to their profile), how many events are coming up ("2 upcoming events · members see the dates and meet spots", or "No events planned right now"), whether anyone can join or the organizers approve new members, and when the group started.
+- Nothing about the events themselves: no titles, dates, times, or places, and still no member list. The database hands out only the organizer and the count (public.group_visitor_summary). Private groups return nothing to outsiders, same as before.
+- The note under it now reads "Join to see the group's events, meet spots, chat, and who's in it."
+- Fixed in passing: the group page asked for the group chat even when no one was signed in (a 401 in the console).

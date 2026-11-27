@@ -8,6 +8,7 @@ import Thread from "@/components/messages/Thread";
 import GroupManage from "./GroupManage";
 import GroupMembers from "./GroupMembers";
 import GroupSpots from "./GroupSpots";
+import GroupVisitorInfo from "./GroupVisitorInfo";
 import GroupEvents from "@/components/events/GroupEvents";
 import { openPhoto } from "@/components/PhotoViewer";
 import { usePageOnMap } from "@/lib/usePageOnMap";
@@ -87,7 +88,8 @@ export default function GroupView({ shortId }: { shortId: string }) {
       user
         ? sb.from("join_requests").select("group_id").eq("group_id", g.id).eq("user_id", user.id).maybeSingle()
         : Promise.resolve({ data: null }),
-      sb.from("conversations").select("id").eq("group_id", g.id).maybeSingle(),
+      // The chat is members-only; signed-out visitors don't ask (it was a 401 in the console).
+      user ? sb.from("conversations").select("id").eq("group_id", g.id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     setCount((c.data as number | null) ?? null);
     setMe((m.data as Membership | null) ?? null);
@@ -226,7 +228,8 @@ export default function GroupView({ shortId }: { shortId: string }) {
         </>
       ) : (
         <>
-          <p className="panel-note">Members see the group&apos;s events, spots, chat, and who&apos;s in the group.</p>
+          <GroupVisitorInfo group={g} />
+          <p className="panel-note">Join to see the group&apos;s events, meet spots, chat, and who&apos;s in it.</p>
           <GroupSpots group={g} me={null} myId={user?.id ?? null}
             onFocus={(id) => shell?.focusSpot(id)} onChanged={() => loadMap(g.id, false)} />
         </>

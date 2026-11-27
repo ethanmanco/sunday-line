@@ -350,6 +350,11 @@ button.button.ghost { background: none; color: var(--text); border: 1px solid va
 .list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 18px 0 8px; }
 .list-head h2 { margin: 0; font-size: 20px; }
 .group-head { position: relative; }
+/* What a visitor sees of a public group (11.96). */
+.visitor-info { background: var(--raised); border-radius: 12px; padding: 6px 14px 12px; margin-top: 16px; }
+.visitor-info .people { margin: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.visitor-info .facts { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.visitor-info .facts li { margin: 0; }
 .banner-back { position: absolute; top: 10px; left: 10px; z-index: 1; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(15, 16, 18, 0.7); color: #fff; }
 .banner-back:hover { color: #fff; background: rgba(15, 16, 18, 0.9); }
 .panel-note { background: var(--raised); border-radius: 10px; padding: 14px; margin-top: 16px; }
