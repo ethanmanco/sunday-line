@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePageOnMap } from "@/lib/usePageOnMap";
-import { bestOrder, getRoute, googleParts, moveStop, routeMiles, routeOnMap, setRoute, type RouteStop } from "@/lib/dayRoute";
+import { bestOrder, getRoute, getStopsPerRoad, googleParts, moveStop, routeMiles, routeOnMap, setRoute, setStopsPerRoad, type RouteStop, type StopsPerRoad } from "@/lib/dayRoute";
 import { keepOffline, isKept, offlineSupported } from "@/lib/offline";
 import { loadCell } from "@/lib/roadData";
 
@@ -15,6 +15,7 @@ export default function DayRoute() {
   const [stops, setStops] = useState<RouteStop[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
   const [canKeep, setCanKeep] = useState(false);
+  const [per, setPer] = useState<StopsPerRoad>("one");
   const onMap = useMemo(() => routeOnMap(stops), [stops]);
   const shell = usePageOnMap(stops.length ? "Day route" : null, stops.length ? onMap : null);
 
@@ -22,6 +23,7 @@ export default function DayRoute() {
     const update = () => setStops(getRoute());
     update();
     setCanKeep(offlineSupported());
+    setPer(getStopsPerRoad());
     window.addEventListener("sl-route", update);
     return () => window.removeEventListener("sl-route", update);
   }, []);
@@ -42,7 +44,7 @@ export default function DayRoute() {
     setRoute(list);
   };
   const miles = routeMiles(stops);
-  const parts = googleParts(stops);
+  const parts = googleParts(stops, null, per);
 
   async function keepAll() {
     for (const s of stops) {
@@ -106,9 +108,17 @@ export default function DayRoute() {
           {saving && <p className="fine" role="status">{saving}</p>}
           <section className="go" aria-label="Directions">
             <h2>Directions</h2>
+            <div className="seg" role="group" aria-label="Stops in Google Maps">
+              {([["one", "One stop a road"], ["ends", "Both ends"]] as [StopsPerRoad, string][]).map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={per === k} onClick={() => { setPer(k); setStopsPerRoad(k); }}>{label}</button>
+              ))}
+            </div>
             <p className="fine">
-              Opens Google Maps with each road&apos;s two ends as stops, starting from wherever you are.
-              {parts.length > 1 && " One link holds five roads, so the route comes in parts."}
+              {per === "one"
+                ? "One stop halfway along each road, ending at the far end of the last one. Fewer stops to clear along the way; Google picks how to get on and off each road."
+                : "Each road's two ends as stops, so every road is driven end to end. Twice as many stops to clear."}
+              {" "}Starts from wherever you are.
+              {parts.length > 1 && ` One link holds ${per === "one" ? "nine roads" : "five roads"}, so the route comes in parts.`}
             </p>
             <p className="go-links route-go">
               {parts.map((p) => (

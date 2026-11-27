@@ -1115,3 +1115,10 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 
 - Tapping or dragging the handle to switch between half and full screen sometimes opened the profile or group banner on an iPhone. The handle moves the sheet as the finger lifts, and the phone's click comes after, aimed at the nearest button: since 11.93 that's the banner right under the handle.
 - The handle now drops the one stray click that follows its own tap or drag, if it lands anywhere other than the handle, for up to 0.4 seconds. A real tap on the banner afterwards still opens it.
+
+### 11.98 Fewer stops in the day route's Google Maps link (2026-11-27)
+
+- The day route sent each road's two ends to Google Maps as stops, so a few roads meant a long list of stops to clear one by one in the car (hard on CarPlay).
+- Now the default is one stop halfway along each road (by distance along its line), ending at the far end of the last road. Half as many stops, and one link holds nine roads instead of five. Google picks how to get on and off each road.
+- A switch under Directions, "One stop a road" or "Both ends", brings back the old way when you want every road driven end to end. The choice is kept on this device. Event routes use one stop a road.
+- Google Maps links can't skip the stop at a point (no pass-through points), so one stop a road is as close to a single line as a link can get.

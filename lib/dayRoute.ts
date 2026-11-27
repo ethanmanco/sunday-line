@@ -2,6 +2,7 @@
 // as one set of directions in the person's own maps app. Kept in this
 // browser's storage only; nothing about it is sent anywhere.
 
+import { decodePolyline } from "./polyline";
 import { haversineMi } from "./roads";
 import type { LoadedRoad } from "./types";
 import type { Spot } from "./spots";
@@ -110,24 +111,72 @@ export function routeMiles(stops: RouteStop[]): { roads: number; between: number
   return { roads: stops.reduce((a, s) => a + s.miles, 0), between };
 }
 
+/** The point halfway along a road's line (by distance); the middle of its ends if there's no line. */
+export function middle(s: RouteStop): LL {
+  const pts = s.line ? decodePolyline(s.line) : [];
+  if (pts.length < 2) return [(s.start[0] + s.end[0]) / 2, (s.start[1] + s.end[1]) / 2];
+  const legs = pts.slice(1).map((p, i) => haversineMi(pts[i], p));
+  let left = legs.reduce((a, b) => a + b, 0) / 2;
+  for (let i = 0; i < legs.length; i++) {
+    if (left <= legs[i] && legs[i] > 0) {
+      const t = left / legs[i];
+      return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t];
+    }
+    left -= legs[i];
+  }
+  return pts[pts.length - 1];
+}
+
 /**
- * Google Maps links for the route, in parts of up to five roads (a road is two
- * stops: its two ends). Each part starts from wherever the phone is.
+ * How the route goes into Google Maps (11.98). "one": a stop halfway along each
+ * road and the last road's far end, so there are half as many stops to clear
+ * and Google picks the way on and off each road. "ends": each road's two ends,
+ * so every road is driven end to end, two stops a road.
  */
-export function googleParts(stops: RouteStop[], from?: LL | null): { label: string; href: string }[] {
-  const points = stops.flatMap((s) => [entry(s), exit(s)]);
+export type StopsPerRoad = "one" | "ends";
+const STOPS_KEY = "sl-route-stops";
+export function getStopsPerRoad(): StopsPerRoad {
+  try {
+    return localStorage.getItem(STOPS_KEY) === "ends" ? "ends" : "one";
+  } catch {
+    return "one";
+  }
+}
+export function setStopsPerRoad(v: StopsPerRoad) {
+  try {
+    localStorage.setItem(STOPS_KEY, v);
+  } catch {
+    // Storage blocked: the choice lasts until the page closes.
+  }
+}
+
+/**
+ * Google Maps links for the route: one link while it fits (a destination and
+ * nine stops), parts after that. Each part starts from wherever the phone is.
+ */
+export function googleParts(stops: RouteStop[], from?: LL | null, per: StopsPerRoad = "one"): { label: string; href: string }[] {
+  // Each point remembers which road it belongs to, for the part labels.
+  const points: { p: LL; road: number }[] = per === "ends"
+    ? stops.flatMap((s, i) => [{ p: entry(s), road: i }, { p: exit(s), road: i }])
+    : stops.length
+      ? [...stops.map((s, i) => ({ p: middle(s), road: i })), { p: exit(stops[stops.length - 1]), road: stops.length - 1 }]
+      : [];
   const parts: { label: string; href: string }[] = [];
-  for (let i = 0; i < points.length; i += POINTS_PER_LINK) {
-    const chunk = points.slice(i, i + POINTS_PER_LINK);
-    const ll = (p: LL) => `${p[1].toFixed(5)},${p[0].toFixed(5)}`;
-    const dest = chunk[chunk.length - 1];
-    const way = chunk.slice(0, -1).map(ll).join("|");
-    const first = i / 2 + 1;
-    const last = Math.min(stops.length, (i + chunk.length) / 2);
+  const ll = (p: LL) => `${p[1].toFixed(5)},${p[0].toFixed(5)}`;
+  for (let i = 0; i < points.length;) {
+    let end = Math.min(points.length, i + POINTS_PER_LINK);
+    // Don't leave a last part that's only the final road's far end.
+    if (points.length - end === 1) end -= 1;
+    const chunk = points.slice(i, end);
+    const dest = chunk[chunk.length - 1].p;
+    const way = chunk.slice(0, -1).map((c) => ll(c.p)).join("|");
+    const first = chunk[0].road + 1;
+    const last = chunk[chunk.length - 1].road + 1;
     parts.push({
-      label: points.length > POINTS_PER_LINK ? `Roads ${first} to ${last}` : "Whole route",
+      label: points.length > POINTS_PER_LINK ? (first === last ? `Road ${first}` : `Roads ${first} to ${last}`) : "Whole route",
       href: `https://www.google.com/maps/dir/?api=1&travelmode=driving${from && i === 0 ? `&origin=${ll(from)}` : ""}&destination=${ll(dest)}${way ? `&waypoints=${encodeURIComponent(way)}` : ""}`,
     });
+    i = end;
   }
   return parts;
 }
