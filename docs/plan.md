@@ -1082,3 +1082,14 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Tap a profile's or group's banner or uploaded picture to see it full screen.
 - A group's member list shows each member's first car under their name ("1986 Audi Quattro +1"). The database decides whose garage you may see, same as on their profile.
 - Fixed in passing: the member list nested a list item inside another one (a React warning).
+
+### 11.94 Faster photos (2026-11-27)
+
+- Your ask: the faster-photos suggestion from the profile and group review.
+- Gallery photos get a small copy (480 px, thumb-<name> beside the photo) made in the browser at upload. Profile photo grids and your gallery editor show the small copy; tapping still opens the full photo. A photo that's already small keeps no copy, and GIFs keep none (they'd stop moving). If a copy is missing the grid shows the full photo, so nothing breaks.
+- Privacy is unchanged: the storage rule goes by the owner's folder, so the small copy is visible to exactly who can see the photo. No database change.
+- Photos from before this get their small copy the next time their owner looks at their own profile or gallery.
+- Photo links are reused for 50 minutes instead of made fresh on every page, per person signed in. Going back to a profile or group asks for no new links and shows photos from the browser's cache.
+- New uploads (gallery, cars, group pictures) tell browsers they can keep the file for a week; every upload gets a new name, so that's safe.
+- Room: the 150-file limit per person still fits 10 cars x 8 photos, 24 gallery photos with their copies, and the crop sources.
+- Car photos keep one size: they show nearly full width, where a small copy would look soft.

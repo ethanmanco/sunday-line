@@ -108,6 +108,21 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
   return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
+/**
+ * Small copy of a gallery photo for the grid (11.94). About 3x a phone grid
+ * square, so it stays sharp on high-density screens.
+ */
+export const THUMB = { width: 480, height: 480, maxBytes: 1048576 };
+
+/** Where a photo's small copy lives: beside it, named thumb-<its name>. Same folder, same privacy. */
+export function thumbPath(path: string): string {
+  const i = path.lastIndexOf("/");
+  return `${path.slice(0, i + 1)}thumb-${path.slice(i + 1)}`;
+}
+
+/** Uploaded paths are never reused, so browsers may keep them for a week. */
+export const IMMUTABLE_CACHE = "604800";
+
 /** A random file name inside the person's own folder. */
 export function newPath(userId: string, prefix: string, ext: string): string {
   return `${userId}/${prefix}-${crypto.randomUUID()}.${ext}`;

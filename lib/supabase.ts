@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { thumbPath } from "./images";
 
 // Both values are public. Row level security in the database decides what
 // anyone can read or change.
@@ -155,13 +156,47 @@ export interface Group {
 
 /** Group pictures are private files: short-lived signed links for people who can see the group. */
 export async function signedGroupUrls(paths: (string | null)[]): Promise<Record<string, string>> {
+  return signCached("group-images", paths.filter((p): p is string => !!p));
+}
+
+// Signed links are reused while they have time left (11.94). A fresh link is a
+// new address, so the browser would download the same photo again; reusing it
+// lets going back to a profile or group show photos from the browser's cache.
+// Keyed by who is signed in, so a link is never handed to someone else.
+const SIGN_SECONDS = 3600;
+const signCache = new Map<string, { url: string | null; until: number }>();
+
+async function signCached(bucket: string, paths: string[]): Promise<Record<string, string>> {
   const sb = getSupabase();
-  const list = paths.filter((p): p is string => !!p);
   const out: Record<string, string> = {};
-  if (!sb || !list.length) return out;
-  const { data } = await sb.storage.from("group-images").createSignedUrls(list, 3600);
-  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  if (!sb || !paths.length) return out;
+  const who = (await sb.auth.getSession()).data.session?.user.id ?? "anon";
+  const now = Date.now();
+  const need: string[] = [];
+  for (const p of new Set(paths)) {
+    const hit = signCache.get(`${who}|${bucket}|${p}`);
+    if (hit && hit.until > now) {
+      if (hit.url) out[p] = hit.url;
+    } else need.push(p);
+  }
+  if (!need.length) return out;
+  const { data } = await sb.storage.from(bucket).createSignedUrls(need, SIGN_SECONDS);
+  const found = new Set<string>();
+  for (const d of data ?? []) {
+    if (!d.path || !d.signedUrl) continue;
+    out[d.path] = d.signedUrl;
+    found.add(d.path);
+    // Hand it out for 50 of its 60 minutes, so a page never gets one about to lapse.
+    signCache.set(`${who}|${bucket}|${d.path}`, { url: d.signedUrl, until: now + (SIGN_SECONDS - 600) * 1000 });
+  }
+  // Missing files (a photo without a small copy yet): don't ask again for a few minutes.
+  for (const p of need) if (!found.has(p)) signCache.set(`${who}|${bucket}|${p}`, { url: null, until: now + 5 * 60_000 });
   return out;
+}
+
+/** Forget cached links for these files (after uploading or removing them). */
+export function forgetSigned(bucket: string, paths: string[]) {
+  for (const key of [...signCache.keys()]) if (paths.some((p) => key.endsWith(`|${bucket}|${p}`))) signCache.delete(key);
 }
 
 export interface GroupMember {
@@ -249,11 +284,17 @@ export function publicImageUrl(path: string | null): string | null {
 
 /** Vehicle and gallery photos need a short-lived signed link (the database decides who may see them). */
 export async function signedMediaUrls(paths: string[]): Promise<Record<string, string>> {
-  const sb = getSupabase();
+  return signCached("profile-media", paths);
+}
+
+/**
+ * Links to the small copies of these gallery photos, keyed by the photo's own
+ * path (11.94). Photos without one yet are left out; show the full photo then.
+ */
+export async function signedThumbUrls(paths: string[]): Promise<Record<string, string>> {
+  const signed = await signCached("profile-media", paths.map(thumbPath));
   const out: Record<string, string> = {};
-  if (!sb || !paths.length) return out;
-  const { data } = await sb.storage.from("profile-media").createSignedUrls(paths, 3600);
-  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  for (const p of paths) if (signed[thumbPath(p)]) out[p] = signed[thumbPath(p)];
   return out;
 }
 

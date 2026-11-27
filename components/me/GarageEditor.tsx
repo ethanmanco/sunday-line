@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import VehicleCard from "@/components/profile/VehicleCard";
-import { ImageError, newPath, prepareImage, VEHICLE_PHOTO } from "@/lib/images";
+import { IMMUTABLE_CACHE, ImageError, newPath, prepareImage, VEHICLE_PHOTO } from "@/lib/images";
 import {
   getSupabase, signedMediaUrls, sortPhotos, vehicleName, type Vehicle, type VehicleKind, type VehiclePhoto,
 } from "@/lib/supabase";
@@ -103,7 +103,7 @@ async function uploadPhoto(userId: string, vehicleId: string, file: File, sort: 
   if (!sb) throw new ImageError("Not signed in.");
   const img = await prepareImage(file, VEHICLE_PHOTO);
   const path = newPath(userId, "vehicle", img.ext);
-  const up = await sb.storage.from("profile-media").upload(path, img.blob, { contentType: img.contentType });
+  const up = await sb.storage.from("profile-media").upload(path, img.blob, { contentType: img.contentType, cacheControl: IMMUTABLE_CACHE });
   if (up.error) throw new ImageError("Couldn't upload. Try again.");
   const { error } = await sb.from("vehicle_photos").insert({ vehicle_id: vehicleId, path, sort });
   if (error) {

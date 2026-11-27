@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ACCEPT_ATTR, GALLERY, ImageError, newPath, prepareImage } from "@/lib/images";
-import { getSupabase, signedMediaUrls, type Media } from "@/lib/supabase";
+import { ACCEPT_ATTR, GALLERY, IMMUTABLE_CACHE, ImageError, newPath, prepareImage } from "@/lib/images";
+import { getSupabase, signedMediaUrls, signedThumbUrls, type Media } from "@/lib/supabase";
+import { fillMissingThumbs, removePhotoFiles, uploadThumb } from "@/lib/thumbs";
 
 const MAX = 24;
 
 export default function GalleryEditor({ userId }: { userId: string }) {
   const [media, setMedia] = useState<Media[] | null>(null);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -19,7 +21,12 @@ export default function GalleryEditor({ userId }: { userId: string }) {
     const { data } = await sb.from("profile_media").select("*").eq("user_id", userId).order("sort").order("created_at", { ascending: false });
     const ms = (data as Media[] | null) ?? [];
     setMedia(ms);
-    setUrls(await signedMediaUrls(ms.map((m) => m.path)));
+    const paths = ms.map((m) => m.path);
+    const [full, small] = await Promise.all([signedMediaUrls(paths), signedThumbUrls(paths)]);
+    setUrls(full);
+    setThumbs(small);
+    // Photos from before small copies existed get one now (11.94).
+    if (await fillMissingThumbs(ms, small)) setThumbs(await signedThumbUrls(paths));
   }, [userId]);
 
   useEffect(() => {
@@ -38,12 +45,14 @@ export default function GalleryEditor({ userId }: { userId: string }) {
       try {
         const img = await prepareImage(file, GALLERY);
         path = newPath(userId, "photo", img.ext);
-        const up = await sb.storage.from("profile-media").upload(path, img.blob, { contentType: img.contentType });
+        const up = await sb.storage.from("profile-media").upload(path, img.blob, { contentType: img.contentType, cacheControl: IMMUTABLE_CACHE });
         if (up.error) throw new ImageError("Couldn't upload. Try again.");
+        // The small copy for the grid; if it fails, the grid shows the full photo.
+        if (img.kind === "image") await uploadThumb(img.blob, path);
         const { error } = await sb.from("profile_media").insert({ path, kind: img.kind, sort: 0 });
         if (error) throw new ImageError(error.message.includes("Limit") ? `That's the limit of ${MAX} photos.` : "Couldn't save. Try again.");
       } catch (e) {
-        if (path) await sb.storage.from("profile-media").remove([path]);
+        if (path) await removePhotoFiles(path);
         setError(`${file.name}: ${e instanceof ImageError ? e.message : "Couldn't upload."}`);
         break;
       }
@@ -56,7 +65,7 @@ export default function GalleryEditor({ userId }: { userId: string }) {
     const sb = getSupabase();
     if (!sb || !window.confirm("Remove this photo?")) return;
     await sb.from("profile_media").delete().eq("id", m.id);
-    await sb.storage.from("profile-media").remove([m.path]);
+    await removePhotoFiles(m.path);
     load();
   }
 
@@ -79,7 +88,7 @@ export default function GalleryEditor({ userId }: { userId: string }) {
               <li key={m.id}>
                 {urls[m.path] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={urls[m.path]} alt={m.caption ?? "Photo"} loading="lazy" />
+                  <img src={thumbs[m.path] ?? urls[m.path]} alt={m.caption ?? "Photo"} loading="lazy" />
                 )}
                 <input
                   aria-label="Caption"

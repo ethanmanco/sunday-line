@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Cropper from "@/components/me/Cropper";
-import { AVATAR, BANNER, BANNER_ASPECT, ImageError, prepareImage, type CropRect } from "@/lib/images";
+import { AVATAR, BANNER, BANNER_ASPECT, IMMUTABLE_CACHE, ImageError, prepareImage, type CropRect } from "@/lib/images";
 import { getSupabase, type CropBox, type Group } from "@/lib/supabase";
 
 type Which = "avatar" | "banner";
@@ -70,7 +70,7 @@ export default function GroupPictures({ group, urls, onChanged }: {
       const type = c.source.type || (c.ext === "jpg" ? "image/jpeg" : "image/webp");
       const img = await prepareImage(new File([c.source], `source.${c.ext}`, { type }), { ...(c.which === "avatar" ? AVATAR : BANNER), rect });
       made.image = newPath(c.which, img.ext);
-      if ((await sb.storage.from(BUCKET).upload(made.image, img.blob, { contentType: img.contentType })).error) throw new ImageError("Couldn't upload.");
+      if ((await sb.storage.from(BUCKET).upload(made.image, img.blob, { contentType: img.contentType, cacheControl: IMMUTABLE_CACHE })).error) throw new ImageError("Couldn't upload.");
       if (c.fresh) {
         made.source = newPath(`source-${c.which}`, c.ext);
         if ((await sb.storage.from(BUCKET).upload(made.source, c.source, { contentType: type })).error) throw new ImageError("Couldn't upload.");

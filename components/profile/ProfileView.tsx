@@ -13,8 +13,9 @@ import ProfileHeader, { type Counts } from "./ProfileHeader";
 import PersonRow from "./PersonRow";
 import RepLine from "./RepLine";
 import DrivenRoads, { type Driven } from "./DrivenRoads";
+import { fillMissingThumbs } from "@/lib/thumbs";
 import {
-  accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, sortPhotos,
+  accountsEnabled, getSupabase, PROFILE_COLUMNS, rememberReturn, signedMediaUrls, signedThumbUrls, sortPhotos,
   type FollowStatus, type Media, type Profile, type Vehicle, type VehiclePhoto,
 } from "@/lib/supabase";
 
@@ -39,6 +40,8 @@ export default function ProfileView({ username }: { username: string }) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [media, setMedia] = useState<Media[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  // Small copies for the photo grid (11.94).
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<Tab>("garage");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +78,14 @@ export default function ProfileView({ username }: { username: string }) {
     setMedia(ms);
     setFollow(((f.data as { status: FollowStatus } | null)?.status) ?? null);
     setBlocked(Boolean(b.data));
-    setUrls(await signedMediaUrls([...vps.map((x) => x.path), ...ms.map((x) => x.path)]));
+    const mediaPaths = ms.map((x) => x.path);
+    const [full, small] = await Promise.all([signedMediaUrls([...vps.map((x) => x.path), ...mediaPaths]), signedThumbUrls(mediaPaths)]);
+    setUrls(full);
+    setThumbs(small);
+    // Your own photos from before small copies existed get one now.
+    if (user?.id === person.id) {
+      fillMissingThumbs(ms, small).then(async (made) => { if (made) setThumbs(await signedThumbUrls(mediaPaths)); });
+    }
     // Public spots plus the ones the owner chose to show (the database decides).
     const [{ data: sp }, { data: pg }, { data: dr }] = await Promise.all([
       sb.rpc("profile_spots", { p_user: person.id }),
@@ -250,7 +260,7 @@ export default function ProfileView({ username }: { username: string }) {
               </div>
             )}
             {shown === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
-            {shown === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
+            {shown === "photos" && <Photos media={media} urls={urls} thumbs={thumbs} isMe={isMe} />}
             {shown === "spots" && <ProfileSpots spots={spots} groups={spotGroups} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
             {shown === "driven" && <DrivenRoads driven={driven} isMe={isMe} name={profile.display_name} />}
             {shown === "followers" && <FollowList personId={profile.id} direction="followers" />}
@@ -287,7 +297,7 @@ function Garage({ vehicles, photos, urls, isMe }: {
   );
 }
 
-function Photos({ media, urls, isMe }: { media: Media[]; urls: Record<string, string>; isMe: boolean }) {
+function Photos({ media, urls, thumbs, isMe }: { media: Media[]; urls: Record<string, string>; thumbs: Record<string, string>; isMe: boolean }) {
   if (!media.length) {
     return <p className="fine">{isMe ? <>No photos yet. <Link href="/me#photos">Add some</Link></> : "No photos yet."}</p>;
   }
@@ -300,7 +310,7 @@ function Photos({ media, urls, isMe }: { media: Media[]; urls: Record<string, st
         <li key={m.id}>
           <button type="button" className="photo-button" onClick={() => openPhotos(set, i)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={urls[m.path]} alt={set[i].alt} loading="lazy" />
+            <img src={thumbs[m.path] ?? urls[m.path]} alt={set[i].alt} loading="lazy" decoding="async" />
           </button>
         </li>
       ))}
