@@ -3,9 +3,15 @@ import Avatar from "@/components/Avatar";
 import type { Profile } from "@/lib/supabase";
 
 /** One person in a list: picture, name, @username, and optional buttons. */
-export default function PersonRow({ person, note, children }: { person: Profile; note?: string | null; children?: React.ReactNode }) {
+export default function PersonRow({ person, note, as: Tag = "li", children }: {
+  person: Profile;
+  note?: string | null;
+  /** "div" when the row sits inside a list item of its own (a group member with controls). */
+  as?: "li" | "div";
+  children?: React.ReactNode;
+}) {
   return (
-    <li className="person">
+    <Tag className="person">
       <Link href={`/u/${person.username}`} className="person-link">
         <Avatar person={person} size={40} />
         <span>
@@ -15,6 +21,6 @@ export default function PersonRow({ person, note, children }: { person: Profile;
         </span>
       </Link>
       {children && <span className="row">{children}</span>}
-    </li>
+    </Tag>
   );
 }

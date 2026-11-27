@@ -197,9 +197,24 @@ export default function ProfileView({ username }: { username: string }) {
     );
   }
 
+  // Four tabs fit on a phone (11.93): followers and following open from the
+  // counts instead, and visitors don't see tabs with nothing in them.
+  const sections = ([
+    ["garage", "Garage", vehicles.length],
+    ["photos", "Photos", media.length],
+    ["spots", "Spots", spots?.length ?? 0],
+    ["driven", "Driven", driven.length],
+  ] as [Tab, string, number][]).filter(([, , n]) => isMe || n > 0);
+  const listOpen = tab === "followers" || tab === "following" ? tab : null;
+  const shown: Tab | null = listOpen ?? (sections.some(([k]) => k === tab) ? tab : sections[0]?.[0] ?? null);
+  const open = !blocked && !locked;
+
   return (
     <div className="page profile">
-      <ProfileHeader profile={profile} counts={counts}>{action}</ProfileHeader>
+      <ProfileHeader profile={profile} counts={counts} listOpen={listOpen}
+        openList={open ? (which) => setTab(tab === which ? sections[0]?.[0] ?? "garage" : which) : undefined}>
+        {action}
+      </ProfileHeader>
       {!blocked && <RepLine userId={profile.id} isMe={isMe} />}
       {error && <p className="hint warn" role="alert">{error}</p>}
       {follow === "accepted" && !blocked && (
@@ -220,25 +235,27 @@ export default function ProfileView({ username }: { username: string }) {
         </p>
       ) : (
         <>
-          <div className="tabs" role="tablist" aria-label="Profile sections">
-            {([
-              ["garage", `Garage (${vehicles.length})`],
-              ["photos", `Photos (${media.length})`],
-              ["spots", `Spots (${spots?.length ?? 0})`],
-              ["driven", `Driven (${driven.length})`],
-              ["followers", "Followers"],
-              ["following", "Following"],
-            ] as [Tab, string][]).map(([k, label]) => (
-              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>
-            ))}
-          </div>
-          <div role="tabpanel">
-            {tab === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
-            {tab === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
-            {tab === "spots" && <ProfileSpots spots={spots} groups={spotGroups} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
-            {tab === "driven" && <DrivenRoads driven={driven} isMe={isMe} name={profile.display_name} />}
-            {tab === "followers" && <FollowList personId={profile.id} direction="followers" />}
-            {tab === "following" && <FollowList personId={profile.id} direction="following" />}
+          {sections.length > 0 && (
+            <div className="tabs" role="tablist" aria-label="Profile sections">
+              {sections.map(([k, label, n]) => (
+                <button key={k} type="button" role="tab" aria-selected={shown === k} onClick={() => setTab(k)}>{label} ({n})</button>
+              ))}
+            </div>
+          )}
+          <div role={listOpen ? undefined : "tabpanel"}>
+            {listOpen && (
+              <div className="list-head">
+                <h2>{listOpen === "followers" ? "Followers" : "Following"}</h2>
+                <button type="button" className="link" onClick={() => setTab(sections[0]?.[0] ?? "garage")}>Close</button>
+              </div>
+            )}
+            {shown === "garage" && <Garage vehicles={vehicles} photos={vehiclePhotos} urls={urls} isMe={isMe} />}
+            {shown === "photos" && <Photos media={media} urls={urls} isMe={isMe} />}
+            {shown === "spots" && <ProfileSpots spots={spots} groups={spotGroups} isMe={isMe} onFocus={(id) => shell?.focusSpot(id)} />}
+            {shown === "driven" && <DrivenRoads driven={driven} isMe={isMe} name={profile.display_name} />}
+            {shown === "followers" && <FollowList personId={profile.id} direction="followers" />}
+            {shown === "following" && <FollowList personId={profile.id} direction="following" />}
+            {shown === null && spots !== null && <p className="fine">Nothing on {profile.display_name}&apos;s profile yet.</p>}
           </div>
         </>
       )}
@@ -274,21 +291,19 @@ function Photos({ media, urls, isMe }: { media: Media[]; urls: Record<string, st
   if (!media.length) {
     return <p className="fine">{isMe ? <>No photos yet. <Link href="/me#photos">Add some</Link></> : "No photos yet."}</p>;
   }
+  // A tight three-across grid; captions show in the full-screen viewer (11.93).
+  const shown = media.filter((x) => urls[x.path]);
+  const set = shown.map((x, i) => ({ src: urls[x.path], alt: x.caption ?? `Photo ${i + 1} of ${shown.length}`, caption: x.caption }));
   return (
     <ul className="gallery">
-      {media.map((m) =>
-        urls[m.path] ? (
-          <li key={m.id}>
-            <button type="button" className="photo-button"
-              onClick={() => openPhotos(media.filter((x) => urls[x.path]).map((x) => ({ src: urls[x.path], alt: x.caption ?? "Photo" })),
-                media.filter((x) => urls[x.path]).indexOf(m))}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={urls[m.path]} alt={m.caption ?? "Photo"} loading="lazy" />
-            </button>
-            {m.caption && <p className="fine">{m.caption}</p>}
-          </li>
-        ) : null,
-      )}
+      {shown.map((m, i) => (
+        <li key={m.id}>
+          <button type="button" className="photo-button" onClick={() => openPhotos(set, i)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={urls[m.path]} alt={set[i].alt} loading="lazy" />
+          </button>
+        </li>
+      ))}
     </ul>
   );
 }

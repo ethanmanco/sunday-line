@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export interface Photo {
   src: string;
   alt: string;
+  /** Shown under the photo (11.93). */
+  caption?: string | null;
 }
 
 /** Open a photo full screen, over everything. */
@@ -75,6 +77,7 @@ export default function PhotoViewer() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={photo.src} alt={photo.alt} onClick={(e) => e.stopPropagation()} />
+      {photo.caption && <p className={`photo-caption${count > 1 ? " above-count" : ""}`} onClick={(e) => e.stopPropagation()}>{photo.caption}</p>}
       <button ref={closeBtn} type="button" className="photo-close" aria-label="Close photo" onClick={() => setSet(null)}>
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
       </button>

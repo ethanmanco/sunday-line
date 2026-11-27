@@ -9,6 +9,7 @@ import GroupManage from "./GroupManage";
 import GroupMembers from "./GroupMembers";
 import GroupSpots from "./GroupSpots";
 import GroupEvents from "@/components/events/GroupEvents";
+import { openPhoto } from "@/components/PhotoViewer";
 import { usePageOnMap } from "@/lib/usePageOnMap";
 import { linkedSpots, type Spot } from "@/lib/spots";
 import { accountsEnabled, getSupabase, rememberReturn, signedGroupUrls, type Group, type GroupRole } from "@/lib/supabase";
@@ -147,25 +148,39 @@ export default function GroupView({ shortId }: { shortId: string }) {
   } else if (g.join_policy === "open") {
     action = <button type="button" className="button" disabled={busy} onClick={join}>Join</button>;
   } else if (requested) {
-    action = <button type="button" className="button ghost" disabled={busy} onClick={withdraw}>Requested (tap to withdraw)</button>;
+    action = <button type="button" className="button ghost" disabled={busy} onClick={withdraw}>Requested</button>;
   } else {
     action = <button type="button" className="button" disabled={busy} onClick={() => setAsking(true)} aria-expanded={asking}>Ask to join</button>;
   }
 
-  const manages = me && (me.role === "organizer" || can(me, "approve") || can(me, "invites"));
+  const bannerUrl = g.banner_path ? urls[g.banner_path] : undefined;
+  const avatarUrl = g.avatar_path ? urls[g.avatar_path] : undefined;
+  const manages = me &&(me.role === "organizer" || can(me, "approve") || can(me, "invites"));
 
   return (
     <div className="page group">
+      {/* Laid out like a profile (11.93): the button beside the picture, a back arrow on the banner. */}
       <header className="group-head">
-        <div className="banner" style={g.banner_path && urls[g.banner_path] ? { backgroundImage: `url("${urls[g.banner_path]}")` } : undefined} />
+        <Link href="/groups" className="banner-back" aria-label="All groups">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Link>
+        {bannerUrl ? (
+          <button type="button" className="banner banner-button" style={{ backgroundImage: `url("${bannerUrl}")` }}
+            aria-label={`View the ${g.name} banner`} onClick={() => openPhoto(bannerUrl, `${g.name} banner`)} />
+        ) : (
+          <div className="banner" />
+        )}
         <div className="group-id">
-          {g.avatar_path && urls[g.avatar_path] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={urls[g.avatar_path]} alt="" className="group-avatar big" width={88} height={88} />
+          {avatarUrl ? (
+            <button type="button" className="avatar-button square" aria-label={`View the ${g.name} picture`}
+              onClick={() => openPhoto(avatarUrl, `${g.name} picture`)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={avatarUrl} alt="" className="group-avatar big" width={88} height={88} />
+            </button>
           ) : (
             <span className="group-mark big" aria-hidden="true">{g.name.trim()[0]?.toUpperCase()}</span>
           )}
-          <p className="fine"><Link href="/groups">All groups</Link></p>
+          <div className="profile-actions">{action}</div>
         </div>
         <h1>{g.name}</h1>
         <p className="handle">
@@ -173,7 +188,7 @@ export default function GroupView({ shortId }: { shortId: string }) {
             .filter(Boolean).join(" · ")}
         </p>
         {g.description && <p className="bio">{g.description}</p>}
-        <div className="row">{action}</div>
+        {requested && !me && <p className="fine">Waiting for the organizers to approve. Tap Requested to withdraw.</p>}
         {asking && !me && (
           <div className="form rate">
             <label>

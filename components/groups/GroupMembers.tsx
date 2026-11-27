@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import PersonRow from "@/components/profile/PersonRow";
 import { can, type Membership } from "./GroupView";
 import {
-  getSupabase, PERMISSION_LABEL, PROFILE_COLUMNS,
-  type Group, type GroupMember, type GroupPermission, type GroupRole,
+  getSupabase, PERMISSION_LABEL, PROFILE_COLUMNS, vehicleName,
+  type Group, type GroupMember, type GroupPermission, type GroupRole, type Vehicle,
 } from "@/lib/supabase";
 
 const ROLE_ORDER: Record<GroupRole, number> = { organizer: 0, moderator: 1, member: 2 };
@@ -17,6 +17,7 @@ export default function GroupMembers({ group, me, myId, onChanged }: {
   onChanged: () => void;
 }) {
   const [members, setMembers] = useState<GroupMember[] | null>(null);
+  const [cars, setCars] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,15 @@ export default function GroupMembers({ group, me, myId, onChanged }: {
       (a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || (a.person?.display_name ?? "").localeCompare(b.person?.display_name ?? ""),
     );
     setMembers(rows);
+    // Each member's first car under their name (11.93). The database decides
+    // whose garage you may see, same as on their profile.
+    const ids = rows.map((r) => r.user_id);
+    if (!ids.length) return;
+    const { data: vs } = await sb.from("vehicles").select("*").in("user_id", ids).order("sort").order("created_at");
+    const byUser: Record<string, Vehicle[]> = {};
+    for (const v of (vs as Vehicle[] | null) ?? []) (byUser[v.user_id] ??= []).push(v);
+    setCars(Object.fromEntries(Object.entries(byUser).map(([id, list]) =>
+      [id, list.length > 1 ? `${vehicleName(list[0])} +${list.length - 1}` : vehicleName(list[0])])));
   }, [group.id]);
 
   useEffect(() => {
@@ -61,7 +71,7 @@ export default function GroupMembers({ group, me, myId, onChanged }: {
           const canManage = isOrganizer && !self;
           return (
             <li key={m.user_id} className="member">
-              <PersonRow person={m.person}>
+              <PersonRow as="div" person={m.person} note={cars[m.user_id]}>
                 {m.role !== "member" && <span className="tag">{m.role === "organizer" ? "Organizer" : "Moderator"}</span>}
                 {(canManage || canRemove) && (
                   <button type="button" className="link" aria-expanded={open === m.user_id} onClick={() => setOpen(open === m.user_id ? null : m.user_id)}>

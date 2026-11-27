@@ -1072,3 +1072,13 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Covered: racial and ethnic slurs, anti-gay and anti-trans slurs, and "retard". Number swaps count as letters (n1gg3r), repeated letters still match, and underscores don't split a word. Short ones that turn up inside ordinary words ("spicy", "raccoon", "Montenegro", "Japan") only count on their own or set off by underscores, so a few run-together forms get through; that's the trade for not blocking ordinary names.
 - Curse words stay allowed. Display names, bios, and everything else people write are still not checked.
 - Every live username passed the rule before it went on (13 checked).
+
+### 11.93 Profiles and groups: quick fixes (2026-11-27)
+
+- Your ask: go over profiles and groups for usability; you picked the quick-fixes batch from the suggestions.
+- Profile tabs fit on a phone. The follower and following counts are buttons that open those lists (tap again or Close to go back), so those two tabs are gone. Visitors don't see tabs with nothing in them; you still see all four on your own profile, so you know where to add things.
+- A group's header is laid out like a profile: Join (or Ask to join, Requested, Leave, Organizer) sits beside the picture, and a back arrow on the banner goes to all groups. Tabs spread across the width, so Manage no longer runs off the edge.
+- Profile photos are a tight three-across grid. Captions show in the full-screen viewer instead of under each square.
+- Tap a profile's or group's banner or uploaded picture to see it full screen.
+- A group's member list shows each member's first car under their name ("1986 Audi Quattro +1"). The database decides whose garage you may see, same as on their profile.
+- Fixed in passing: the member list nested a list item inside another one (a React warning).
