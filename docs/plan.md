@@ -1122,3 +1122,7 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Now the default is one stop halfway along each road (by distance along its line), ending at the far end of the last road. Half as many stops, and one link holds nine roads instead of five. Google picks how to get on and off each road.
 - A switch under Directions, "One stop a road" or "Both ends", brings back the old way when you want every road driven end to end. The choice is kept on this device. Event routes use one stop a road.
 - Google Maps links can't skip the stop at a point (no pass-through points), so one stop a road is as close to a single line as a link can get.
+
+### 11.99 Refresh button on the admin stats (2026-11-27)
+
+- A Refresh button beside the "Site stats" heading reloads the same period without reloading the page. It reads "Refreshing..." while it works, and the date line under the period picker now ends with the time the numbers were last loaded ("updated 3:49 PM").

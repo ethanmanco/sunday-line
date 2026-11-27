@@ -187,6 +187,7 @@ export default function SiteStats() {
   const [visitors, setVisitors] = useState<Visitors | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [updated, setUpdated] = useState<Date | null>(null);
   const [roads, setRoads] = useState<Record<string, RoadOnMap>>({});
 
   const load = useCallback(async (r: Request) => {
@@ -209,6 +210,7 @@ export default function SiteStats() {
     setError(null);
     const s = data as Stats;
     setStats(s);
+    setUpdated(new Date());
 
     // Unique visitors come from Vercel through our own admin-only route.
     const { data: session } = await sb.auth.getSession();
@@ -245,7 +247,13 @@ export default function SiteStats() {
 
   return (
     <div className="page narrow stats">
-      <h1>Site stats</h1>
+      <div className="stats-head">
+        <h1>Site stats</h1>
+        {/* Reloads the same period (11.99); the numbers otherwise only load when the page opens. */}
+        <button type="button" className="button ghost small" disabled={busy} onClick={() => load(req)}>
+          {busy ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
       <p className="lead">Only you can see this page.</p>
 
       <PeriodPicker req={req} onChange={setReq} firstDay={stats?.first_day} />
@@ -254,6 +262,7 @@ export default function SiteStats() {
           {busy ? "Loading..." : stats.since === stats.until
             ? shortDay(stats.since, true)
             : `${shortDay(stats.since, stats.since.slice(0, 4) !== stats.until.slice(0, 4))} to ${shortDay(stats.until, true)}`}
+          {!busy && updated && ` · updated ${updated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
         </p>
       )}
 

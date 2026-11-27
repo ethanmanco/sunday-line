@@ -1190,6 +1190,8 @@ label.grow input { width: 100%; min-height: 44px; font-size: 16px; }
 .stats-period { margin: 4px 0 4px; }
 .stats-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .stats-range { margin: 8px 0 14px; }
+.stats-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stats-head h1 { margin-bottom: 0; }
 .stats-dates { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
 .stats-dates label { display: grid; gap: 4px; font-size: 13px; color: var(--dim); }
 .stats-dates input { background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 16px; min-height: 44px; padding: 0 10px; color-scheme: dark; }
