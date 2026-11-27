@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description,
     alternates: { canonical: `/g/${id}` },
     openGraph: { title: g.name, description, url: `/g/${id}` },
-    twitter: { card: "summary", title: g.name, description },
+    twitter: { card: "summary_large_image", title: g.name, description },
   };
 }
 

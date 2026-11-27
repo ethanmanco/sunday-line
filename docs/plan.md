@@ -1093,3 +1093,12 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - New uploads (gallery, cars, group pictures) tell browsers they can keep the file for a week; every upload gets a new name, so that's safe.
 - Room: the 150-file limit per person still fits 10 cars x 8 photos, 24 gallery photos with their copies, and the crop sources.
 - Car photos keep one size: they show nearly full width, where a small copy would look soft.
+
+### 11.95 Share previews for profiles and groups (2026-11-27)
+
+- Your ask: the link-preview suggestion from the profile and group review.
+- Pasting a profile link (/u/...) into iMessage, X, and the like now shows that person's own card: their banner, picture, name, @username, and their first car ("1986 Audi Quattro + 1 more"), or their bio if they have no car listed.
+- A public group's link shows its banner, picture, name, "Austin, TX · Car and bike group · 3 members", and the start of its description.
+- Nothing more than a signed-out visitor sees: the cards read with the public key only. A private profile's card shows its name, picture and banner (all public already) with "Private profile", and no cars or bio. A private group, or a link to nothing, gets a plain "A group on Sunday Line" card with no name.
+- Cards are JPEGs of 20 to 60 KB (some apps skip preview images over about 300 KB). Uploaded pictures are WebP, which the card maker can't draw, so they're redrawn as JPEG first; if that ever fails the card shows the first letter instead.
+- X shows these as large cards. Cards refresh within the hour after a change; apps that already fetched one may keep their own copy longer.
