@@ -1110,3 +1110,8 @@ Domain for email: not needed yet. Free stopgap when friends join: send sign-in e
 - Nothing about the events themselves: no titles, dates, times, or places, and still no member list. The database hands out only the organizer and the count (public.group_visitor_summary). Private groups return nothing to outsiders, same as before.
 - The note under it now reads "Join to see the group's events, meet spots, chat, and who's in it."
 - Fixed in passing: the group page asked for the group chat even when no one was signed in (a 401 in the console).
+
+### 11.97 The sheet handle no longer opens photos (2026-11-27)
+
+- Tapping or dragging the handle to switch between half and full screen sometimes opened the profile or group banner on an iPhone. The handle moves the sheet as the finger lifts, and the phone's click comes after, aimed at the nearest button: since 11.93 that's the banner right under the handle.
+- The handle now drops the one stray click that follows its own tap or drag, if it lands anywhere other than the handle, for up to 0.4 seconds. A real tap on the banner afterwards still opens it.

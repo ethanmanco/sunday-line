@@ -62,6 +62,7 @@ export default function SheetGrip({ state, title, canClose, panel, onDrag, onSna
         const total = panel.current?.parentElement?.getBoundingClientRect().height ?? window.innerHeight;
         onDrag(null);
         if (!s) return;
+        swallowNextClick();
         if (!s.moved) {
           // A tap: tucked or half opens up a step; full drops back to half.
           onSnap(state === "half" ? "full" : "half");
@@ -78,6 +79,23 @@ export default function SheetGrip({ state, title, canClose, panel, onDrag, onSna
       {state === "peek" && title && <span className="grip-title">{title}</span>}
     </div>
   );
+}
+
+/**
+ * After a tap or drag on the handle, the phone still sends a click. iPhones aim
+ * it at the nearest button and the sheet has already moved, so it could land on
+ * the banner or avatar under the handle and open the photo (11.97). Drop it.
+ */
+function swallowNextClick() {
+  const stop = (e: Event) => {
+    // Browsers that send it to the handle itself are fine; keep waiting for a stray one.
+    if ((e.target as Element | null)?.closest?.(".sheet-grip")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.removeEventListener("click", stop, true);
+  };
+  window.addEventListener("click", stop, true);
+  setTimeout(() => window.removeEventListener("click", stop, true), 400);
 }
 
 /** Height of the tucked sheet (just the handle and a title). */
